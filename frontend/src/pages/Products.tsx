@@ -4,7 +4,7 @@ import { CoursesTabs } from "../components/CoursesTabs";
 import { Modal } from "../components/Modal";
 import { ProductForm } from "../components/ProductForm";
 import { api, type Product, type ShoppingItem } from "../lib/api";
-import { normalize, productImage, useProducts } from "../lib/products";
+import { normalize, useProducts } from "../lib/products";
 
 export function Products() {
   const qc = useQueryClient();
@@ -44,35 +44,27 @@ export function Products() {
           <p className="mt-2 font-semibold">{products.length ? "Aucun produit trouvé" : "Ajoute tes produits habituels avec leur photo"}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <ul className="space-y-2">
           {filtered.map((p) => {
             const added = onList.has(p.id);
             return (
-              <div key={p.id} className="overflow-hidden rounded-3xl bg-white shadow-soft">
-                <button onClick={() => setEditing({ product: p })} className="block w-full text-left">
-                  {p.hasImage ? (
-                    <img src={productImage(p)} alt="" loading="lazy" className="aspect-square w-full object-cover" />
-                  ) : (
-                    <div className="flex aspect-square w-full items-center justify-center bg-mint-soft text-4xl">🛍️</div>
-                  )}
-                  <div className="px-3 pt-2">
-                    <p className="truncate font-extrabold">{p.name}</p>
-                    <p className="truncate text-xs font-semibold text-ink-soft">{p.note || " "}</p>
-                  </div>
+              <li key={p.id} className="flex items-center gap-2 rounded-2xl bg-white py-1 pl-4 pr-1 shadow-soft">
+                <button onClick={() => setEditing({ product: p })} className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left">
+                  <span className="truncate font-semibold">{p.name}</span>
+                  {p.hasImage && <span className="text-sm" aria-label="avec photo">📷</span>}
                 </button>
-                <div className="p-2">
-                  <button
-                    onClick={() => addToList.mutate(p)}
-                    disabled={added}
-                    className={`w-full rounded-xl py-2 text-sm font-bold transition active:scale-95 ${added ? "bg-mint-soft text-mint-deep" : "bg-mint"}`}
-                  >
-                    {added ? "✓ Dans la liste" : "+ Ajouter à la liste"}
-                  </button>
-                </div>
-              </div>
+                <button
+                  onClick={() => addToList.mutate(p)}
+                  disabled={added}
+                  aria-label={added ? `${p.name} est dans la liste` : `Ajouter ${p.name} à la liste`}
+                  className={`h-9 w-9 shrink-0 rounded-xl font-bold transition active:scale-95 ${added ? "bg-mint-soft text-mint-deep" : "bg-mint"}`}
+                >
+                  {added ? "✓" : "+"}
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
       {editing && (
