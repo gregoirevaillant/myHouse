@@ -5,6 +5,7 @@ const tabs = [
   { to: "/cartes", label: "Cartes", icon: "💳", active: "bg-lavender" },
   { to: "/repas", label: "Repas", icon: "🍽️", active: "bg-peach" },
   { to: "/courses", label: "Courses", icon: "🛒", active: "bg-mint" },
+  { to: "/depenses", label: "Dépenses", icon: "💶", active: "bg-sky" },
 ];
 
 export function Layout() {

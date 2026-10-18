@@ -37,3 +37,17 @@ export type MealSlot = "LUNCH" | "DINNER";
 export type Meal = { date: string; slot: MealSlot; text: string };
 
 export type ShoppingItem = { id: string; label: string; checked: boolean; createdAt: string };
+
+export type Member = { id: string; name: string; email: string };
+
+export type ExpenseShare = { userId: string; amountCents: number };
+export type Expense = {
+  id: string;
+  title: string;
+  amountCents: number;
+  paidById: string;
+  date: string;
+  isReimbursement: boolean;
+  shares: ExpenseShare[];
+};
+export type ExpenseInput = Omit<Expense, "id">;

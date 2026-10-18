@@ -3,6 +3,7 @@ import { Layout } from "./components/Layout";
 import { useMe } from "./lib/auth";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
+import { Expenses } from "./pages/Expenses";
 import { Login } from "./pages/Login";
 import { Meals } from "./pages/Meals";
 import { Profile } from "./pages/Profile";
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/cartes" element={<Cards />} />
         <Route path="/repas" element={<Meals />} />
         <Route path="/courses" element={<Shopping />} />
+        <Route path="/depenses" element={<Expenses />} />
         <Route path="/profil" element={<Profile />} />
       </Route>
       <Route path="/cartes/:id" element={<CardDetail />} />

@@ -15,6 +15,7 @@ model Household {
   cards         LoyaltyCard[]
   meals         Meal[]
   shoppingItems ShoppingItem[]
+  expenses      Expense[]
 }
 
 model User {
@@ -24,6 +25,8 @@ model User {
   passwordHash String
   householdId  String
   household    Household @relation(fields: [householdId], references: [id])
+  paid         Expense[]
+  shares       ExpenseShare[]
 }
 
 // ownerId: null = partagé dans le foyer, renseigné = privé (pour plus tard)
@@ -66,4 +69,34 @@ model ShoppingItem {
   checked     Boolean   @default(false)
   checkedAt   DateTime?
   createdAt   DateTime  @default(now())
+}
+
+// Montants en centimes. Un remboursement est une dépense payée par le débiteur, attribuée au créancier.
+model Expense {
+  id              String         @id @default(cuid())
+  householdId     String
+  household       Household      @relation(fields: [householdId], references: [id])
+  createdById     String
+  ownerId         String?
+  title           String
+  amountCents     Int
+  paidById        String
+  paidBy          User           @relation(fields: [paidById], references: [id])
+  date            String // YYYY-MM-DD
+  isReimbursement Boolean        @default(false)
+  shares          ExpenseShare[]
+  createdAt       DateTime       @default(now())
+
+  @@index([householdId, date])
+}
+
+model ExpenseShare {
+  id          String  @id @default(cuid())
+  expenseId   String
+  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User    @relation(fields: [userId], references: [id])
+  amountCents Int
+
+  @@unique([expenseId, userId])
 }
