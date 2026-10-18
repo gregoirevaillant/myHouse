@@ -1,0 +1,69 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Household {
+  id            String         @id @default(cuid())
+  name          String
+  users         User[]
+  cards         LoyaltyCard[]
+  meals         Meal[]
+  shoppingItems ShoppingItem[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  householdId  String
+  household    Household @relation(fields: [householdId], references: [id])
+}
+
+// ownerId: null = partagé dans le foyer, renseigné = privé (pour plus tard)
+model LoyaltyCard {
+  id            String    @id @default(cuid())
+  householdId   String
+  household     Household @relation(fields: [householdId], references: [id])
+  createdById   String
+  ownerId       String?
+  name          String
+  type          String // BARCODE | QR | NUMBER
+  value         String?
+  barcodeFormat String?
+  imagePath     String?
+  description   String?
+  color         String
+  createdAt     DateTime  @default(now())
+}
+
+model Meal {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String?
+  date        String // YYYY-MM-DD
+  slot        String // LUNCH | DINNER
+  text        String
+
+  @@unique([householdId, date, slot])
+}
+
+model ShoppingItem {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String?
+  label       String
+  checked     Boolean   @default(false)
+  checkedAt   DateTime?
+  createdAt   DateTime  @default(now())
+}
