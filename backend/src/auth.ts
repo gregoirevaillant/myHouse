@@ -36,7 +36,7 @@ export async function authRoutes(app: FastifyInstance) {
       if (!user || !(await verifyPassword(body.password, user.passwordHash))) {
         return reply.code(401).send({ error: "Email ou mot de passe incorrect" });
       }
-      const token = await reply.jwtSign({ id: user.id, householdId: user.householdId }, { expiresIn: MAX_AGE });
+      const token = await reply.jwtSign({ id: user.id, householdId: user.householdId }, { expiresIn: "30d" });
       reply.setCookie(COOKIE, token, {
         path: "/",
         httpOnly: true,
