@@ -1,5 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useMe } from "../lib/auth";
+import { useOfflineWarmup } from "../lib/offline";
+import { OfflineBanner } from "./OfflineBanner";
 
 const tabs = [
   { to: "/cartes", label: "Cartes", icon: "💳", active: "bg-lavender" },
@@ -10,6 +12,7 @@ const tabs = [
 
 export function Layout() {
   const { data: me } = useMe();
+  useOfflineWarmup();
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 pb-32 pt-[calc(1.25rem+env(safe-area-inset-top))]">
       <header className="mb-6 flex items-center justify-between">
@@ -26,6 +29,7 @@ export function Layout() {
         </NavLink>
       </header>
 
+      <OfflineBanner />
       <Outlet />
 
       <nav className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">

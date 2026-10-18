@@ -38,7 +38,6 @@ export function CardForm({ card, onDone }: { card?: LoyaltyCard; onDone: (card: 
     },
     onSuccess: (saved) => {
       qc.invalidateQueries({ queryKey: ["cards"] });
-      qc.setQueryData(["cards", saved.id], saved);
       onDone(saved);
     },
   });

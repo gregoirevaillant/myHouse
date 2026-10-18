@@ -11,9 +11,10 @@ import { Profile } from "./pages/Profile";
 import { Shopping } from "./pages/Shopping";
 
 export default function App() {
-  const { data: me, isLoading } = useMe();
+  // isPending (et non isLoading) : on attend aussi la restauration des données gardées hors ligne
+  const { data: me, isPending } = useMe();
 
-  if (isLoading) {
+  if (isPending) {
     return <div className="flex min-h-screen items-center justify-center">
         <img src="/icon.svg" alt="" className="h-16 w-16 animate-pulse" />
       </div>;

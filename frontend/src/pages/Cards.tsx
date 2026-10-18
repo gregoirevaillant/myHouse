@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { CardForm } from "../components/CardForm";
 import { Modal } from "../components/Modal";
-import { api, type LoyaltyCard } from "../lib/api";
+import { cardsQuery } from "../lib/offline";
 
 const TYPE_LABEL = { BARCODE: "Code-barres", QR: "QR code", NUMBER: "Numéro" };
 
@@ -11,8 +11,7 @@ export function Cards() {
   const [adding, setAdding] = useState(false);
   const navigate = useNavigate();
   const { data: cards = [], isLoading } = useQuery({
-    queryKey: ["cards"],
-    queryFn: () => api<LoyaltyCard[]>("/cards"),
+    ...cardsQuery,
   });
 
   return (

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CoursesTabs } from "../components/CoursesTabs";
 import { ProductPhoto } from "../components/ProductPhoto";
 import { api, type Product, type ShoppingItem } from "../lib/api";
+import { shoppingQuery } from "../lib/offline";
 import { normalize, productImage, useProducts } from "../lib/products";
 
 const KEY = ["shopping"];
@@ -13,8 +14,7 @@ export function Shopping() {
   const [viewing, setViewing] = useState<Product | null>(null);
   const { data: products = [] } = useProducts();
   const { data: items = [], isLoading } = useQuery({
-    queryKey: KEY,
-    queryFn: () => api<ShoppingItem[]>("/shopping"),
+    ...shoppingQuery,
     refetchInterval: 10_000,
   });
 

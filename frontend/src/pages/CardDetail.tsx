@@ -4,7 +4,9 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { CardForm } from "../components/CardForm";
 import { Barcode, QrCode } from "../components/Codes";
 import { Modal } from "../components/Modal";
-import { api, type LoyaltyCard } from "../lib/api";
+import { cardsQuery } from "../lib/offline";
+import { OfflineBanner } from "../components/OfflineBanner";
+import { api } from "../lib/api";
 
 export function CardDetail() {
   const { id } = useParams<{ id: string }>();
@@ -13,10 +15,9 @@ export function CardDetail() {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { data: card, isLoading, error } = useQuery({
-    queryKey: ["cards", id],
-    queryFn: () => api<LoyaltyCard>(`/cards/${id}`),
-  });
+  // la carte vient de la liste des cartes, gardée sur le téléphone pour le hors-ligne
+  const { data: cards, isPending } = useQuery(cardsQuery);
+  const card = cards?.find((c) => c.id === id);
 
   const remove = useMutation({
     mutationFn: () => api(`/cards/${id}`, { method: "DELETE" }),
@@ -33,8 +34,8 @@ export function CardDetail() {
     setTimeout(() => setCopied(false), 1500);
   };
 
-  if (isLoading) return <div className="p-8 text-center text-ink-soft">Chargement…</div>;
-  if (error || !card) {
+  if (isPending) return <div className="p-8 text-center text-ink-soft">Chargement…</div>;
+  if (!card) {
     return (
       <div className="p-8 text-center">
         <p className="mb-4 text-ink-soft">Carte introuvable</p>
@@ -53,6 +54,7 @@ export function CardDetail() {
           </button>
         </div>
 
+        <OfflineBanner />
         <h1 className="mb-6 text-center text-3xl font-extrabold">{card.name}</h1>
 
         <div className="rounded-3xl bg-white p-6 shadow-soft">

@@ -25,7 +25,19 @@ export default defineConfig({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/api/],
-        runtimeCaching: [],
+        // photos des cartes et produits gardées pour le hors-ligne, mises à jour en arrière-plan
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/(cards|products)\/[^/]+\/image$/,
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "images", expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 60 } },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\//,
+            handler: "CacheFirst",
+            options: { cacheName: "fonts", expiration: { maxEntries: 20 } },
+          },
+        ],
       },
     }),
   ],
