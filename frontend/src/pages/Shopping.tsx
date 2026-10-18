@@ -1,12 +1,17 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type ShoppingItem } from "../lib/api";
+import { CoursesTabs } from "../components/CoursesTabs";
+import { ProductPhoto } from "../components/ProductPhoto";
+import { api, type Product, type ShoppingItem } from "../lib/api";
+import { normalize, productImage, useProducts } from "../lib/products";
 
 const KEY = ["shopping"];
 
 export function Shopping() {
   const qc = useQueryClient();
   const [label, setLabel] = useState("");
+  const [viewing, setViewing] = useState<Product | null>(null);
+  const { data: products = [] } = useProducts();
   const { data: items = [], isLoading } = useQuery({
     queryKey: KEY,
     queryFn: () => api<ShoppingItem[]>("/shopping"),
@@ -16,7 +21,8 @@ export function Shopping() {
   const refresh = () => qc.invalidateQueries({ queryKey: KEY });
 
   const add = useMutation({
-    mutationFn: (label: string) => api<ShoppingItem>("/shopping", { method: "POST", json: { label } }),
+    mutationFn: (body: { label: string; productId?: string }) =>
+      api<ShoppingItem>("/shopping", { method: "POST", json: body }),
     onSuccess: (item) => qc.setQueryData<ShoppingItem[]>(KEY, (old = []) => [item, ...old]),
   });
 
@@ -46,9 +52,17 @@ export function Shopping() {
     e.preventDefault();
     const value = label.trim();
     if (!value) return;
-    add.mutate(value);
+    add.mutate({ label: value });
     setLabel("");
   };
+
+  const pick = (p: Product) => {
+    add.mutate({ label: p.name, productId: p.id });
+    setLabel("");
+  };
+
+  const query = normalize(label);
+  const suggestions = query ? products.filter((p) => normalize(p.name).includes(query)).slice(0, 5) : [];
 
   const todo = items.filter((i) => !i.checked);
   const done = items.filter((i) => i.checked);
@@ -56,10 +70,11 @@ export function Shopping() {
   return (
     <section>
       <h2 className="mb-4 flex items-center gap-2 text-lg font-extrabold">
-        <span className="rounded-xl bg-mint px-2 py-1">🛒</span> Liste de courses
+        <span className="rounded-xl bg-mint px-2 py-1">🛒</span> Courses
       </h2>
+      <CoursesTabs />
 
-      <form onSubmit={submit} className="mb-6 flex gap-2">
+      <form onSubmit={submit} className={`flex gap-2 ${suggestions.length ? "mb-2" : "mb-6"}`}>
         <input
           className="input focus:border-mint"
           placeholder="Ajouter un article…"
@@ -72,6 +87,26 @@ export function Shopping() {
         </button>
       </form>
 
+      {suggestions.length > 0 && (
+        <div className="mb-6 flex flex-wrap gap-2">
+          {suggestions.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => pick(p)}
+              className="flex items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 text-sm font-bold shadow-soft transition active:scale-95"
+            >
+              {p.hasImage ? (
+                <img src={productImage(p)} alt="" className="h-7 w-7 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-mint-soft">🛍️</span>
+              )}
+              {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <p className="text-center text-ink-soft">Chargement…</p>
       ) : items.length === 0 ? (
@@ -83,7 +118,13 @@ export function Shopping() {
         <>
           <ul className="space-y-2">
             {todo.map((item) => (
-              <Item key={item.id} item={item} onToggle={() => toggle.mutate(item)} onDelete={() => remove.mutate(item.id)} />
+              <Item
+                key={item.id}
+                item={item}
+                onToggle={() => toggle.mutate(item)}
+                onDelete={() => remove.mutate(item.id)}
+                onPhoto={setViewing}
+              />
             ))}
           </ul>
 
@@ -97,18 +138,36 @@ export function Shopping() {
               </div>
               <ul className="space-y-2">
                 {done.map((item) => (
-                  <Item key={item.id} item={item} onToggle={() => toggle.mutate(item)} onDelete={() => remove.mutate(item.id)} />
+                  <Item
+                key={item.id}
+                item={item}
+                onToggle={() => toggle.mutate(item)}
+                onDelete={() => remove.mutate(item.id)}
+                onPhoto={setViewing}
+              />
                 ))}
               </ul>
             </>
           )}
         </>
       )}
+
+      {viewing && <ProductPhoto product={viewing} onClose={() => setViewing(null)} />}
     </section>
   );
 }
 
-function Item({ item, onToggle, onDelete }: { item: ShoppingItem; onToggle: () => void; onDelete: () => void }) {
+function Item({
+  item,
+  onToggle,
+  onDelete,
+  onPhoto,
+}: {
+  item: ShoppingItem;
+  onToggle: () => void;
+  onDelete: () => void;
+  onPhoto: (product: Product) => void;
+}) {
   return (
     <li className={`flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-soft transition ${item.checked ? "opacity-60" : ""}`}>
       <button
@@ -123,6 +182,18 @@ function Item({ item, onToggle, onDelete }: { item: ShoppingItem; onToggle: () =
       <span onClick={onToggle} className={`flex-1 cursor-pointer font-semibold ${item.checked ? "line-through" : ""}`}>
         {item.label}
       </span>
+      {item.product?.hasImage && (
+        <button
+          onClick={() => onPhoto(item.product!)}
+          className="relative shrink-0"
+          aria-label={`Voir la photo de ${item.label}`}
+        >
+          <img src={productImage(item.product)} alt="" className="h-10 w-10 rounded-xl object-cover ring-2 ring-mint" />
+          <span className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] shadow-soft">
+            📷
+          </span>
+        </button>
+      )}
       <button onClick={onDelete} className="px-2 text-ink-soft/60 hover:text-rose-deep" aria-label="Supprimer">
         ✕
       </button>

@@ -6,6 +6,7 @@ import { Cards } from "./pages/Cards";
 import { Expenses } from "./pages/Expenses";
 import { Login } from "./pages/Login";
 import { Meals } from "./pages/Meals";
+import { Products } from "./pages/Products";
 import { Profile } from "./pages/Profile";
 import { Shopping } from "./pages/Shopping";
 
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/cartes" element={<Cards />} />
         <Route path="/repas" element={<Meals />} />
         <Route path="/courses" element={<Shopping />} />
+        <Route path="/courses/produits" element={<Products />} />
         <Route path="/depenses" element={<Expenses />} />
         <Route path="/profil" element={<Profile />} />
       </Route>

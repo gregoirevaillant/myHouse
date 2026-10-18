@@ -12,6 +12,7 @@ import { COOKIE_NAME, authRoutes, requireAuth } from "./auth.js";
 import { cardRoutes } from "./routes/cards.js";
 import { expenseRoutes } from "./routes/expenses.js";
 import { mealRoutes } from "./routes/meals.js";
+import { productRoutes } from "./routes/products.js";
 import { shoppingRoutes } from "./routes/shopping.js";
 import { userRoutes } from "./routes/users.js";
 
@@ -40,6 +41,7 @@ await app.register(
       await priv.register(cardRoutes, { prefix: "/cards" });
       await priv.register(mealRoutes, { prefix: "/meals" });
       await priv.register(shoppingRoutes, { prefix: "/shopping" });
+      await priv.register(productRoutes, { prefix: "/products" });
       await priv.register(expenseRoutes, { prefix: "/expenses" });
       await priv.register(userRoutes, { prefix: "/users" });
     });

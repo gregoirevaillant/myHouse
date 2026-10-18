@@ -1,23 +1,7 @@
 import type { FastifyInstance } from "fastify";
-import { createReadStream } from "node:fs";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
-import path from "node:path";
 import { z } from "zod";
 import { prisma } from "../db.js";
-import { env } from "../env.js";
-
-const uploadDir = path.resolve(env.dataDir, "uploads");
-
-const IMAGE_EXT: Record<string, string> = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-  "image/heic": ".heic",
-  "image/heif": ".heif",
-  "image/gif": ".gif",
-  "image/avif": ".avif",
-};
+import { readMultipart, removeImage, saveImage, sendImage } from "../uploads.js";
 
 const cardFields = z.object({
   name: z.string().trim().min(1).max(100),
@@ -27,38 +11,6 @@ const cardFields = z.object({
   description: z.string().max(2000).optional(),
   color: z.string().max(20),
 });
-
-type Parsed = { fields: Record<string, string>; image?: { buffer: Buffer; mimetype: string } };
-
-async function readMultipart(req: import("fastify").FastifyRequest): Promise<Parsed> {
-  const fields: Record<string, string> = {};
-  let image: Parsed["image"];
-  for await (const part of req.parts()) {
-    if (part.type === "file") {
-      if (part.fieldname !== "image") {
-        await part.toBuffer();
-      } else if (IMAGE_EXT[part.mimetype]) {
-        image = { buffer: await part.toBuffer(), mimetype: part.mimetype };
-      } else {
-        throw Object.assign(new Error("Format d'image non pris en charge (JPEG, PNG, HEIC…)"), { statusCode: 400 });
-      }
-    } else {
-      fields[part.fieldname] = String(part.value);
-    }
-  }
-  return { fields, image };
-}
-
-async function saveImage(image: NonNullable<Parsed["image"]>) {
-  await mkdir(uploadDir, { recursive: true });
-  const name = randomUUID() + IMAGE_EXT[image.mimetype];
-  await writeFile(path.join(uploadDir, name), image.buffer);
-  return name;
-}
-
-async function removeImage(name: string | null) {
-  if (name) await unlink(path.join(uploadDir, name)).catch(() => {});
-}
 
 // les champs multipart arrivent en texte : "" = non renseigné
 const clean = (f: Record<string, string>) =>
@@ -91,11 +43,7 @@ export async function cardRoutes(app: FastifyInstance) {
       where: { id: req.params.id, householdId: req.user.householdId },
     });
     if (!card?.imagePath) return reply.code(404).send({ error: "Introuvable" });
-    const ext = path.extname(card.imagePath);
-    const mime = Object.entries(IMAGE_EXT).find(([, e]) => e === ext)?.[0] ?? "application/octet-stream";
-    return reply.type(mime).header("Cache-Control", "private, max-age=86400").send(
-      createReadStream(path.join(uploadDir, card.imagePath)),
-    );
+    return sendImage(reply, card.imagePath);
   });
 
   app.post("/", async (req, reply) => {

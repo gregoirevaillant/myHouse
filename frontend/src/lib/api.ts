@@ -36,7 +36,9 @@ export type LoyaltyCard = {
 export type MealSlot = "LUNCH" | "DINNER";
 export type Meal = { date: string; slot: MealSlot; text: string };
 
-export type ShoppingItem = { id: string; label: string; checked: boolean; createdAt: string };
+export type Product = { id: string; name: string; note: string | null; hasImage: boolean };
+
+export type ShoppingItem = { id: string; label: string; checked: boolean; createdAt: string; product: Product | null };
 
 export type Member = { id: string; name: string; email: string };
 

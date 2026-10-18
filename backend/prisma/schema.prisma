@@ -16,6 +16,7 @@ model Household {
   meals         Meal[]
   shoppingItems ShoppingItem[]
   expenses      Expense[]
+  products      Product[]
 }
 
 model User {
@@ -66,9 +67,28 @@ model ShoppingItem {
   createdById String
   ownerId     String?
   label       String
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
   checked     Boolean   @default(false)
   checkedAt   DateTime?
   createdAt   DateTime  @default(now())
+}
+
+// Produit habituel du catalogue des courses. nameKey = nom normalisé (minuscules, sans accents) pour le rapprochement.
+model Product {
+  id            String         @id @default(cuid())
+  householdId   String
+  household     Household      @relation(fields: [householdId], references: [id])
+  createdById   String
+  ownerId       String?
+  name          String
+  nameKey       String
+  note          String?
+  imagePath     String?
+  shoppingItems ShoppingItem[]
+  createdAt     DateTime       @default(now())
+
+  @@unique([householdId, nameKey])
 }
 
 // Montants en centimes. Un remboursement est une dépense payée par le débiteur, attribuée au créancier.
