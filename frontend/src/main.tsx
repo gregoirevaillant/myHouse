@@ -6,9 +6,9 @@ import App from "./App";
 import { ApiError } from "./lib/api";
 import "./index.css";
 
-// session expirée : on revient à l'écran de connexion
+// 401 : on revérifie la session (/auth/me) ; si elle a vraiment expiré, l'écran de connexion s'affiche
 const onError = (error: Error) => {
-  if (error instanceof ApiError && error.status === 401) queryClient.setQueryData(["me"], null);
+  if (error instanceof ApiError && error.status === 401) queryClient.invalidateQueries({ queryKey: ["me"] });
 };
 
 const queryClient = new QueryClient({

@@ -1,7 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { prisma } from "./db.js";
-import { env } from "./env.js";
 import { hashPassword, verifyPassword } from "./password.js";
 
 export type SessionUser = { id: string; householdId: string };
@@ -41,7 +40,7 @@ export async function authRoutes(app: FastifyInstance) {
         path: "/",
         httpOnly: true,
         sameSite: "lax",
-        secure: env.isProd,
+        secure: req.protocol === "https",
         maxAge: MAX_AGE,
       });
       return publicUser(user);

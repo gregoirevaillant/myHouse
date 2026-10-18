@@ -114,8 +114,8 @@ export function CardForm({ card, onDone }: { card?: LoyaltyCard; onDone: (card: 
       {type === "QR" && (
         <div className="space-y-3">
           <label className="btn-ghost w-full cursor-pointer">
-            📷 {image || card?.hasImage ? "Changer la photo" : "Prendre / choisir une photo"}
-            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => onPhoto(e.target.files?.[0])} />
+            📷 {image || card?.hasImage ? "Changer la photo" : "Choisir une photo"}
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => onPhoto(e.target.files?.[0])} />
           </label>
           {qrInfo && <p className="text-center text-sm font-semibold text-ink-soft">{qrInfo}</p>}
           {value.trim() ? (

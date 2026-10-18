@@ -15,6 +15,8 @@ const IMAGE_EXT: Record<string, string> = {
   "image/webp": ".webp",
   "image/heic": ".heic",
   "image/heif": ".heif",
+  "image/gif": ".gif",
+  "image/avif": ".avif",
 };
 
 const cardFields = z.object({
@@ -33,10 +35,12 @@ async function readMultipart(req: import("fastify").FastifyRequest): Promise<Par
   let image: Parsed["image"];
   for await (const part of req.parts()) {
     if (part.type === "file") {
-      if (part.fieldname === "image" && IMAGE_EXT[part.mimetype]) {
+      if (part.fieldname !== "image") {
+        await part.toBuffer();
+      } else if (IMAGE_EXT[part.mimetype]) {
         image = { buffer: await part.toBuffer(), mimetype: part.mimetype };
       } else {
-        await part.toBuffer();
+        throw Object.assign(new Error("Format d'image non pris en charge (JPEG, PNG, HEIC…)"), { statusCode: 400 });
       }
     } else {
       fields[part.fieldname] = String(part.value);
