@@ -15,7 +15,7 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-lavender-soft via-cream to-rose-soft px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-3xl bg-white/80 p-8 shadow-soft backdrop-blur">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-3xl bg-rose text-3xl">🏡</div>
+          <img src="/icon.svg" alt="" className="mx-auto mb-3 h-16 w-16" />
           <h1 className="text-2xl font-extrabold">Notre maison</h1>
           <p className="text-sm text-ink-soft">Connecte-toi pour continuer</p>
         </div>

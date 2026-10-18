@@ -13,7 +13,9 @@ export default function App() {
   const { data: me, isLoading } = useMe();
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center text-4xl">🏡</div>;
+    return <div className="flex min-h-screen items-center justify-center">
+        <img src="/icon.svg" alt="" className="h-16 w-16 animate-pulse" />
+      </div>;
   }
   if (!me) return <Login />;
 
