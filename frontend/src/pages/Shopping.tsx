@@ -182,6 +182,15 @@ function Item({
       <span onClick={onToggle} className={`flex-1 cursor-pointer font-semibold ${item.checked ? "line-through" : ""}`}>
         {item.label}
       </span>
+      {item.product && !item.product.hasImage && item.product.note && (
+        <button
+          onClick={() => onPhoto(item.product!)}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-soft text-lg ring-2 ring-mint"
+          aria-label={`Voir la note de ${item.label}`}
+        >
+          📝
+        </button>
+      )}
       {item.product?.hasImage && (
         <button
           onClick={() => onPhoto(item.product!)}

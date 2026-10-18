@@ -1,19 +1,16 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CoursesTabs } from "../components/CoursesTabs";
 import { Modal } from "../components/Modal";
 import { ProductForm } from "../components/ProductForm";
-import { api, type Product, type ShoppingItem } from "../lib/api";
+import { api, type Product } from "../lib/api";
 import { normalize, useProducts } from "../lib/products";
 
 export function Products() {
   const qc = useQueryClient();
   const { data: products = [], isLoading } = useProducts();
-  const { data: items = [] } = useQuery({ queryKey: ["shopping"], queryFn: () => api<ShoppingItem[]>("/shopping") });
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<{ product?: Product } | null>(null);
-
-  const onList = new Set(items.filter((i) => !i.checked && i.product).map((i) => i.product!.id));
 
   const addToList = useMutation({
     mutationFn: (p: Product) => api("/shopping", { method: "POST", json: { label: p.name, productId: p.id } }),
@@ -46,7 +43,6 @@ export function Products() {
       ) : (
         <ul className="space-y-2">
           {filtered.map((p) => {
-            const added = onList.has(p.id);
             return (
               <li key={p.id} className="flex items-center gap-2 rounded-2xl bg-white py-1 pl-4 pr-1 shadow-soft">
                 <button onClick={() => setEditing({ product: p })} className="flex min-w-0 flex-1 items-center gap-2 py-2 text-left">
@@ -55,11 +51,10 @@ export function Products() {
                 </button>
                 <button
                   onClick={() => addToList.mutate(p)}
-                  disabled={added}
-                  aria-label={added ? `${p.name} est dans la liste` : `Ajouter ${p.name} à la liste`}
-                  className={`h-9 w-9 shrink-0 rounded-xl font-bold transition active:scale-95 ${added ? "bg-mint-soft text-mint-deep" : "bg-mint"}`}
+                  aria-label={`Ajouter ${p.name} à la liste`}
+                  className="h-9 w-9 shrink-0 rounded-xl bg-mint font-bold transition active:scale-95"
                 >
-                  {added ? "✓" : "+"}
+                  +
                 </button>
               </li>
             );
