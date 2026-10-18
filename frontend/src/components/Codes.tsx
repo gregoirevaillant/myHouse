@@ -3,11 +3,11 @@ import JsBarcode from "jsbarcode";
 import QRCode from "qrcode";
 
 export const BARCODE_FORMATS = [
-  { value: "CODE128", label: "Code 128 (le plus courant)" },
+  { value: "CODE128", label: "Code 128 (lettres et chiffres, le plus courant)" },
   { value: "EAN13", label: "EAN-13" },
   { value: "EAN8", label: "EAN-8" },
   { value: "UPC", label: "UPC" },
-  { value: "CODE39", label: "Code 39" },
+  { value: "CODE39", label: "Code 39 (lettres et chiffres)" },
   { value: "ITF", label: "ITF" },
 ];
 

@@ -93,7 +93,7 @@ export function CardForm({ card, onDone }: { card?: LoyaltyCard; onDone: (card: 
         <>
           <div>
             <label className="label" htmlFor="card-code">Code</label>
-            <input id="card-code" className="input font-mono" inputMode="numeric" value={value} onChange={(e) => setValue(e.target.value)} />
+            <input id="card-code" className="input font-mono" autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} value={value} onChange={(e) => setValue(e.target.value)} />
           </div>
           <div>
             <label className="label" htmlFor="card-format">Format</label>
@@ -135,7 +135,7 @@ export function CardForm({ card, onDone }: { card?: LoyaltyCard; onDone: (card: 
       {type === "NUMBER" && (
         <div>
           <label className="label" htmlFor="card-number">Numéro de carte</label>
-          <input id="card-number" className="input font-mono text-lg" inputMode="numeric" value={value} onChange={(e) => setValue(e.target.value)} />
+          <input id="card-number" className="input font-mono text-lg" autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} value={value} onChange={(e) => setValue(e.target.value)} />
         </div>
       )}
 
