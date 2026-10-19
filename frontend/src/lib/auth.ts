@@ -31,3 +31,19 @@ export function useLogout() {
     },
   });
 }
+
+export type Preferences = Pick<User, "hiddenTabs" | "showNavBar">;
+
+// appliqué tout de suite à l'écran, puis confirmé par le serveur
+export function useUpdatePreferences() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (prefs: Partial<Preferences>) => api<User>("/auth/preferences", { method: "PATCH", json: prefs }),
+    onMutate: (prefs) => {
+      const me = qc.getQueryData<User>(["me"]);
+      if (me) qc.setQueryData<User>(["me"], { ...me, ...prefs });
+    },
+    onSuccess: (user) => qc.setQueryData(["me"], user),
+    onError: () => qc.invalidateQueries({ queryKey: ["me"] }),
+  });
+}

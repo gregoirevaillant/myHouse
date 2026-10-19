@@ -4,6 +4,7 @@ import { useMe } from "./lib/auth";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
 import { Expenses } from "./pages/Expenses";
+import { Home } from "./pages/Home";
 import { JournalDetail } from "./pages/JournalDetail";
 import { Journals } from "./pages/Journals";
 import { Login } from "./pages/Login";
@@ -11,12 +12,10 @@ import { Meals } from "./pages/Meals";
 import { Products } from "./pages/Products";
 import { Profile } from "./pages/Profile";
 import { Shopping } from "./pages/Shopping";
-import { useVisibleTabs } from "./lib/tabs";
 
 export default function App() {
   // isPending (et non isLoading) : on attend aussi la restauration des données gardées hors ligne
   const { data: me, isPending } = useMe();
-  const tabs = useVisibleTabs();
 
   if (isPending) {
     return <div className="flex min-h-screen items-center justify-center">
@@ -28,6 +27,7 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
         <Route path="/cartes" element={<Cards />} />
         <Route path="/repas" element={<Meals />} />
         <Route path="/courses" element={<Shopping />} />
@@ -38,7 +38,7 @@ export default function App() {
         <Route path="/profil" element={<Profile />} />
       </Route>
       <Route path="/cartes/:id" element={<CardDetail />} />
-      <Route path="*" element={<Navigate to={tabs[0].to} replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

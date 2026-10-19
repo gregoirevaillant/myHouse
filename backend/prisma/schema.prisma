@@ -29,6 +29,7 @@ model User {
   household    Household @relation(fields: [householdId], references: [id])
   // chemins des onglets masqués dans la barre de menu, séparés par des virgules
   hiddenTabs   String    @default("")
+  showNavBar   Boolean   @default(true)
   paid         Expense[]
   shares       ExpenseShare[]
 }

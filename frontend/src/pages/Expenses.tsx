@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { BarChart, type Bar } from "../components/BarChart";
 import { ExpenseForm } from "../components/ExpenseForm";
 import { Modal } from "../components/Modal";
-import { api, type Expense, type ExpenseInput } from "../lib/api";
+import { type Expense, type ExpenseInput } from "../lib/api";
 import { useMe } from "../lib/auth";
+import { computeDebt, useExpenses } from "../lib/expenses";
 import { fromIso, shortDate, toIso } from "../lib/dates";
 import { useMembers } from "../lib/members";
 import { formatEur, formatEurRound } from "../lib/money";
@@ -25,34 +25,14 @@ type Editing = { expense?: Expense; initial?: Partial<ExpenseInput> } | null;
 export function Expenses() {
   const { data: me } = useMe();
   const { data: members = [] } = useMembers();
-  const { data: expenses = [], isLoading } = useQuery({
-    queryKey: ["expenses"],
-    queryFn: () => api<Expense[]>("/expenses"),
-    refetchInterval: 30_000,
-  });
+  const { data: expenses = [], isLoading } = useExpenses();
   const currentMonth = monthKey(toIso(new Date()));
   const [month, setMonth] = useState(currentMonth);
   const [editing, setEditing] = useState<Editing>(null);
 
   const name = (id: string) => members.find((m) => m.id === id)?.name ?? "?";
 
-  // solde : ce que chacun a payé moins ce qu'il doit (remboursements compris)
-  const balances = useMemo(() => {
-    const net = new Map(members.map((m) => [m.id, 0]));
-    for (const e of expenses) {
-      net.set(e.paidById, (net.get(e.paidById) ?? 0) + e.amountCents);
-      for (const s of e.shares) net.set(s.userId, (net.get(s.userId) ?? 0) - s.amountCents);
-    }
-    return net;
-  }, [expenses, members]);
-
-  const debt = useMemo(() => {
-    if (members.length !== 2) return null;
-    const [a, b] = members;
-    const netA = balances.get(a.id) ?? 0;
-    if (netA === 0) return null;
-    return netA > 0 ? { from: b, to: a, cents: netA } : { from: a, to: b, cents: -netA };
-  }, [balances, members]);
+  const debt = useMemo(() => computeDebt(expenses, members), [expenses, members]);
 
   const spending = expenses.filter((e) => !e.isReimbursement);
 
