@@ -39,7 +39,8 @@ export async function bankRoutes(app: FastifyInstance) {
       aspsp: { name: aspsp.name, country: COUNTRY },
       validUntil,
       state,
-      redirectUrl: `${env.publicUrl}/budget/banque`,
+      // doit correspondre exactement à l'URL de retour déclarée sur Enable Banking
+      redirectUrl: `${env.publicUrl}/bank/callback`,
     });
     return { url };
   });

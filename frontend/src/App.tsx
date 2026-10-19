@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useMe } from "./lib/auth";
 import { Bank } from "./pages/Bank";
@@ -41,10 +41,17 @@ export default function App() {
         <Route path="/budget" element={<Budget />} />
         <Route path="/budget/recurrent" element={<Recurring />} />
         <Route path="/budget/banque" element={<Bank />} />
+        <Route path="/bank/callback" element={<BankCallback />} />
         <Route path="/profil" element={<Profile />} />
       </Route>
       <Route path="/cartes/:id" element={<CardDetail />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
+}
+
+// URL de retour déclarée sur Enable Banking : on renvoie vers la page Banque en gardant ?code&state
+function BankCallback() {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: "/budget/banque", search }} replace />;
 }
