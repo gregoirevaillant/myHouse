@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useMe } from "./lib/auth";
+import { Bank } from "./pages/Bank";
+import { Budget } from "./pages/Budget";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
 import { Expenses } from "./pages/Expenses";
@@ -11,6 +13,7 @@ import { Login } from "./pages/Login";
 import { Meals } from "./pages/Meals";
 import { Products } from "./pages/Products";
 import { Profile } from "./pages/Profile";
+import { Recurring } from "./pages/Recurring";
 import { Shopping } from "./pages/Shopping";
 
 export default function App() {
@@ -35,6 +38,9 @@ export default function App() {
         <Route path="/depenses" element={<Expenses />} />
         <Route path="/journal" element={<Journals />} />
         <Route path="/journal/:id" element={<JournalDetail />} />
+        <Route path="/budget" element={<Budget />} />
+        <Route path="/budget/recurrent" element={<Recurring />} />
+        <Route path="/budget/banque" element={<Bank />} />
         <Route path="/profil" element={<Profile />} />
       </Route>
       <Route path="/cartes/:id" element={<CardDetail />} />

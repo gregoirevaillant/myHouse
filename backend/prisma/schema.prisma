@@ -18,6 +18,9 @@ model Household {
   expenses      Expense[]
   products      Product[]
   journals      Journal[]
+  bankConnections BankConnection[]
+  categoryRules   CategoryRule[]
+  recurringItems  RecurringItem[]
 }
 
 model User {
@@ -146,4 +149,86 @@ model JournalEntry {
   updatedAt DateTime @updatedAt
 
   @@unique([journalId, date])
+}
+
+// Budget personnel, alimenté par la banque (Enable Banking) : tout est privé, ownerId = la personne connectée
+model BankConnection {
+  id           String        @id @default(cuid())
+  householdId  String
+  household    Household     @relation(fields: [householdId], references: [id])
+  ownerId      String
+  aspspName    String
+  aspspCountry String
+  sessionId    String
+  validUntil   DateTime
+  accounts     BankAccount[]
+  createdAt    DateTime      @default(now())
+}
+
+model BankAccount {
+  id           String            @id @default(cuid())
+  connectionId String
+  connection   BankConnection    @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  ownerId      String
+  uid          String
+  name         String
+  iban         String?
+  accountType  String? // CACC (courant) | SVGS (épargne)…
+  currency     String
+  balanceCents Int?
+  balanceAt    DateTime?
+  lastSyncAt   DateTime?
+  transactions BankTransaction[]
+}
+
+// Montant signé en centimes (négatif = sortie). labelKey = libellé normalisé, sert aux règles et au récurrent.
+model BankTransaction {
+  id               String      @id @default(cuid())
+  accountId        String
+  account          BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  externalId       String
+  date             String // YYYY-MM-DD
+  amountCents      Int
+  label            String
+  labelKey         String
+  counterparty     String?
+  counterpartyIban String?
+  mcc              String?
+  category         String
+  categorySource   String // AUTO | RULE | USER
+  recurringId      String?
+
+  @@unique([accountId, externalId])
+  @@index([accountId, date])
+}
+
+// Catégorie apprise : tout libellé normalisé contenant pattern reçoit category
+model CategoryRule {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  ownerId     String
+  pattern     String
+  category    String
+
+  @@unique([ownerId, pattern])
+}
+
+// Flux récurrent détecté (abonnement, salaire, loyer, épargne programmée…)
+model RecurringItem {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  ownerId     String
+  key         String // labelKey + sens (in/out)
+  label       String
+  category    String
+  period      String // WEEKLY | MONTHLY | QUARTERLY | YEARLY
+  amountCents Int // montant habituel, signé
+  lastDate    String // YYYY-MM-DD
+  nextDate    String // YYYY-MM-DD
+  status      String // ACTIVE | ENDED | DISMISSED
+  createdAt   DateTime  @default(now())
+
+  @@unique([ownerId, key])
 }

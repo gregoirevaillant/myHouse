@@ -6,6 +6,7 @@ export const tabs = [
   { to: "/courses", label: "Courses", icon: "🛒", active: "bg-mint" },
   { to: "/depenses", label: "Dépenses", icon: "💶", active: "bg-sky" },
   { to: "/journal", label: "Journal", icon: "📔", active: "bg-lemon" },
+  { to: "/budget", label: "Budget", icon: "📊", active: "bg-rose" },
 ];
 
 // onglets affichés dans la barre de menu, selon les préférences de la personne connectée

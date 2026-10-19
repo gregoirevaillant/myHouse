@@ -23,3 +23,15 @@ export function mondayOf(d: Date) {
 
 export const dayName = (iso: string) => fromIso(iso).toLocaleDateString("fr-FR", { weekday: "long" });
 export const shortDate = (iso: string) => fromIso(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+
+// mois au format YYYY-MM
+export const monthKey = (iso: string) => iso.slice(0, 7);
+
+export function shiftMonth(key: string, delta: number) {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return toIso(d).slice(0, 7);
+}
+
+export const monthLabel = (key: string, style: "short" | "long") =>
+  new Date(`${key}-01T00:00:00`).toLocaleDateString("fr-FR", style === "short" ? { month: "short" } : { month: "long", year: "numeric" });

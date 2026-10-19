@@ -1,6 +1,6 @@
 # Maison 🏡
 
-App du foyer : cartes de fidélité, repas de la semaine, liste de courses.
+App du foyer : cartes de fidélité, repas de la semaine, liste de courses, dépenses, journal et budget personnel.
 
 ## Déploiement (VPS)
 
@@ -14,6 +14,14 @@ Les comptes sont créés au premier démarrage ; ensuite, chaque personne change
 Données (SQLite + photos) dans le volume Docker `data` → c'est lui qu'il faut sauvegarder.
 
 Mise à jour : `git pull && docker compose up -d --build`.
+
+### Budget : connexion bancaire (Enable Banking)
+
+1. Créer une application sur [enablebanking.com](https://enablebanking.com) (sandbox pour tester, puis « restricted production » pour ses propres comptes) avec l'URL de retour `https://<domaine>/budget/banque`.
+2. Copier la clé privée dans le volume : `docker compose cp enablebanking.pem app:/data/`.
+3. Renseigner `EB_APP_ID`, `EB_PRIVATE_KEY_PATH` et `PUBLIC_URL` dans `.env`, puis relancer.
+
+Les comptes se synchronisent toutes les 6 h ; l'accès bancaire est à renouveler tous les ~180 jours (l'app prévient).
 
 ## Développement
 

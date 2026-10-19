@@ -57,3 +57,58 @@ export type ExpenseInput = Omit<Expense, "id">;
 export type JournalSummary = { id: string; title: string; entryCount: number; lastDate: string | null };
 export type JournalEntry = { date: string; text: string };
 export type Journal = { id: string; title: string; entries: JournalEntry[] };
+
+export type BudgetTransaction = {
+  id: string;
+  date: string;
+  amountCents: number;
+  label: string;
+  detail: string | null;
+  category: string;
+  byUser: boolean;
+  recurringId: string | null;
+  accountName: string;
+};
+export type BudgetRecurringDue = {
+  id: string;
+  label: string;
+  category: string;
+  period: RecurringPeriod;
+  amountCents: number;
+  paidCents: number;
+  upcoming: string[];
+};
+export type BudgetMonth = {
+  month: string;
+  totals: { income: number; outflow: number; invested: number };
+  byCategory: Record<string, number>;
+  transactions: BudgetTransaction[];
+  recurring: BudgetRecurringDue[];
+  householdShareCents: number;
+  bank: { enabled: boolean; connected: boolean; consentUntil: string | null; lastSyncAt: string | null };
+};
+export type BudgetTrend = { month: string; income: number; outflow: number; invested: number }[];
+
+export type RecurringPeriod = "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
+export type RecurringItem = {
+  id: string;
+  label: string;
+  category: string;
+  period: RecurringPeriod;
+  amountCents: number;
+  monthlyCents: number;
+  lastDate: string;
+  nextDate: string;
+  status: "ACTIVE" | "ENDED" | "DISMISSED";
+};
+
+export type BankAccount = {
+  id: string;
+  name: string;
+  iban: string | null;
+  isSavings: boolean;
+  currency: string;
+  balanceCents: number | null;
+  lastSyncAt: string | null;
+};
+export type BankConnection = { id: string; aspspName: string; validUntil: string; accounts: BankAccount[] };

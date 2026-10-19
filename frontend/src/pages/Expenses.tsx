@@ -5,20 +5,9 @@ import { Modal } from "../components/Modal";
 import { type Expense, type ExpenseInput } from "../lib/api";
 import { useMe } from "../lib/auth";
 import { computeDebt, useExpenses } from "../lib/expenses";
-import { fromIso, shortDate, toIso } from "../lib/dates";
+import { fromIso, monthKey, monthLabel, shiftMonth, shortDate, toIso } from "../lib/dates";
 import { useMembers } from "../lib/members";
 import { formatEur, formatEurRound } from "../lib/money";
-
-const monthKey = (iso: string) => iso.slice(0, 7);
-
-function shiftMonth(key: string, delta: number) {
-  const [y, m] = key.split("-").map(Number);
-  const d = new Date(y, m - 1 + delta, 1);
-  return toIso(d).slice(0, 7);
-}
-
-const monthLabel = (key: string, style: "short" | "long") =>
-  new Date(`${key}-01T00:00:00`).toLocaleDateString("fr-FR", style === "short" ? { month: "short" } : { month: "long", year: "numeric" });
 
 type Editing = { expense?: Expense; initial?: Partial<ExpenseInput> } | null;
 
