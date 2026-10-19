@@ -1,17 +1,12 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useMe } from "../lib/auth";
 import { useOfflineWarmup } from "../lib/offline";
+import { useVisibleTabs } from "../lib/tabs";
 import { OfflineBanner } from "./OfflineBanner";
-
-const tabs = [
-  { to: "/cartes", label: "Cartes", icon: "💳", active: "bg-lavender" },
-  { to: "/repas", label: "Repas", icon: "🍽️", active: "bg-peach" },
-  { to: "/courses", label: "Courses", icon: "🛒", active: "bg-mint" },
-  { to: "/depenses", label: "Dépenses", icon: "💶", active: "bg-sky" },
-];
 
 export function Layout() {
   const { data: me } = useMe();
+  const tabs = useVisibleTabs();
   useOfflineWarmup();
   return (
     <div className="mx-auto min-h-screen max-w-2xl px-4 pb-32 pt-[calc(1.25rem+env(safe-area-inset-top))]">

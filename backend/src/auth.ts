@@ -23,7 +23,12 @@ export async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-const publicUser = (u: { id: string; email: string; name: string }) => ({ id: u.id, email: u.email, name: u.name });
+const publicUser = (u: { id: string; email: string; name: string; hiddenTabs: string }) => ({
+  id: u.id,
+  email: u.email,
+  name: u.name,
+  hiddenTabs: u.hiddenTabs ? u.hiddenTabs.split(",") : [],
+});
 
 export async function authRoutes(app: FastifyInstance) {
   app.post(
@@ -55,6 +60,12 @@ export async function authRoutes(app: FastifyInstance) {
   app.get("/me", { preHandler: requireAuth }, async (req, reply) => {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return reply.code(401).send({ error: "Non connecté" });
+    return publicUser(user);
+  });
+
+  app.put("/tabs", { preHandler: requireAuth }, async (req) => {
+    const { hiddenTabs } = z.object({ hiddenTabs: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20) }).parse(req.body);
+    const user = await prisma.user.update({ where: { id: req.user.id }, data: { hiddenTabs: hiddenTabs.join(",") } });
     return publicUser(user);
   });
 

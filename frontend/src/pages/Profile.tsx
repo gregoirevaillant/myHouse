@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { api } from "../lib/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api, type User } from "../lib/api";
 import { useLogout, useMe } from "../lib/auth";
+import { tabs } from "../lib/tabs";
 
 export function Profile() {
   const { data: me } = useMe();
@@ -27,6 +28,8 @@ export function Profile() {
         <p className="text-lg font-extrabold">{me?.name}</p>
         <p className="text-sm text-ink-soft">{me?.email}</p>
       </div>
+
+      <TabsSettings />
 
       <form onSubmit={submit} className="space-y-3 rounded-3xl bg-white p-6 shadow-soft">
         <h2 className="font-extrabold">Changer mon mot de passe</h2>
@@ -60,5 +63,48 @@ export function Profile() {
         Se déconnecter
       </button>
     </section>
+  );
+}
+
+function TabsSettings() {
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+  const hidden = me?.hiddenTabs ?? [];
+  const save = useMutation({
+    mutationFn: (hiddenTabs: string[]) => api<User>("/auth/tabs", { method: "PUT", json: { hiddenTabs } }),
+    onMutate: (hiddenTabs) => {
+      if (me) qc.setQueryData<User>(["me"], { ...me, hiddenTabs });
+    },
+    onSuccess: (user) => qc.setQueryData(["me"], user),
+    onError: () => qc.invalidateQueries({ queryKey: ["me"] }),
+  });
+
+  const toggle = (to: string) => save.mutate(hidden.includes(to) ? hidden.filter((t) => t !== to) : [...hidden, to]);
+
+  return (
+    <div className="space-y-3 rounded-3xl bg-white p-6 shadow-soft">
+      <h2 className="font-extrabold">Pages du menu</h2>
+      <div className="space-y-2">
+        {tabs.map((t) => {
+          const shown = !hidden.includes(t.to);
+          // au moins une page doit rester dans le menu
+          const last = shown && tabs.every((o) => o.to === t.to || hidden.includes(o.to));
+          return (
+            <label key={t.to} className={`flex items-center gap-3 rounded-2xl px-3 py-2 font-bold ${shown ? t.active : "bg-cream text-ink-soft"}`}>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-lavender-deep"
+                checked={shown}
+                disabled={last}
+                onChange={() => toggle(t.to)}
+              />
+              <span className="text-xl">{t.icon}</span>
+              {t.label}
+            </label>
+          );
+        })}
+      </div>
+      {save.error && <p className="text-sm font-semibold text-rose-deep">{save.error.message}</p>}
+    </div>
   );
 }

@@ -17,6 +17,7 @@ model Household {
   shoppingItems ShoppingItem[]
   expenses      Expense[]
   products      Product[]
+  journals      Journal[]
 }
 
 model User {
@@ -26,6 +27,8 @@ model User {
   passwordHash String
   householdId  String
   household    Household @relation(fields: [householdId], references: [id])
+  // chemins des onglets masqués dans la barre de menu, séparés par des virgules
+  hiddenTabs   String    @default("")
   paid         Expense[]
   shares       ExpenseShare[]
 }
@@ -119,4 +122,27 @@ model ExpenseShare {
   amountCents Int
 
   @@unique([expenseId, userId])
+}
+
+// Journal intime : ownerId = auteur, visible de lui seul
+model Journal {
+  id          String         @id @default(cuid())
+  householdId String
+  household   Household      @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String?
+  title       String
+  entries     JournalEntry[]
+  createdAt   DateTime       @default(now())
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  journalId String
+  journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  date      String // YYYY-MM-DD
+  text      String
+  updatedAt DateTime @updatedAt
+
+  @@unique([journalId, date])
 }

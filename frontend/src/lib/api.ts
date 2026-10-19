@@ -19,7 +19,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   return data as T;
 }
 
-export type User = { id: string; email: string; name: string };
+export type User = { id: string; email: string; name: string; hiddenTabs: string[] };
 
 export type CardType = "BARCODE" | "QR" | "NUMBER";
 export type LoyaltyCard = {
@@ -53,3 +53,7 @@ export type Expense = {
   shares: ExpenseShare[];
 };
 export type ExpenseInput = Omit<Expense, "id">;
+
+export type JournalSummary = { id: string; title: string; entryCount: number; lastDate: string | null };
+export type JournalEntry = { date: string; text: string };
+export type Journal = { id: string; title: string; entries: JournalEntry[] };
