@@ -70,6 +70,8 @@ export async function bankRoutes(app: FastifyInstance) {
 
     for (const a of session.accounts) {
       if (!a.uid) continue;
+      // compte carte : ses paiements figurent déjà sur le compte courant, on l'ignore pour ne pas les compter deux fois
+      if (a.cash_account_type === "CARD") continue;
       const iban = a.account_id?.iban ?? null;
       const data = {
         connectionId: connection.id,
