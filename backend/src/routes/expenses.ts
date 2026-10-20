@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 
 const expenseBody = z.object({
+  trackerId: z.string(),
   title: z.string().trim().min(1).max(200),
   amountCents: z.number().int().positive().max(100_000_000),
   paidById: z.string(),
@@ -23,6 +24,11 @@ function httpError(statusCode: number, message: string) {
 async function validate(req: FastifyRequest, body: ExpenseBody) {
   const members = await prisma.user.findMany({ where: { householdId: req.user.householdId }, select: { id: true } });
   const ids = new Set(members.map((m) => m.id));
+  const tracker = await prisma.expenseTracker.findFirst({
+    where: { id: body.trackerId, householdId: req.user.householdId },
+    select: { id: true },
+  });
+  if (!tracker) throw httpError(400, "Carnet inconnu");
   if (!ids.has(body.paidById) || body.shares.some((s) => !ids.has(s.userId))) {
     throw httpError(400, "Personne inconnue");
   }

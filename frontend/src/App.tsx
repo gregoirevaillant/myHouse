@@ -5,6 +5,7 @@ import { Bank } from "./pages/Bank";
 import { Budget } from "./pages/Budget";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
+import { ExpenseTracker } from "./pages/ExpenseTracker";
 import { Expenses } from "./pages/Expenses";
 import { Home } from "./pages/Home";
 import { JournalDetail } from "./pages/JournalDetail";
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/courses" element={<Shopping />} />
         <Route path="/courses/produits" element={<Products />} />
         <Route path="/depenses" element={<Expenses />} />
+        <Route path="/depenses/:id" element={<ExpenseTracker />} />
         <Route path="/journal" element={<Journals />} />
         <Route path="/journal/:id" element={<JournalDetail />} />
         <Route path="/budget" element={<Budget />} />

@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, type Expense, type Member } from "./api";
+import { api, type Expense, type ExpenseTracker, type Member } from "./api";
 
 export const expensesQuery = { queryKey: ["expenses"], queryFn: () => api<Expense[]>("/expenses") };
+
+export const trackersQuery = { queryKey: ["expense-trackers"], queryFn: () => api<ExpenseTracker[]>("/expense-trackers") };
 
 // solde : ce que chacun a payé moins ce qu'il doit (remboursements compris) → qui doit combien à qui
 export function computeDebt(expenses: Expense[], members: Member[]) {
@@ -18,4 +20,8 @@ export function computeDebt(expenses: Expense[], members: Member[]) {
 
 export function useExpenses(enabled = true) {
   return useQuery({ ...expensesQuery, refetchInterval: 30_000, enabled });
+}
+
+export function useTrackers() {
+  return useQuery(trackersQuery);
 }

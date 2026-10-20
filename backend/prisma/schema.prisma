@@ -16,6 +16,7 @@ model Household {
   meals         Meal[]
   shoppingItems ShoppingItem[]
   expenses      Expense[]
+  expenseTrackers ExpenseTracker[]
   products      Product[]
   journals      Journal[]
   bankConnections BankConnection[]
@@ -98,6 +99,19 @@ model Product {
   @@unique([householdId, nameKey])
 }
 
+// Carnet de dépenses partagé (vie quotidienne, voyage en Norvège…)
+model ExpenseTracker {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String?
+  name        String
+  emoji       String
+  expenses    Expense[]
+  createdAt   DateTime  @default(now())
+}
+
 // Montants en centimes. Un remboursement est une dépense payée par le débiteur, attribuée au créancier.
 model Expense {
   id              String         @id @default(cuid())
@@ -105,6 +119,8 @@ model Expense {
   household       Household      @relation(fields: [householdId], references: [id])
   createdById     String
   ownerId         String?
+  trackerId       String
+  tracker         ExpenseTracker @relation(fields: [trackerId], references: [id], onDelete: Cascade)
   title           String
   amountCents     Int
   paidById        String
@@ -115,6 +131,7 @@ model Expense {
   createdAt       DateTime       @default(now())
 
   @@index([householdId, date])
+  @@index([trackerId])
 }
 
 model ExpenseShare {

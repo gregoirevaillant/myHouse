@@ -5,12 +5,14 @@ import { toIso } from "../lib/dates";
 import { centsToInput, formatEur, parseEur, splitEqually } from "../lib/money";
 
 export function ExpenseForm({
+  trackerId,
   members,
   meId,
   expense,
   initial,
   onDone,
 }: {
+  trackerId: string;
   members: Member[];
   meId: string;
   expense?: Expense;
@@ -66,7 +68,7 @@ export function ExpenseForm({
 
   const save = useMutation({
     mutationFn: () => {
-      const body: ExpenseInput = { title, amountCents, paidById, date, isReimbursement, shares };
+      const body: ExpenseInput = { trackerId, title, amountCents, paidById, date, isReimbursement, shares };
       return expense
         ? api(`/expenses/${expense.id}`, { method: "PUT", json: body })
         : api("/expenses", { method: "POST", json: body });

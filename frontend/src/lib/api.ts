@@ -43,8 +43,10 @@ export type ShoppingItem = { id: string; label: string; checked: boolean; create
 export type Member = { id: string; name: string; email: string };
 
 export type ExpenseShare = { userId: string; amountCents: number };
+export type ExpenseTracker = { id: string; name: string; emoji: string };
 export type Expense = {
   id: string;
+  trackerId: string;
   title: string;
   amountCents: number;
   paidById: string;
