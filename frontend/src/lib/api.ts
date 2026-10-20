@@ -64,6 +64,7 @@ export type BudgetTransaction = {
   amountCents: number;
   label: string;
   detail: string | null;
+  merchantKey: string;
   category: string;
   byUser: boolean;
   recurringId: string | null;

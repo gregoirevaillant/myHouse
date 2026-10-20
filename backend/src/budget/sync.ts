@@ -45,7 +45,7 @@ const BALANCE_PREFERENCE = ["CLAV", "ITAV", "XPCD", "CLBD", "ITBD"];
 async function context(ownerId: string) {
   const [rules, accounts] = await Promise.all([
     prisma.categoryRule.findMany({ where: { ownerId }, select: { pattern: true, category: true } }),
-    prisma.bankAccount.findMany({ where: { ownerId }, select: { iban: true, accountType: true } }),
+    prisma.bankAccount.findMany({ where: { ownerId }, select: { iban: true, accountType: true, name: true } }),
   ]);
   return { rules: rules as Rule[], accounts: accounts as MyAccount[] };
 }
@@ -109,6 +109,8 @@ export async function syncOwner(ownerId: string, householdId: string, { force = 
       errors.push(`${c.aspspName} : ${(e as Error).message}`);
     }
   }
+  // les règles automatiques évoluent : on les réapplique aussi à l'historique
+  await recategorize(ownerId);
   await detectRecurring(ownerId, householdId);
   return errors;
 }

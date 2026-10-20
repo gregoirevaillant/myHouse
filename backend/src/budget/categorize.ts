@@ -24,18 +24,21 @@ export function normalizeLabel(label: string) {
   return words.slice(0, 4).join(" ") || label.toLowerCase().trim();
 }
 
+const INVESTMENT_WORDS = /\b(assurance vie|pea|pea pme|compte titres|bourse|boursorama banque titres|trade republic|degiro|binance|coinbase|yomoni|linxea|nalo)\b/;
+const SAVINGS_WORDS = /\b(livret|livret a|ldds|lddd|lep|pel|cel|epargne)\b/;
+
 const KEYWORDS: [RegExp, Category][] = [
   [/\b(salaire|paie|remuneration|traitement)\b/, "SALARY"],
-  [/\b(caf|cpam|ameli|pole emploi|france travail|remboursement)\b/, "OTHER_INCOME"],
-  [/\b(assurance vie|pea|bourse|boursorama banque titres|trade republic|degiro|binance|coinbase|yomoni|linxea|nalo)\b/, "INVESTMENT"],
-  [/\b(livret|ldds|lep|pel|cel|epargne)\b/, "SAVINGS"],
+  [/\b(caf|pole emploi|france travail)\b/, "OTHER_INCOME"],
+  [INVESTMENT_WORDS, "INVESTMENT"],
+  [SAVINGS_WORDS, "SAVINGS"],
   [/\b(dgfip|impot|impots|tresor public|taxe)\b/, "TAXES"],
   [/\b(loyer|foncia|nexity|syndic|credit immobilier|pret immo|echeance pret|habitation)\b/, "HOUSING"],
   [/\b(netflix|spotify|deezer|disney|canal|amazon prime|prime video|apple com|itunes|google|youtube|icloud|adobe|microsoft|openai|anthropic|claude|chatgpt|dropbox|basic fit|fitness park|salle de sport)\b/, "SUBSCRIPTIONS"],
   [/\b(edf|engie|total energies|totalenergies energie|eau|veolia|suez|free|freebox|free mobile|orange|sosh|sfr|red by sfr|bouygues|b and you)\b/, "UTILITIES"],
   [/\b(sncf|ratp|navigo|uber|bolt|blablacar|total|esso|shell|bp|avia|intermarche carburant|peage|vinci autoroutes|sanef|aprr|parking|indigo|air france|easyjet|ryanair|transavia)\b/, "TRANSPORT"],
   [/\b(carrefour|leclerc|e leclerc|lidl|aldi|auchan|monoprix|franprix|intermarche|super u|hyper u|casino|picard|biocoop|naturalia|grand frais|netto|cora|match|boulangerie)\b/, "GROCERIES"],
-  [/\b(pharmacie|doctolib|medecin|dentiste|kine|mutuelle|alan|harmonie|mgen|hopital|clinique|laboratoire|opticien)\b/, "HEALTH"],
+  [/\b(pharmacie|doctolib|medecin|dentiste|kine|mutuelle|alan|harmonie|mgen|hopital|clinique|laboratoire|opticien|cpam|ameli)\b/, "HEALTH"],
   [/\b(restaurant|resto|mcdonald|mc donald|burger king|kfc|uber eats|deliveroo|just eat|starbucks|cafe|bar|cinema|ugc|pathe|fnac spectacles|ticketmaster|airbnb|booking|hotel)\b/, "LEISURE"],
   [/\b(amazon|fnac|darty|decathlon|ikea|leroy merlin|castorama|zara|h m|uniqlo|kiabi|sephora|action|cdiscount|vinted|apple store)\b/, "SHOPPING"],
 ];
@@ -62,9 +65,30 @@ const MCC: [number, number, Category][] = [
   [5700, 5999, "SHOPPING"],
 ];
 
-export type TxToCategorize = { labelKey: string; label: string; amountCents: number; counterpartyIban: string | null; mcc: string | null };
+export type TxToCategorize = {
+  labelKey: string;
+  label: string;
+  amountCents: number;
+  counterparty: string | null;
+  counterpartyIban: string | null;
+  mcc: string | null;
+};
 export type Rule = { pattern: string; category: string };
-export type MyAccount = { iban: string | null; accountType: string | null };
+export type MyAccount = { iban: string | null; accountType: string | null; name: string };
+
+// Un crédit venant d'une enseigne (carte, avoir, société) est un remboursement, pas un revenu
+const REFUND_MARKERS = /^(carte|cb|paiement|avoir|remboursement|rembt|rbt|refund)\b|\b(avoir|remboursement|rembt|refund|retour)\b/;
+const COMPANY_MARKERS = /\b(sa|sas|sasu|sarl|eurl|snc|ltd|limited|gmbh|ag|ab|nv|bv|srl|spa|inc|llc|bank|payments?|paypal|klarna|stripe|adyen|alma|com|fr|www)\b/;
+
+const plain = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+// livret, PEA… : reconnus au type du compte ou, à défaut, à son nom (certaines banques les déclarent en compte courant)
+function savingsCategory(account: MyAccount): Category | null {
+  const name = plain(account.name);
+  if (INVESTMENT_WORDS.test(name)) return "INVESTMENT";
+  if (SAVINGS_WORDS.test(name) || account.accountType === "SVGS") return "SAVINGS";
+  return null;
+}
 
 // Ordre : règles apprises > virement interne > mots-clés > code MCC > défaut selon le sens
 export function categorize(
@@ -80,11 +104,11 @@ export function categorize(
   const other = tx.counterpartyIban && myAccounts.find((a) => a.iban && sameIban(a.iban, tx.counterpartyIban!));
   if (other) {
     // vers un compte d'épargne à moi = épargne ; le reste (y compris l'arrivée sur le livret) = simple mouvement interne
-    const toSavings = tx.amountCents < 0 && other.accountType === "SVGS" && from.accountType !== "SVGS";
-    return { category: toSavings ? "SAVINGS" : "TRANSFER", source: "AUTO" };
+    const savings = tx.amountCents < 0 && !savingsCategory(from) ? savingsCategory(other) : null;
+    return { category: savings ?? "TRANSFER", source: "AUTO" };
   }
 
-  const text = `${tx.labelKey} ${tx.label.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()}`;
+  const text = `${tx.labelKey} ${plain(tx.counterparty ?? "")} ${plain(tx.label)}`;
   const keyword = KEYWORDS.find(([re]) => re.test(text))?.[1];
   // un crédit chez un commerçant reste dans sa catégorie : c'est un remboursement qui diminue la dépense
   if (keyword) return { category: keyword, source: "AUTO" };
@@ -95,7 +119,10 @@ export function categorize(
     if (match) return { category: match[2], source: "AUTO" };
   }
 
-  return { category: tx.amountCents >= 0 ? "OTHER_INCOME" : "OTHER", source: "AUTO" };
+  if (tx.amountCents < 0) return { category: "OTHER", source: "AUTO" };
+  // crédit non reconnu : revenu seulement s'il ne vient pas visiblement d'une enseigne (sinon il réduit les dépenses)
+  const fromMerchant = REFUND_MARKERS.test(plain(tx.label)) || COMPANY_MARKERS.test(text);
+  return { category: fromMerchant ? "OTHER" : "OTHER_INCOME", source: "AUTO" };
 }
 
 const sameIban = (a: string, b: string) => a.replace(/\s/g, "").toUpperCase() === b.replace(/\s/g, "").toUpperCase();

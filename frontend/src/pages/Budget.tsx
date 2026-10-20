@@ -18,11 +18,18 @@ import { monthKey, monthLabel, shiftMonth, shortDate, toIso } from "../lib/dates
 import { formatEur, formatEurRound } from "../lib/money";
 
 const AUTO_SYNC_AFTER = 6 * 60 * 60 * 1000;
+const TOP_MERCHANTS = 5;
+
+// filtre des opérations : une catégorie ou une enseigne
+type Filter = { category: string } | { merchantKey: string; label: string };
+
+// « carrefour city » → « Carrefour City »
+const merchantName = (key: string) => key.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
 
 export function Budget() {
   const currentMonth = monthKey(toIso(new Date()));
   const [month, setMonth] = useState(currentMonth);
-  const [filter, setFilter] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter | null>(null);
   const [editing, setEditing] = useState<BudgetTransaction | null>(null);
   const { data, isLoading } = useBudgetMonth(month);
   const { data: trend = [] } = useBudgetTrend(currentMonth);
@@ -47,6 +54,22 @@ export function Budget() {
   );
   const maxCategory = Math.max(1, ...expenseCategories.map((c) => c.cents));
 
+  // enseignes où l'on a le plus dépensé ce mois-ci, remboursements déduits
+  const topMerchants = useMemo(() => {
+    const totals = new Map<string, { key: string; cents: number; count: number; category: string }>();
+    for (const t of data?.transactions ?? []) {
+      if (category(t.category).kind !== "EXPENSE") continue;
+      const m = totals.get(t.merchantKey) ?? { key: t.merchantKey, cents: 0, count: 0, category: t.category };
+      m.cents -= t.amountCents;
+      if (t.amountCents < 0) m.count++;
+      totals.set(t.merchantKey, m);
+    }
+    return [...totals.values()]
+      .filter((m) => m.cents > 0)
+      .sort((a, b) => b.cents - a.cents)
+      .slice(0, TOP_MERCHANTS);
+  }, [data]);
+
   const trendBars: Bar[] = trend.map((t) => ({
     key: t.month,
     label: monthLabel(t.month, "long"),
@@ -69,7 +92,14 @@ export function Budget() {
   const upcoming = data.recurring.filter((r) => r.upcoming.length);
   const upcomingCents = upcoming.reduce((s, r) => s + r.amountCents * r.upcoming.length, 0);
   const warning = consentWarning(bank.consentUntil);
-  const transactions = filter ? data.transactions.filter((t) => t.category === filter) : data.transactions;
+  const transactions = !filter
+    ? data.transactions
+    : "category" in filter
+      ? data.transactions.filter((t) => t.category === filter.category)
+      : data.transactions.filter((t) => t.merchantKey === filter.merchantKey);
+  const isFilter = (f: Filter) =>
+    filter !== null && ("category" in f ? "category" in filter && filter.category === f.category : "merchantKey" in filter && filter.merchantKey === f.merchantKey);
+  const toggleFilter = (f: Filter) => setFilter(isFilter(f) ? null : f);
 
   return (
     <section>
@@ -157,8 +187,8 @@ export function Budget() {
                   return (
                     <li key={id}>
                       <button
-                        className={`w-full rounded-xl px-2 py-1 text-left transition ${filter === id ? "bg-rose-soft" : ""}`}
-                        onClick={() => setFilter(filter === id ? null : id)}
+                        className={`w-full rounded-xl px-2 py-1 text-left transition ${isFilter({ category: id }) ? "bg-rose-soft" : ""}`}
+                        onClick={() => toggleFilter({ category: id })}
                       >
                         <span className="flex justify-between text-sm font-bold">
                           <span>
@@ -174,6 +204,38 @@ export function Budget() {
                   );
                 })}
               </ul>
+            </div>
+          )}
+
+          {/* top des enseignes */}
+          {topMerchants.length > 0 && (
+            <div className="mb-4 rounded-3xl bg-white p-5 shadow-soft">
+              <p className="mb-3 text-sm font-bold text-ink-soft">Top des enseignes</p>
+              <ol className="space-y-1">
+                {topMerchants.map((m, i) => {
+                  const f = { merchantKey: m.key, label: merchantName(m.key) };
+                  return (
+                    <li key={m.key}>
+                      <button
+                        className={`flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition ${isFilter(f) ? "bg-rose-soft" : ""}`}
+                        onClick={() => toggleFilter(f)}
+                      >
+                        <span className="w-5 shrink-0 text-center font-extrabold text-ink-soft">{i + 1}</span>
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${category(m.category).color}`}>
+                          {category(m.category).icon}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-bold">{f.label}</span>
+                          <span className="block text-xs font-semibold text-ink-soft">
+                            {m.count} achat{m.count > 1 ? "s" : ""}
+                          </span>
+                        </span>
+                        <span className="text-sm font-extrabold tabular-nums">{formatEur(m.cents)}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
           )}
 
@@ -213,7 +275,7 @@ export function Budget() {
           {/* opérations */}
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-bold text-ink-soft">
-              Opérations{filter && ` · ${category(filter).label}`}
+              Opérations{filter && ` · ${"category" in filter ? category(filter.category).label : filter.label}`}
             </p>
             {filter && (
               <button className="text-sm font-bold text-rose-deep" onClick={() => setFilter(null)}>

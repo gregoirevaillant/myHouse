@@ -26,6 +26,7 @@ const publicTransaction = (t: {
   date: string;
   amountCents: number;
   label: string;
+  labelKey: string;
   counterparty: string | null;
   category: string;
   categorySource: string;
@@ -37,6 +38,7 @@ const publicTransaction = (t: {
   amountCents: t.amountCents,
   label: t.counterparty ?? t.label,
   detail: t.counterparty ? t.label : null,
+  merchantKey: t.labelKey,
   category: t.category,
   byUser: t.categorySource === "USER",
   recurringId: t.recurringId,
