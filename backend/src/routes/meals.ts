@@ -18,29 +18,38 @@ export async function mealRoutes(app: FastifyInstance) {
     const { week } = z.object({ week: isoDate }).parse(req.query);
     return prisma.meal.findMany({
       where: { householdId: req.user.householdId, ownerId: null, date: { gte: week, lte: addDays(week, 6) } },
-      select: { date: true, slot: true, text: true },
+      select: { date: true, slot: true, text: true, restaurantId: true },
     });
   });
 
   app.put("/", async (req) => {
     const body = z
-      .object({ date: isoDate, slot: z.enum(["LUNCH", "DINNER"]), text: z.string().max(2000) })
+      .object({
+        date: isoDate,
+        slot: z.enum(["LUNCH", "DINNER"]),
+        text: z.string().max(2000),
+        restaurantId: z.string().nullable().optional(),
+      })
       .parse(req.body);
     const householdId = req.user.householdId;
+    // repas au resto : le resto doit appartenir au foyer ; modifier le texte à la main défait le lien
+    const restaurantId = body.restaurantId
+      ? (await prisma.restaurant.findFirst({ where: { id: body.restaurantId, householdId }, select: { id: true } }))?.id ?? null
+      : null;
     const key = { householdId_date_slot: { householdId, date: body.date, slot: body.slot } };
     const text = body.text.trim();
     const previous = await prisma.meal.findUnique({ where: key, select: { text: true } });
     if (text && text !== previous?.text) notifyMeal(req.user, body.date, body.slot, text);
     if (!text) {
       await prisma.meal.deleteMany({ where: { householdId, date: body.date, slot: body.slot } });
-      return { ...body, text: "" };
+      return { ...body, text: "", restaurantId: null };
     }
     await prisma.meal.upsert({
       where: key,
-      create: { householdId, createdById: req.user.id, date: body.date, slot: body.slot, text },
-      update: { text },
+      create: { householdId, createdById: req.user.id, date: body.date, slot: body.slot, text, restaurantId },
+      update: { text, restaurantId },
     });
-    return { ...body, text };
+    return { ...body, text, restaurantId };
   });
 }
 

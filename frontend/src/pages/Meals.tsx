@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api, type Meal, type MealSlot } from "../lib/api";
 import { addDays, dayName, mondayOf, shortDate, toIso } from "../lib/dates";
 
@@ -13,7 +14,7 @@ export function Meals() {
     queryFn: () => api<Meal[]>(`/meals?week=${week}`),
   });
 
-  const text = (date: string, slot: MealSlot) => meals.find((m) => m.date === date && m.slot === slot)?.text ?? "";
+  const meal = (date: string, slot: MealSlot) => meals.find((m) => m.date === date && m.slot === slot);
   const days = Array.from({ length: 7 }, (_, i) => addDays(week, i));
   const isCurrentWeek = week === mondayOf(new Date());
 
@@ -46,8 +47,8 @@ export function Meals() {
               {date === today && <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-xs text-peach-deep">aujourd'hui</span>}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
-              <MealField date={date} slot="LUNCH" serverText={text(date, "LUNCH")} />
-              <MealField date={date} slot="DINNER" serverText={text(date, "DINNER")} />
+              <MealField date={date} slot="LUNCH" serverText={meal(date, "LUNCH")?.text ?? ""} restaurantId={meal(date, "LUNCH")?.restaurantId} />
+              <MealField date={date} slot="DINNER" serverText={meal(date, "DINNER")?.text ?? ""} restaurantId={meal(date, "DINNER")?.restaurantId} />
             </div>
           </div>
         ))}
@@ -56,7 +57,7 @@ export function Meals() {
   );
 }
 
-function MealField({ date, slot, serverText }: { date: string; slot: MealSlot; serverText: string }) {
+function MealField({ date, slot, serverText, restaurantId }: { date: string; slot: MealSlot; serverText: string; restaurantId?: string | null }) {
   const [value, setValue] = useState(serverText);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const focused = useRef(false);
@@ -89,6 +90,12 @@ function MealField({ date, slot, serverText }: { date: string; slot: MealSlot; s
       <span className="flex items-center justify-between text-xs font-bold text-ink-soft">
         {slot === "LUNCH" ? "☀️ Midi" : "🌙 Soir"}
         <span className="font-semibold">
+          {/* repas prévu depuis un resto : modifier le texte défait le lien */}
+          {restaurantId && status === "idle" && (
+            <Link to="/restos" className="rounded-full bg-peach px-2 py-0.5 text-peach-deep" onClick={(e) => e.stopPropagation()}>
+              🍜 voir les restos
+            </Link>
+          )}
           {status === "saving" && "…"}
           {status === "saved" && "✓"}
           {status === "error" && <span className="text-rose-deep">erreur</span>}

@@ -26,7 +26,8 @@ export const budgetKeys = [["budget"], ["budget-trend"], ["recurring"], ["bank-c
 const INVALIDATIONS: { prefix: string; keys: string[][]; private?: boolean }[] = [
   { prefix: "/api/shopping", keys: [["shopping"]] },
   { prefix: "/api/products", keys: [["products"], ["shopping"]] },
-  { prefix: "/api/meals", keys: [["meals"]] },
+  { prefix: "/api/meals", keys: [["meals"], ["restaurants"]] },
+  { prefix: "/api/restaurants", keys: [["restaurants"], ["meals"]] },
   { prefix: "/api/expense-trackers", keys: [["expense-trackers"], ["expenses"]] },
   { prefix: "/api/expenses", keys: [["expenses"]] },
   { prefix: "/api/cards", keys: [["cards"]] },

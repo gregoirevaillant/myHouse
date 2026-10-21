@@ -128,6 +128,7 @@ function MenuSettings() {
 const NOTIFICATIONS: { type: NotificationType; icon: string; label: string; hint: string }[] = [
   { type: "SHOPPING", icon: "🛒", label: "Courses", hint: "Articles ajoutés par l'autre" },
   { type: "MEALS", icon: "🍽️", label: "Repas", hint: "Menu d'aujourd'hui ou de demain modifié" },
+  { type: "RESTAURANTS", icon: "🍜", label: "Restos", hint: "Nouveau resto ajouté par l'autre" },
   { type: "EXPENSES", icon: "💶", label: "Dépenses", hint: "Nouvelle dépense ajoutée" },
   { type: "BUDGET", icon: "📊", label: "Budget", hint: "Prélèvements du lendemain, accès banque à renouveler" },
   { type: "DIGEST", icon: "🏠", label: "Résumé du dimanche", hint: "La semaine qui vient, le dimanche à 19 h" },

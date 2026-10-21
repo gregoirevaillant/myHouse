@@ -1,0 +1,110 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, type MealSlot, type Restaurant } from "./api";
+import { normalize } from "./products";
+
+export const CUISINES = [
+  { id: "FRANCAIS", label: "Français", emoji: "🥖" },
+  { id: "ITALIEN", label: "Italien", emoji: "🍕" },
+  { id: "JAPONAIS", label: "Japonais", emoji: "🍣" },
+  { id: "CHINOIS", label: "Chinois", emoji: "🥡" },
+  { id: "COREEN", label: "Coréen", emoji: "🍜" },
+  { id: "THAI_VIET", label: "Thaï / Viet", emoji: "🍲" },
+  { id: "INDIEN", label: "Indien", emoji: "🍛" },
+  { id: "LIBANAIS", label: "Libanais", emoji: "🧆" },
+  { id: "MEXICAIN", label: "Mexicain", emoji: "🌮" },
+  { id: "AFRICAIN", label: "Africain", emoji: "🥘" },
+  { id: "BURGER", label: "Burger", emoji: "🍔" },
+  { id: "CREPERIE", label: "Crêperie", emoji: "🥞" },
+  { id: "BRUNCH", label: "Brunch", emoji: "🥐" },
+  { id: "VEGE", label: "Végé", emoji: "🥗" },
+  { id: "FRUITS_DE_MER", label: "Fruits de mer", emoji: "🦪" },
+];
+
+// une cuisine hors liste est gardée telle qu'elle a été tapée
+export function cuisineInfo(cuisine: string) {
+  return CUISINES.find((c) => c.id === cuisine) ?? { id: cuisine, label: cuisine, emoji: "🍽️" };
+}
+
+export const priceLabel = (price: number | null) => (price ? "€".repeat(price) : "");
+
+export const NO_DISTRICT = "Sans adresse";
+export const districtLabel = (r: Pick<Restaurant, "district">) => r.district || NO_DISTRICT;
+
+// ordre des arrondissements : 1er → 20e, puis les autres villes, puis les restos sans adresse
+function districtRank(d: string) {
+  if (d === NO_DISTRICT) return 1000;
+  const m = d.match(/^(\d{1,2})(er|e)$/);
+  return m ? Number(m[1]) : 100;
+}
+export const compareDistricts = (a: string, b: string) => districtRank(a) - districtRank(b) || a.localeCompare(b, "fr");
+
+// meilleure note d'abord, les restos sans note après
+export const compareRestaurants = (a: Restaurant, b: Restaurant) =>
+  (b.rating ?? 0) - (a.rating ?? 0) || a.name.localeCompare(b.name, "fr");
+
+export type GroupBy = "cuisine" | "district";
+export type Group = { key: string; label: string; emoji?: string; count: number; subgroups: { key: string; label: string; emoji?: string; items: Restaurant[] }[] };
+
+const cuisineGroup = (r: Restaurant) => {
+  const c = cuisineInfo(r.cuisine);
+  return { key: c.id, label: c.label, emoji: c.emoji };
+};
+const districtGroup = (r: Restaurant) => ({ key: districtLabel(r), label: districtLabel(r), emoji: undefined });
+
+// regroupement sur deux niveaux : cuisine → arrondissement, ou l'inverse
+export function groupRestaurants(list: Restaurant[], by: GroupBy): Group[] {
+  const [first, second] = by === "cuisine" ? [cuisineGroup, districtGroup] : [districtGroup, cuisineGroup];
+  const groups = new Map<string, Group>();
+  for (const r of list) {
+    const g1 = first(r);
+    const g2 = second(r);
+    let group = groups.get(g1.key);
+    if (!group) groups.set(g1.key, (group = { ...g1, count: 0, subgroups: [] }));
+    let sub = group.subgroups.find((s) => s.key === g2.key);
+    if (!sub) group.subgroups.push((sub = { ...g2, items: [] }));
+    sub.items.push(r);
+    group.count++;
+  }
+  const byCuisine = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label, "fr");
+  const byDistrict = (a: { key: string }, b: { key: string }) => compareDistricts(a.key, b.key);
+  const [sort1, sort2] = by === "cuisine" ? [byCuisine, byDistrict] : [byDistrict, byCuisine];
+  return [...groups.values()].sort(sort1).map((g) => ({
+    ...g,
+    subgroups: g.subgroups.sort(sort2).map((s) => ({ ...s, items: s.items.sort(compareRestaurants) })),
+  }));
+}
+
+export const matchesSearch = (r: Restaurant, search: string) => {
+  const q = normalize(search);
+  return !q || [r.name, cuisineInfo(r.cuisine).label, r.district ?? "", r.address ?? ""].some((s) => normalize(s).includes(q));
+};
+
+export function useRestaurants(enabled = true) {
+  return useQuery({ queryKey: ["restaurants"], queryFn: () => api<Restaurant[]>("/restaurants"), enabled });
+}
+
+export function useAddVisit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, date }: { id: string; date: string }) => api<Restaurant>(`/restaurants/${id}/visits`, { method: "POST", json: { date } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["restaurants"] }),
+  });
+}
+
+// « Prévoir » : place le resto dans le planning des repas
+export function usePlanMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ restaurant, date, slot }: { restaurant: Restaurant; date: string; slot: MealSlot }) =>
+      api("/meals", {
+        method: "PUT",
+        json: { date, slot, text: `${cuisineInfo(restaurant.cuisine).emoji} Resto : ${restaurant.name}`, restaurantId: restaurant.id },
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["meals"] }),
+  });
+}
+
+export const directionsUrl = (r: Restaurant) =>
+  r.lat != null && r.lng != null
+    ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.name} ${r.address ?? r.district ?? "Paris"}`)}`;

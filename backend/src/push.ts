@@ -5,7 +5,7 @@ import { prisma } from "./db.js";
 import { env } from "./env.js";
 import { isLive } from "./live.js";
 
-export const NOTIFICATION_TYPES = ["SHOPPING", "MEALS", "EXPENSES", "BUDGET", "DIGEST"] as const;
+export const NOTIFICATION_TYPES = ["SHOPPING", "MEALS", "EXPENSES", "BUDGET", "DIGEST", "RESTAURANTS"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export type PushPayload = { title: string; body: string; url: string; tag?: string };

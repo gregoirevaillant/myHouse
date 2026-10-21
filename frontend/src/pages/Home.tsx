@@ -8,6 +8,7 @@ import { computeDebt, useExpenses } from "../lib/expenses";
 import { useMembers } from "../lib/members";
 import { formatEur } from "../lib/money";
 import { cardsQuery, shoppingQuery } from "../lib/offline";
+import { cuisineInfo, useRestaurants } from "../lib/restaurants";
 import { useVisibleTabs } from "../lib/tabs";
 
 export function Home() {
@@ -30,6 +31,8 @@ export function Home() {
     enabled: visible.has("/journal"),
   });
 
+  const { data: restaurants = [] } = useRestaurants(visible.has("/restos"));
+
   const { data: budget } = useBudgetMonth(monthKey(today), visible.has("/budget"));
 
   const toBuy = items.filter((i) => !i.checked);
@@ -37,6 +40,8 @@ export function Home() {
   const debt = computeDebt(expenses, members);
   const wroteToday = journals.some((j) => j.lastDate === today);
   const budgetLeft = budget && budget.totals.income - budget.totals.outflow - budget.totals.invested;
+  const tested = restaurants.filter((r) => !r.wishlist);
+  const lastVisited = tested.filter((r) => r.visits[0]).sort((a, b) => b.visits[0].localeCompare(a.visits[0]))[0];
   const nextDue = budget?.recurring
     .filter((r) => r.upcoming.length && r.amountCents < 0)
     .sort((a, b) => a.upcoming[0].localeCompare(b.upcoming[0]))[0];
@@ -94,6 +99,23 @@ export function Home() {
           <p className="mt-2 text-sm font-bold text-ink/60">
             {cards.length} carte{cards.length > 1 ? "s" : ""}
           </p>
+        </Tile>
+      ),
+    },
+    {
+      to: "/restos",
+      node: (
+        <Tile to="/restos" icon="🍜" className="bg-peach">
+          <Label>Restos</Label>
+          <p className="mt-1 text-2xl font-extrabold">
+            {tested.length} <span className="text-sm font-bold text-ink/60">testé{tested.length > 1 ? "s" : ""}</span>
+          </p>
+          <p className="text-sm font-bold text-ink/60">{restaurants.length - tested.length} à tester</p>
+          {lastVisited && (
+            <p className="mt-2 truncate text-xs font-bold text-ink/60">
+              Dernier : {cuisineInfo(lastVisited.cuisine).emoji} {lastVisited.name}
+            </p>
+          )}
         </Tile>
       ),
     },

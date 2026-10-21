@@ -22,6 +22,7 @@ model Household {
   bankConnections BankConnection[]
   categoryRules   CategoryRule[]
   recurringItems  RecurringItem[]
+  restaurants     Restaurant[]
 }
 
 model User {
@@ -67,6 +68,9 @@ model Meal {
   date        String // YYYY-MM-DD
   slot        String // LUNCH | DINNER
   text        String
+  // repas prévu au restaurant (bouton « Prévoir » d'un resto)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
 
   @@unique([householdId, date, slot])
 }
@@ -100,6 +104,38 @@ model Product {
   createdAt     DateTime       @default(now())
 
   @@unique([householdId, nameKey])
+}
+
+// Restaurant du foyer : testé (au moins une visite) ou à tester
+model Restaurant {
+  id          String            @id @default(cuid())
+  householdId String
+  household   Household         @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String?
+  name        String
+  cuisine     String // id de la liste fixe (JAPONAIS…) ou texte libre
+  district    String? // "11e" pour Paris, sinon nom de la ville
+  address     String?
+  lat         Float?
+  lng         Float?
+  wishlist    Boolean           @default(true) // true = à tester ; passe à false à la 1re visite
+  rating      Int? // 1 à 5
+  price       Int? // 1 à 3 (€ / €€ / €€€)
+  phone       String?
+  url         String?
+  visits      RestaurantVisit[]
+  meals       Meal[]
+  createdAt   DateTime          @default(now())
+}
+
+model RestaurantVisit {
+  id           String     @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  date         String // YYYY-MM-DD
+
+  @@unique([restaurantId, date])
 }
 
 // Carnet de dépenses partagé (vie quotidienne, voyage en Norvège…)

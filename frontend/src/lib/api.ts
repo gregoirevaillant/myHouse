@@ -19,7 +19,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   return data as T;
 }
 
-export type NotificationType = "SHOPPING" | "MEALS" | "EXPENSES" | "BUDGET" | "DIGEST";
+export type NotificationType = "SHOPPING" | "MEALS" | "EXPENSES" | "BUDGET" | "DIGEST" | "RESTAURANTS";
 export type User = {
   id: string;
   email: string;
@@ -42,7 +42,26 @@ export type LoyaltyCard = {
 };
 
 export type MealSlot = "LUNCH" | "DINNER";
-export type Meal = { date: string; slot: MealSlot; text: string };
+// restaurantId : repas prévu au resto (absent des réponses en cache d'avant les restos)
+export type Meal = { date: string; slot: MealSlot; text: string; restaurantId?: string | null };
+
+export type Restaurant = {
+  id: string;
+  name: string;
+  cuisine: string;
+  district: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  wishlist: boolean;
+  rating: number | null;
+  price: number | null;
+  phone: string | null;
+  url: string | null;
+  visits: string[]; // dates YYYY-MM-DD, la plus récente d'abord
+};
+export type RestaurantInput = Omit<Restaurant, "id" | "visits" | "wishlist"> & { visitedOn?: string };
+export type GeocodeResult = { label: string; name: string | null; address: string; lat: number; lng: number; district: string | null };
 
 export type Product = { id: string; name: string; note: string | null; hasImage: boolean };
 

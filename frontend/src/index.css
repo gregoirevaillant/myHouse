@@ -44,3 +44,11 @@
     animation: none;
   }
 }
+
+/* carte des restos : pastille emoji (jaune = à tester) */
+.resto-pin {
+  @apply flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-peach text-lg leading-none shadow-soft;
+}
+.resto-pin-todo {
+  @apply bg-lemon;
+}

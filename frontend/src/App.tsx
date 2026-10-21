@@ -15,6 +15,7 @@ import { Meals } from "./pages/Meals";
 import { Products } from "./pages/Products";
 import { Profile } from "./pages/Profile";
 import { Recurring } from "./pages/Recurring";
+import { Restaurants } from "./pages/Restaurants";
 import { Shopping } from "./pages/Shopping";
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/repas" element={<Meals />} />
         <Route path="/courses" element={<Shopping />} />
         <Route path="/courses/produits" element={<Products />} />
+        <Route path="/restos" element={<Restaurants />} />
         <Route path="/depenses" element={<Expenses />} />
         <Route path="/depenses/:id" element={<ExpenseTracker />} />
         <Route path="/journal" element={<Journals />} />

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-"Maison": a household PWA for two people (loyalty cards, weekly meals, shopping list + product catalogue, shared expenses, private journals, personal bank-fed budget). Everything user-facing, all code comments, API error messages and commit messages are in **French**: keep it that way.
+"Maison": a household PWA for two people (loyalty cards, weekly meals, shopping list + product catalogue, restaurants (tried / to try, map, visits), shared expenses, private journals, personal bank-fed budget). Everything user-facing, all code comments, API error messages and commit messages are in **French**: keep it that way.
 
 ## Commands
 
