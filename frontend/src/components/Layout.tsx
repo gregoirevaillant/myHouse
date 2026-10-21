@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useMe } from "../lib/auth";
+import { useLiveUpdates } from "../lib/live";
 import { useOfflineWarmup } from "../lib/offline";
 import { useVisibleTabs } from "../lib/tabs";
 import { OfflineBanner } from "./OfflineBanner";
@@ -11,6 +12,7 @@ export function Layout() {
   // ?? true : une session gardée hors ligne avant l'ajout de la préférence n'a pas le champ
   const showNavBar = me?.showNavBar ?? true;
   useOfflineWarmup();
+  useLiveUpdates();
   return (
     <div
       className={`mx-auto min-h-screen max-w-2xl px-4 pt-[calc(1.25rem+env(safe-area-inset-top))] ${showNavBar ? "pb-32" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}

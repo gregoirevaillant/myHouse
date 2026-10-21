@@ -10,6 +10,8 @@ import path from "node:path";
 import { ZodError } from "zod";
 import { COOKIE_NAME, authRoutes, requireAuth } from "./auth.js";
 import { syncEveryone } from "./budget/sync.js";
+import { runJobs } from "./jobs.js";
+import { invalidateOnWrite, liveRoutes } from "./live.js";
 import { bankRoutes } from "./routes/bank.js";
 import { budgetRoutes } from "./routes/budget.js";
 import { cardRoutes } from "./routes/cards.js";
@@ -18,6 +20,7 @@ import { expenseTrackerRoutes } from "./routes/expenseTrackers.js";
 import { journalRoutes } from "./routes/journals.js";
 import { mealRoutes } from "./routes/meals.js";
 import { productRoutes } from "./routes/products.js";
+import { pushRoutes } from "./routes/push.js";
 import { shoppingRoutes } from "./routes/shopping.js";
 import { userRoutes } from "./routes/users.js";
 
@@ -40,6 +43,8 @@ app.setErrorHandler((err, _req, reply) => {
 
 await app.register(
   async (api) => {
+    // temps réel : chaque écriture réussie fait rafraîchir les appareils concernés
+    api.addHook("onResponse", invalidateOnWrite);
     await api.register(authRoutes, { prefix: "/auth" });
     await api.register(async (priv) => {
       priv.addHook("preHandler", requireAuth);
@@ -53,6 +58,8 @@ await app.register(
       await priv.register(userRoutes, { prefix: "/users" });
       await priv.register(budgetRoutes, { prefix: "/budget" });
       await priv.register(bankRoutes, { prefix: "/bank" });
+      await priv.register(pushRoutes, { prefix: "/push" });
+      await priv.register(liveRoutes, { prefix: "/events" });
     });
   },
   { prefix: "/api" },
@@ -76,3 +83,8 @@ if (bankEnabled) {
   setTimeout(syncAll, 30_000);
   setInterval(syncAll, 6 * 60 * 60 * 1000);
 }
+
+// Notifications planifiées (rappels budget, résumé du dimanche) : vérifiées toutes les 10 min
+const jobs = () => runJobs().catch((err) => app.log.error(err));
+setTimeout(jobs, 60_000);
+setInterval(jobs, 10 * 60 * 1000);

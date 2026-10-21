@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { eur, notifyOthers } from "../push.js";
 
 const expenseBody = z.object({
   trackerId: z.string(),
@@ -50,15 +51,25 @@ export async function expenseRoutes(app: FastifyInstance) {
     const body = expenseBody.parse(req.body);
     await validate(req, body);
     const { shares, ...data } = body;
-    return prisma.expense.create({
+    const expense = await prisma.expense.create({
       data: {
         ...data,
         householdId: req.user.householdId,
         createdById: req.user.id,
         shares: { create: shares.filter((s) => s.amountCents > 0) },
       },
-      include,
+      include: { ...include, tracker: { select: { name: true, emoji: true } } },
     });
+    const { tracker, ...result } = expense;
+    notifyOthers(req.user, "EXPENSES", (name, recipientId) => {
+      const share = expense.shares.find((s) => s.userId === recipientId)?.amountCents;
+      return {
+        title: `${tracker.emoji} ${tracker.name}`,
+        body: `${name} a ajouté ${expense.title} · ${eur(expense.amountCents)}${share ? ` (ta part : ${eur(share)})` : ""}`,
+        url: `/depenses/${expense.trackerId}`,
+      };
+    }).catch((err) => req.log.error(err));
+    return result;
   });
 
   app.put<{ Params: { id: string } }>("/:id", async (req, reply) => {

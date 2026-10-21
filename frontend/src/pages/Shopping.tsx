@@ -13,10 +13,7 @@ export function Shopping() {
   const [label, setLabel] = useState("");
   const [viewing, setViewing] = useState<Product | null>(null);
   const { data: products = [] } = useProducts();
-  const { data: items = [], isLoading } = useQuery({
-    ...shoppingQuery,
-    refetchInterval: 10_000,
-  });
+  const { data: items = [], isLoading } = useQuery(shoppingQuery);
 
   const refresh = () => qc.invalidateQueries({ queryKey: KEY });
 

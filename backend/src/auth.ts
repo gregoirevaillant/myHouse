@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { prisma } from "./db.js";
 import { hashPassword, verifyPassword } from "./password.js";
+import { NOTIFICATION_TYPES } from "./push.js";
 
 export type SessionUser = { id: string; householdId: string };
 
@@ -23,12 +24,20 @@ export async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-const publicUser = (u: { id: string; email: string; name: string; hiddenTabs: string; showNavBar: boolean }) => ({
+const publicUser = (u: {
+  id: string;
+  email: string;
+  name: string;
+  hiddenTabs: string;
+  showNavBar: boolean;
+  mutedNotifications: string;
+}) => ({
   id: u.id,
   email: u.email,
   name: u.name,
   hiddenTabs: u.hiddenTabs ? u.hiddenTabs.split(",") : [],
   showNavBar: u.showNavBar,
+  mutedNotifications: u.mutedNotifications ? u.mutedNotifications.split(",") : [],
 });
 
 export async function authRoutes(app: FastifyInstance) {
@@ -66,12 +75,20 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.patch("/preferences", { preHandler: requireAuth }, async (req) => {
     const body = z
-      .object({ hiddenTabs: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20), showNavBar: z.boolean() })
+      .object({
+        hiddenTabs: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20),
+        showNavBar: z.boolean(),
+        mutedNotifications: z.array(z.enum(NOTIFICATION_TYPES)),
+      })
       .partial()
       .parse(req.body);
     const user = await prisma.user.update({
       where: { id: req.user.id },
-      data: { hiddenTabs: body.hiddenTabs?.join(","), showNavBar: body.showNavBar },
+      data: {
+        hiddenTabs: body.hiddenTabs?.join(","),
+        showNavBar: body.showNavBar,
+        mutedNotifications: body.mutedNotifications?.join(","),
+      },
     });
     return publicUser(user);
   });

@@ -11,7 +11,6 @@ export function Meals() {
   const { data: meals = [] } = useQuery({
     queryKey: ["meals", week],
     queryFn: () => api<Meal[]>(`/meals?week=${week}`),
-    refetchInterval: 30_000,
   });
 
   const text = (date: string, slot: MealSlot) => meals.find((m) => m.date === date && m.slot === slot)?.text ?? "";

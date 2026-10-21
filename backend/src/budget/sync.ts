@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { BankAccount, BankConnection } from "@prisma/client";
 import { prisma } from "../db.js";
+import { broadcast, budgetKeys } from "../live.js";
 import { getBalances, getTransactions, type EbTransaction } from "../enableBanking.js";
 import { categorize, normalizeLabel, type MyAccount, type Rule } from "./categorize.js";
 import { detectRecurring } from "./recurring.js";
@@ -136,5 +137,7 @@ export async function syncEveryone(log: (msg: string) => void) {
   for (const o of owners) {
     const errors = await syncOwner(o.ownerId, o.householdId).catch((e: Error) => [e.message]);
     for (const err of errors) log(`synchro bancaire ${o.ownerId} — ${err}`);
+    // les appareils ouverts de la personne rafraîchissent leur budget
+    broadcast(o.householdId, budgetKeys, o.ownerId);
   }
 }

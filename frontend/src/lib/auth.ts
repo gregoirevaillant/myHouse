@@ -32,7 +32,7 @@ export function useLogout() {
   });
 }
 
-export type Preferences = Pick<User, "hiddenTabs" | "showNavBar">;
+export type Preferences = Pick<User, "hiddenTabs" | "showNavBar" | "mutedNotifications">;
 
 // appliqué tout de suite à l'écran, puis confirmé par le serveur
 export function useUpdatePreferences() {

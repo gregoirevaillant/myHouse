@@ -19,7 +19,7 @@ export function computeDebt(expenses: Expense[], members: Member[]) {
 }
 
 export function useExpenses(enabled = true) {
-  return useQuery({ ...expensesQuery, refetchInterval: 30_000, enabled });
+  return useQuery({ ...expensesQuery, enabled });
 }
 
 export function useTrackers() {

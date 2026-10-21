@@ -25,6 +25,8 @@ export default defineConfig({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/api/],
+        // réception et clic des notifications push
+        importScripts: ["push-sw.js"],
         // photos des cartes et produits gardées pour le hors-ligne, mises à jour en arrière-plan
         runtimeCaching: [
           {

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { notifyShoppingAdded } from "../push.js";
 import { nameKey, publicProduct } from "./products.js";
 
 type ItemWithProduct = Prisma.ShoppingItemGetPayload<{ include: { product: true } }>;
@@ -34,6 +35,7 @@ export async function shoppingRoutes(app: FastifyInstance) {
       data: { label: body.label, productId: product?.id, householdId, createdById: req.user.id },
       include: { product: true },
     });
+    notifyShoppingAdded(req.user, item.label);
     return withProduct(item);
   });
 

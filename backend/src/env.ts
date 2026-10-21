@@ -12,6 +12,10 @@ export const env = {
   // connexion bancaire (Enable Banking) : désactivée si non configurée
   ebAppId: process.env.EB_APP_ID ?? "",
   ebPrivateKeyPath: process.env.EB_PRIVATE_KEY_PATH ?? "",
+  // notifications push : clés VAPID générées dans DATA_DIR si absentes
+  vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "",
+  vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
+  vapidSubject: process.env.VAPID_SUBJECT ?? `mailto:${process.env.USER1_EMAIL ?? "maison@example.com"}`,
   publicUrl: (process.env.PUBLIC_URL ?? "http://localhost:5173").replace(/\/$/, ""),
 };
 

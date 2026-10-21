@@ -34,7 +34,10 @@ model User {
   // chemins des onglets masqués dans la barre de menu, séparés par des virgules
   hiddenTabs   String    @default("")
   showNavBar   Boolean   @default(true)
+  // types de notifications coupés (SHOPPING, MEALS, EXPENSES, BUDGET, DIGEST), séparés par des virgules
+  mutedNotifications String @default("")
   paid         Expense[]
+  pushSubscriptions PushSubscription[]
   shares       ExpenseShare[]
 }
 
@@ -248,4 +251,22 @@ model RecurringItem {
   createdAt   DateTime  @default(now())
 
   @@unique([ownerId, key])
+}
+
+// Abonnement Web Push d'un appareil (un par navigateur / téléphone)
+model PushSubscription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  householdId String
+  endpoint    String   @unique
+  p256dh      String
+  auth        String
+  createdAt   DateTime @default(now())
+}
+
+// Dernière exécution d'une tâche planifiée (évite de la rejouer après un redémarrage)
+model JobRun {
+  name    String @id
+  lastRun String // YYYY-MM-DD
 }
