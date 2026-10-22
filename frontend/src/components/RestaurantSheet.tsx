@@ -6,6 +6,8 @@ import { addDays, dayName, shortDate, toIso } from "../lib/dates";
 import { appleMapsUrl, cuisineInfo, directionsUrl, districtLabel, priceLabel, shareText, useAddVisit, usePlanMeal } from "../lib/restaurants";
 import { Stars } from "./Stars";
 
+const ACTION = "btn-ghost min-w-0 flex-1 flex-col gap-0.5 whitespace-nowrap px-2 py-2 text-xs";
+
 export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaurant; onEdit: () => void }) {
   const qc = useQueryClient();
   const today = toIso(new Date());
@@ -56,29 +58,22 @@ export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaur
 
       {r.address && <p className="text-sm font-semibold">📍 {r.address}</p>}
 
-      <div className="grid grid-cols-4 gap-2">
-        <a href={directionsUrl(r)} target="_blank" rel="noreferrer" className="btn-ghost flex-col gap-0.5 px-2 py-2 text-xs">
+      {/* seulement les actions disponibles, qui se partagent la largeur */}
+      <div className="flex gap-2">
+        <a href={directionsUrl(r)} target="_blank" rel="noreferrer" className={ACTION}>
           <span className="text-xl">🧭</span> Itinéraire
         </a>
-        {r.url ? (
-          <a href={r.url} target="_blank" rel="noreferrer" className="btn-ghost flex-col gap-0.5 px-2 py-2 text-xs">
+        {r.url && (
+          <a href={r.url} target="_blank" rel="noreferrer" className={ACTION}>
             <span className="text-xl">🌐</span> {/instagram\.com/.test(r.url) ? "Instagram" : "Site"}
           </a>
-        ) : (
-          <span className="btn flex-col gap-0.5 bg-white/50 px-2 py-2 text-xs text-ink-soft/50">
-            <span className="text-xl opacity-50">🌐</span> Pas de site
-          </span>
         )}
-        {r.phone ? (
-          <a href={`tel:${r.phone.replace(/\s/g, "")}`} className="btn-ghost flex-col gap-0.5 px-2 py-2 text-xs">
+        {r.phone && (
+          <a href={`tel:${r.phone.replace(/\s/g, "")}`} className={ACTION}>
             <span className="text-xl">📞</span> Appeler
           </a>
-        ) : (
-          <span className="btn flex-col gap-0.5 bg-white/50 px-2 py-2 text-xs text-ink-soft/50">
-            <span className="text-xl opacity-50">📞</span> Pas de numéro
-          </span>
         )}
-        <button onClick={share} className="btn-ghost flex-col gap-0.5 px-2 py-2 text-xs">
+        <button onClick={share} className={ACTION}>
           <span className="text-xl">📤</span> {copied ? "Copié ✓" : "Partager"}
         </button>
       </div>
