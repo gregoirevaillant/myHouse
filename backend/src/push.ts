@@ -38,7 +38,7 @@ export async function sendPush(userId: string, type: NotificationType | null, pa
   await Promise.all(
     user.pushSubscriptions.map((s) =>
       webpush
-        .sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: 60 * 60 * 24 })
+        .sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, body, { TTL: 60 * 60 * 24, urgency: "high" })
         .catch(async (err: { statusCode?: number; message?: string }) => {
           // abonnement révoqué ou expiré côté navigateur : on l'oublie
           if (err.statusCode === 404 || err.statusCode === 410) {
@@ -62,30 +62,23 @@ export async function notifyOthers(author: { id: string; householdId: string }, 
   }
 }
 
-// Courses : les ajouts d'une même personne sont regroupés pendant 2 minutes en une seule notification
-const SHOPPING_DELAY = 2 * 60 * 1000;
-const shoppingBuffers = new Map<string, { author: { id: string; householdId: string }; labels: string[] }>();
+// Courses : notification immédiate à chaque ajout ; les ajouts d'une même personne dans les 2 dernières
+// minutes sont repris dans le texte, et la nouvelle notification remplace la précédente (même tag)
+const RECENT_WINDOW = 2 * 60 * 1000;
+const recentAdds = new Map<string, { labels: string[]; until: number }>();
 
 export function notifyShoppingAdded(author: { id: string; householdId: string }, label: string) {
-  const existing = shoppingBuffers.get(author.id);
-  if (existing) {
-    existing.labels.push(label);
-    return;
-  }
-  shoppingBuffers.set(author.id, { author, labels: [label] });
-  setTimeout(() => {
-    const buffer = shoppingBuffers.get(author.id);
-    shoppingBuffers.delete(author.id);
-    if (!buffer) return;
-    const { labels } = buffer;
-    const list = labels.length <= 3 ? joinFr(labels) : `${labels.slice(0, 2).join(", ")} et ${labels.length - 2} autres`;
-    notifyOthers(author, "SHOPPING", (name) => ({
-      title: "🛒 Courses",
-      body: `${name} a ajouté ${list} à la liste`,
-      url: "/courses",
-      tag: "courses",
-    })).catch((err) => console.error(err));
-  }, SHOPPING_DELAY);
+  const now = Date.now();
+  const recent = recentAdds.get(author.id);
+  const labels = recent && recent.until > now ? [...recent.labels, label] : [label];
+  recentAdds.set(author.id, { labels, until: now + RECENT_WINDOW });
+  const list = labels.length <= 3 ? joinFr(labels) : `${labels.slice(-2).join(", ")} et ${labels.length - 2} autres`;
+  notifyOthers(author, "SHOPPING", (name) => ({
+    title: "🛒 Courses",
+    body: `${name} a ajouté ${list} à la liste`,
+    url: "/courses",
+    tag: "courses",
+  })).catch((err) => console.error(err));
 }
 
 export const joinFr = (items: string[]) =>
