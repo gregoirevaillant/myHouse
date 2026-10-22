@@ -1,8 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
-import { parisDate } from "../jobs.js";
-import { notifyOthers } from "../push.js";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -38,8 +36,6 @@ export async function mealRoutes(app: FastifyInstance) {
       : null;
     const key = { householdId_date_slot: { householdId, date: body.date, slot: body.slot } };
     const text = body.text.trim();
-    const previous = await prisma.meal.findUnique({ where: key, select: { text: true } });
-    if (text && text !== previous?.text) notifyMeal(req.user, body.date, body.slot, text);
     if (!text) {
       await prisma.meal.deleteMany({ where: { householdId, date: body.date, slot: body.slot } });
       return { ...body, text: "", restaurantId: null };
@@ -51,20 +47,4 @@ export async function mealRoutes(app: FastifyInstance) {
     });
     return { ...body, text, restaurantId };
   });
-}
-
-// seuls les repas d'aujourd'hui et de demain valent une notification
-function notifyMeal(author: { id: string; householdId: string }, date: string, slot: "LUNCH" | "DINNER", text: string) {
-  const day = date === parisDate(0) ? "today" : date === parisDate(1) ? "tomorrow" : null;
-  if (!day) return;
-  const when = {
-    today: { LUNCH: "Ce midi", DINNER: "Ce soir" },
-    tomorrow: { LUNCH: "Demain midi", DINNER: "Demain soir" },
-  }[day][slot];
-  notifyOthers(author, "MEALS", (name) => ({
-    title: "🍽️ Repas",
-    body: `${when} : ${text} (${name})`,
-    url: "/repas",
-    tag: `repas-${date}-${slot}`,
-  })).catch((err) => console.error(err));
 }

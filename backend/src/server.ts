@@ -10,7 +10,6 @@ import path from "node:path";
 import { ZodError } from "zod";
 import { COOKIE_NAME, authRoutes, requireAuth } from "./auth.js";
 import { syncEveryone } from "./budget/sync.js";
-import { runJobs } from "./jobs.js";
 import { invalidateOnWrite, liveRoutes } from "./live.js";
 import { bankRoutes } from "./routes/bank.js";
 import { budgetRoutes } from "./routes/budget.js";
@@ -87,8 +86,3 @@ if (bankEnabled) {
   setTimeout(syncAll, 30_000);
   setInterval(syncAll, 6 * 60 * 60 * 1000);
 }
-
-// Notifications planifiées (rappels budget, résumé du dimanche) : vérifiées toutes les 10 min
-const jobs = () => runJobs().catch((err) => app.log.error(err));
-setTimeout(jobs, 60_000);
-setInterval(jobs, 10 * 60 * 1000);

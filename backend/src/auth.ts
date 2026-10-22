@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { prisma } from "./db.js";
 import { hashPassword, verifyPassword } from "./password.js";
-import { NOTIFICATION_TYPES } from "./push.js";
+import { NOTIFICATION_TYPES, type NotificationType } from "./push.js";
 
 export type SessionUser = { id: string; householdId: string };
 
@@ -37,7 +37,8 @@ const publicUser = (u: {
   name: u.name,
   hiddenTabs: u.hiddenTabs ? u.hiddenTabs.split(",") : [],
   showNavBar: u.showNavBar,
-  mutedNotifications: u.mutedNotifications ? u.mutedNotifications.split(",") : [],
+  // ignore les types de notification supprimés depuis
+  mutedNotifications: u.mutedNotifications.split(",").filter((t): t is NotificationType => (NOTIFICATION_TYPES as readonly string[]).includes(t)),
 });
 
 export async function authRoutes(app: FastifyInstance) {

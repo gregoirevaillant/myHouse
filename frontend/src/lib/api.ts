@@ -19,7 +19,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
   return data as T;
 }
 
-export type NotificationType = "SHOPPING" | "MEALS" | "EXPENSES" | "BUDGET" | "DIGEST" | "RESTAURANTS";
+export type NotificationType = "SHOPPING" | "EXPENSES";
 export type User = {
   id: string;
   email: string;

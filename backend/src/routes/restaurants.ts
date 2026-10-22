@@ -1,7 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
-import { notifyOthers } from "../push.js";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 // "" = effacer la valeur optionnelle
@@ -112,12 +111,6 @@ export async function restaurantRoutes(app: FastifyInstance) {
       },
       include: withVisits,
     });
-    notifyOthers(req.user, "RESTAURANTS", (name) => ({
-      title: "🍜 Restos",
-      body: visitedOn ? `${name} a ajouté ${restaurant.name} aux restos testés` : `Nouveau resto à tester : ${restaurant.name} (${name})`,
-      url: "/restos",
-      tag: `resto-${restaurant.id}`,
-    })).catch((err) => console.error(err));
     return publicRestaurant(restaurant);
   });
 
