@@ -1,16 +1,5 @@
 import { useEffect } from "react";
 
-// Plein écran : le navigateur l'exige pendant un geste de l'utilisateur (le tap qui ouvre la carte).
-// Non pris en charge sur iPhone : on ignore simplement l'échec.
-export function enterFullscreen() {
-  if (document.fullscreenElement) return;
-  document.documentElement.requestFullscreen?.({ navigationUI: "hide" }).catch(() => {});
-}
-
-export function exitFullscreen() {
-  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-}
-
 // Garde l'écran allumé tant que la page est montée. Le navigateur relâche le verrou quand
 // l'appli passe en arrière-plan : on le redemande à son retour.
 export function useWakeLock() {

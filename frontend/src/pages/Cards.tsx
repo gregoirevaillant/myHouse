@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { CardForm } from "../components/CardForm";
 import { Modal } from "../components/Modal";
 import { cardsQuery } from "../lib/offline";
-import { enterFullscreen } from "../lib/screen";
 import { normalize } from "../lib/products";
 
 const TYPE_LABEL = { BARCODE: "Code-barres", QR: "QR code", NUMBER: "Numéro" };
@@ -53,7 +52,6 @@ export function Cards() {
             <Link
               key={card.id}
               to={`/cartes/${card.id}`}
-              onClick={enterFullscreen}
               style={{ backgroundColor: card.color }}
               className="flex aspect-[1.586] flex-col justify-between rounded-3xl p-4 shadow-soft transition active:scale-95"
             >

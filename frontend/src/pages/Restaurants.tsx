@@ -1,6 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 import { Modal } from "../components/Modal";
 import { RandomPick } from "../components/RandomPick";
 import { RestaurantForm } from "../components/RestaurantForm";
@@ -45,15 +44,7 @@ export function Restaurants() {
   const [view, setView] = useState<View>(() => readPref("restos-view", ["cuisine", "district", "map"] as const, "cuisine"));
   const [status, setStatus] = useState<Status>(() => readPref("restos-status", ["ALL", "DONE", "TODO"] as const, "ALL"));
   const [search, setSearch] = useState("");
-  // ?hasard : raccourci « On mange où ? » de l'icône de l'appli, ouvre directement le tirage
-  const [params, setParams] = useSearchParams();
-  const [opened, setOpened] = useState<Opened>(() => (params.has("hasard") ? { kind: "random" } : null));
-  useEffect(() => {
-    if (!params.has("hasard")) return;
-    // l'appli peut déjà être ouverte sur les restos : on ouvre le tirage ici aussi
-    setOpened({ kind: "random" });
-    setParams({}, { replace: true });
-  }, [params, setParams]);
+  const [opened, setOpened] = useState<Opened>(null);
 
   const chooseView = (v: View) => {
     setView(v);

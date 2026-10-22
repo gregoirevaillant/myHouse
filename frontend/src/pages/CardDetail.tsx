@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { CardForm } from "../components/CardForm";
@@ -7,7 +7,7 @@ import { Modal } from "../components/Modal";
 import { cardsQuery } from "../lib/offline";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { api } from "../lib/api";
-import { exitFullscreen, useWakeLock } from "../lib/screen";
+import { useWakeLock } from "../lib/screen";
 
 export function CardDetail() {
   const { id } = useParams<{ id: string }>();
@@ -20,9 +20,8 @@ export function CardDetail() {
   const { data: cards, isPending } = useQuery(cardsQuery);
   const card = cards?.find((c) => c.id === id);
 
-  // en caisse : l'écran ne se met pas en veille, et on quitte le plein écran en sortant de la carte
+  // en caisse : l'écran ne se met pas en veille
   useWakeLock();
-  useEffect(() => exitFullscreen, []);
 
   const remove = useMutation({
     mutationFn: () => api(`/cards/${id}`, { method: "DELETE" }),
