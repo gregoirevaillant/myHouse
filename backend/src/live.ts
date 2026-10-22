@@ -31,6 +31,7 @@ const INVALIDATIONS: { prefix: string; keys: string[][]; private?: boolean }[] =
   { prefix: "/api/expense-trackers", keys: [["expense-trackers"], ["expenses"]] },
   { prefix: "/api/expenses", keys: [["expenses"]] },
   { prefix: "/api/cards", keys: [["cards"]] },
+  { prefix: "/api/infos", keys: [["infos"]] },
   { prefix: "/api/journals", keys: [["journals"], ["journal"]], private: true },
   { prefix: "/api/budget", keys: budgetKeys, private: true },
   { prefix: "/api/bank", keys: budgetKeys, private: true },

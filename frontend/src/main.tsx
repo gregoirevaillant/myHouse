@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 });
 
 // Hors ligne : seules la session, la liste de courses et les cartes sont gardées sur le téléphone
-const OFFLINE_KEYS = ["me", "shopping", "cards"];
+const OFFLINE_KEYS = ["me", "shopping", "cards", "infos"];
 
 const persister = createSyncStoragePersister({ storage: window.localStorage, key: "maison-offline" });
 

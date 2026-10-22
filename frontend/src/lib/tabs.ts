@@ -7,6 +7,7 @@ export const tabs = [
   { to: "/restos", label: "Restos", icon: "🍜", active: "bg-peach" },
   { to: "/depenses", label: "Dépenses", icon: "💶", active: "bg-sky" },
   { to: "/journal", label: "Journal", icon: "📔", active: "bg-lemon" },
+  { to: "/infos", label: "Infos", icon: "🔑", active: "bg-lavender" },
   { to: "/budget", label: "Budget", icon: "📊", active: "bg-rose" },
 ];
 

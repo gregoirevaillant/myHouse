@@ -8,6 +8,7 @@ import { Cards } from "./pages/Cards";
 import { ExpenseTracker } from "./pages/ExpenseTracker";
 import { Expenses } from "./pages/Expenses";
 import { Home } from "./pages/Home";
+import { Infos } from "./pages/Infos";
 import { JournalDetail } from "./pages/JournalDetail";
 import { Journals } from "./pages/Journals";
 import { Login } from "./pages/Login";
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/depenses/:id" element={<ExpenseTracker />} />
         <Route path="/journal" element={<Journals />} />
         <Route path="/journal/:id" element={<JournalDetail />} />
+        <Route path="/infos" element={<Infos />} />
         <Route path="/budget" element={<Budget />} />
         <Route path="/budget/recurrent" element={<Recurring />} />
         <Route path="/budget/banque" element={<Bank />} />

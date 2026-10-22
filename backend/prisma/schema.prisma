@@ -23,6 +23,7 @@ model Household {
   categoryRules   CategoryRule[]
   recurringItems  RecurringItem[]
   restaurants     Restaurant[]
+  infos           HouseInfo[]
 }
 
 model User {
@@ -307,4 +308,20 @@ model PushSubscription {
 model JobRun {
   name    String @id
   lastRun String // YYYY-MM-DD
+}
+
+// infos utiles : digicode, Wi-Fi, numéros, jour des poubelles…
+model HouseInfo {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String? // null = partagée, sinon visible par cette personne seulement
+  category    String // CODE | WIFI | CONTACT | MAISON | AUTRE
+  label       String
+  value       String
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  @@index([householdId])
 }

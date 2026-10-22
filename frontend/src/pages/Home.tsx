@@ -7,7 +7,7 @@ import { mondayOf, monthKey, shortDate, toIso } from "../lib/dates";
 import { computeDebt, useExpenses } from "../lib/expenses";
 import { useMembers } from "../lib/members";
 import { formatEur } from "../lib/money";
-import { cardsQuery, shoppingQuery } from "../lib/offline";
+import { cardsQuery, infosQuery, shoppingQuery } from "../lib/offline";
 import { cuisineInfo, useRestaurants } from "../lib/restaurants";
 import { useVisibleTabs } from "../lib/tabs";
 
@@ -32,6 +32,7 @@ export function Home() {
   });
 
   const { data: restaurants = [] } = useRestaurants(visible.has("/restos"));
+  const { data: infos = [] } = useQuery({ ...infosQuery, enabled: visible.has("/infos") });
 
   const { data: budget } = useBudgetMonth(monthKey(today), visible.has("/budget"));
 
@@ -142,6 +143,31 @@ export function Home() {
           <p className="mt-1 font-extrabold leading-snug">{wroteToday ? "Tu as écrit aujourd'hui ✓" : "Qu'as-tu vécu aujourd'hui ?"}</p>
           <p className="text-sm font-bold text-ink/60">
             {journals.length} journa{journals.length > 1 ? "ux" : "l"}
+          </p>
+        </Tile>
+      ),
+    },
+    {
+      to: "/infos",
+      node: (
+        <Tile to="/infos" icon="🔑" className="bg-lavender">
+          <Label>Infos</Label>
+          {infos.length ? (
+            <ul className="mt-2 space-y-1">
+              {infos
+                .filter((i) => i.category === "CODE")
+                .slice(0, 2)
+                .map((i) => (
+                  <li key={i.id} className="truncate rounded-xl bg-white/60 px-2 py-1 text-sm font-semibold">
+                    {i.label} · <span className="font-mono font-extrabold">{i.value}</span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-lg font-extrabold leading-tight">Codes, Wi-Fi, numéros</p>
+          )}
+          <p className="mt-2 text-sm font-bold text-ink/60">
+            {infos.length} info{infos.length > 1 ? "s" : ""}
           </p>
         </Tile>
       ),

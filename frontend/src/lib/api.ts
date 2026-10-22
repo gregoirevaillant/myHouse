@@ -84,6 +84,10 @@ export type Expense = {
 };
 export type ExpenseInput = Omit<Expense, "id">;
 
+export type InfoCategory = "CODE" | "WIFI" | "CONTACT" | "MAISON" | "AUTRE";
+export type HouseInfo = { id: string; category: InfoCategory; label: string; value: string; note: string | null; private: boolean };
+export type HouseInfoInput = Omit<HouseInfo, "id">;
+
 export type JournalSummary = { id: string; title: string; entryCount: number; lastDate: string | null };
 export type JournalEntry = { date: string; text: string };
 export type Journal = { id: string; title: string; entries: JournalEntry[] };

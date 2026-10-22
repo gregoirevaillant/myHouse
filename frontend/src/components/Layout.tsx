@@ -44,18 +44,19 @@ export function Layout() {
       <Outlet />
 
       {showNavBar && (
-        <nav className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-          <div className="mx-auto flex max-w-md justify-around rounded-3xl bg-white p-2 shadow-soft">
+        <nav className={`fixed inset-x-0 bottom-0 z-40 pb-[calc(0.75rem+env(safe-area-inset-bottom))] ${tabs.length > 7 ? "px-2" : "px-4"}`}>
+          <div className={`mx-auto flex max-w-md justify-around rounded-3xl bg-white shadow-soft ${tabs.length > 7 ? "p-1" : "p-2"}`}>
             {tabs.map((t) => (
               <NavLink
                 key={t.to}
                 to={t.to}
                 className={({ isActive }) =>
-                  `flex flex-1 flex-col items-center rounded-2xl py-2 text-xs font-bold transition ${isActive ? t.active : "text-ink-soft"}`
+                  `flex min-w-0 flex-1 flex-col items-center rounded-2xl py-2 text-xs font-bold transition ${isActive ? t.active : "text-ink-soft"}`
                 }
               >
                 <span className="text-xl">{t.icon}</span>
-                {t.label}
+                {/* au-delà de 7 onglets, libellés plus petits pour tenir sur la largeur de l'iPhone */}
+                <span className={`max-w-full truncate ${tabs.length > 7 ? "text-[10px]" : ""}`}>{t.label}</span>
               </NavLink>
             ))}
           </div>
