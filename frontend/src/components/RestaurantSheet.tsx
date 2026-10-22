@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type MealSlot, type Restaurant } from "../lib/api";
 import { addDays, dayName, shortDate, toIso } from "../lib/dates";
-import { cuisineInfo, directionsUrl, districtLabel, priceLabel, useAddVisit, usePlanMeal } from "../lib/restaurants";
+import { appleMapsUrl, cuisineInfo, directionsUrl, districtLabel, priceLabel, shareText, useAddVisit, usePlanMeal } from "../lib/restaurants";
 import { Stars } from "./Stars";
 
 export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaurant; onEdit: () => void }) {
@@ -17,6 +17,24 @@ export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaur
     onSuccess: () => qc.invalidateQueries({ queryKey: ["restaurants"] }),
   });
   const cuisine = cuisineInfo(r.cuisine);
+  const [copied, setCopied] = useState(false);
+
+  // feuille de partage de l'iPhone (Messages, WhatsApp…) ; sinon copie du texte
+  const share = async () => {
+    const text = shareText(r);
+    const url = appleMapsUrl(r);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: r.name, text, url });
+      } catch {
+        // partage annulé
+      }
+      return;
+    }
+    await navigator.clipboard.writeText(`${text}\n${url}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <div className="space-y-4">
@@ -38,7 +56,7 @@ export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaur
 
       {r.address && <p className="text-sm font-semibold">📍 {r.address}</p>}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         <a href={directionsUrl(r)} target="_blank" rel="noreferrer" className="btn-ghost flex-col gap-0.5 px-2 py-2 text-xs">
           <span className="text-xl">🧭</span> Itinéraire
         </a>
@@ -60,6 +78,9 @@ export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaur
             <span className="text-xl opacity-50">📞</span> Pas de numéro
           </span>
         )}
+        <button onClick={share} className="btn-ghost flex-col gap-0.5 px-2 py-2 text-xs">
+          <span className="text-xl">📤</span> {copied ? "Copié ✓" : "Partager"}
+        </button>
       </div>
 
       <div className="rounded-3xl bg-peach-soft p-4">

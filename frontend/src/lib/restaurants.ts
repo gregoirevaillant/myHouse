@@ -108,3 +108,26 @@ export const directionsUrl = (r: Restaurant) =>
   r.lat != null && r.lng != null
     ? `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${r.name} ${r.address ?? r.district ?? "Paris"}`)}`;
+
+// lien Plans (Apple) envoyé avec le partage : s'ouvre dans Plans sur iPhone, dans le navigateur ailleurs
+export const appleMapsUrl = (r: Restaurant) => {
+  const q = `q=${encodeURIComponent(r.name)}`;
+  if (r.lat != null && r.lng != null) return `https://maps.apple.com/?${q}&ll=${r.lat},${r.lng}`;
+  return `https://maps.apple.com/?${q}&address=${encodeURIComponent(r.address ?? `${r.name} ${r.district ?? "Paris"}`)}`;
+};
+
+// fiche lisible pour un message : nom, cuisine, note, adresse, téléphone, site
+export function shareText(r: Restaurant) {
+  const cuisine = cuisineInfo(r.cuisine);
+  const details = [cuisine.label, r.district, priceLabel(r.price)].filter(Boolean).join(" · ");
+  return [
+    `${cuisine.emoji} ${r.name}`,
+    details,
+    r.rating ? `${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}` : r.wishlist ? "✨ Pas encore testé" : "",
+    r.address && `📍 ${r.address}`,
+    r.phone && `📞 ${r.phone}`,
+    r.url && `🌐 ${r.url}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
