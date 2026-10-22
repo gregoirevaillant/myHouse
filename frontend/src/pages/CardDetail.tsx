@@ -49,8 +49,8 @@ export function CardDetail() {
   }
 
   return (
-    // fond blanc pur : l'écran paraît plus lumineux et les lecteurs de caisse lisent mieux le code
-    <div className="min-h-screen bg-white">
+    // fond blanc pur, même en mode sombre : l'écran paraît plus lumineux et les lecteurs de caisse lisent mieux le code
+    <div className="theme-light min-h-screen bg-white">
       <header className="rounded-b-3xl px-4 pb-5 pt-[calc(1rem+env(safe-area-inset-top))]" style={{ backgroundColor: card.color }}>
         <div className="mx-auto max-w-lg">
           <div className="mb-3 flex items-center justify-between">

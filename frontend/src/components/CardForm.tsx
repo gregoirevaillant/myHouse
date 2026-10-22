@@ -158,7 +158,7 @@ export function CardForm({ card, onDone }: { card?: LoyaltyCard; onDone: (card: 
               key={c}
               onClick={() => setColor(c)}
               style={{ backgroundColor: c }}
-              className={`h-9 w-9 rounded-full shadow-soft transition ${color === c ? "scale-110 ring-2 ring-ink/40 ring-offset-2" : ""}`}
+              className={`h-9 w-9 rounded-full shadow-soft transition ${color === c ? "scale-110 ring-2 ring-ink/40 ring-offset-2 ring-offset-white" : ""}`}
               aria-label={`Couleur ${c}`}
             />
           ))}

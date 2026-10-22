@@ -3,6 +3,73 @@
 @tailwind utilities;
 
 @layer base {
+  /* palette claire ; .theme-light la réimpose localement (carte ouverte, bulles de la carte des restos) */
+  :root,
+  .theme-light,
+  .leaflet-popup {
+    --c-white: 255 255 255;
+    --c-cream: 255 251 245;
+    --c-ink: 61 61 78;
+    --c-ink-soft: 138 138 158;
+    --c-lavender: 200 182 255;
+    --c-lavender-soft: 238 232 255;
+    --c-lavender-deep: 123 97 217;
+    --c-rose: 255 200 221;
+    --c-rose-soft: 255 237 244;
+    --c-rose-deep: 217 86 127;
+    --c-peach: 255 214 165;
+    --c-peach-soft: 255 241 224;
+    --c-peach-deep: 201 121 42;
+    --c-mint: 185 251 192;
+    --c-mint-soft: 230 253 233;
+    --c-mint-deep: 46 158 82;
+    --c-sky: 160 196 255;
+    --c-sky-soft: 227 238 255;
+    --c-sky-deep: 61 111 196;
+    --c-lemon: 253 255 182;
+    --c-lemon-soft: 254 255 227;
+    --c-lemon-deep: 163 161 42;
+    --shadow-soft: 0 4px 20px -6px rgba(61, 61, 78, 0.15);
+    color-scheme: light;
+  }
+  .theme-light {
+    color: rgb(var(--c-ink));
+  }
+
+  /* mode sombre : pastels assombris (le texte clair reste lisible dessus), « deep » éclaircis */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --c-white: 36 35 46;
+      --c-cream: 22 21 28;
+      --c-ink: 236 234 244;
+      --c-ink-soft: 160 158 180;
+      --c-lavender: 78 64 140;
+      --c-lavender-soft: 44 39 66;
+      --c-lavender-deep: 184 166 255;
+      --c-rose: 122 52 82;
+      --c-rose-soft: 58 34 46;
+      --c-rose-deep: 255 143 179;
+      --c-peach: 122 78 38;
+      --c-peach-soft: 56 42 30;
+      --c-peach-deep: 255 184 112;
+      --c-mint: 36 102 58;
+      --c-mint-soft: 28 50 36;
+      --c-mint-deep: 120 220 150;
+      --c-sky: 46 76 132;
+      --c-sky-soft: 30 40 60;
+      --c-sky-deep: 140 180 255;
+      --c-lemon: 104 102 30;
+      --c-lemon-soft: 48 48 26;
+      --c-lemon-deep: 230 226 110;
+      --shadow-soft: 0 4px 20px -6px rgba(0, 0, 0, 0.5);
+      color-scheme: dark;
+    }
+    /* fond de carte OpenStreetMap assombri */
+    .leaflet-tile-pane {
+      filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+    }
+  }
+
   html,
   body {
     @apply bg-cream font-sans text-ink antialiased;

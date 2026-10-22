@@ -53,7 +53,7 @@ export function Cards() {
               key={card.id}
               to={`/cartes/${card.id}`}
               style={{ backgroundColor: card.color }}
-              className="flex aspect-[1.586] flex-col justify-between rounded-3xl p-4 shadow-soft transition active:scale-95"
+              className="theme-light flex aspect-[1.586] flex-col justify-between rounded-3xl p-4 shadow-soft transition active:scale-95"
             >
               <span className="text-xs font-bold text-ink/60">{TYPE_LABEL[card.type]}</span>
               <span className="line-clamp-2 text-lg font-extrabold leading-tight">{card.name}</span>

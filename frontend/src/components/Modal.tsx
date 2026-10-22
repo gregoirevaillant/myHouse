@@ -12,7 +12,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 backdrop-blur-sm dark:bg-black/50 sm:items-center" onClick={onClose}>
       <div
         className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-cream p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-soft sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
