@@ -19,6 +19,8 @@ export function TricountImport() {
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("✈️");
   const [mapping, setMapping] = useState<Record<string, string | null>>({});
+  // un ancien tricount est en général fini : rangé directement dans les carnets terminés
+  const [finished, setFinished] = useState(true);
 
   // plusieurs fichiers possibles (dépenses + remboursements exportés séparément)
   const pick = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -50,11 +52,12 @@ export function TricountImport() {
   const [first, last] = [dates[0], dates[dates.length - 1]];
 
   const save = useMutation({
-    mutationFn: () => api<ExpenseTracker>("/expense-trackers/import", { method: "POST", json: { name: name.trim(), emoji, expenses } }),
+    mutationFn: () => api<ExpenseTracker>("/expense-trackers/import", { method: "POST", json: { name: name.trim(), emoji, expenses, finishedAt: finished ? last : null } }),
     onSuccess: (t) => {
       qc.invalidateQueries({ queryKey: ["expense-trackers"] });
       qc.invalidateQueries({ queryKey: ["expenses"] });
-      navigate(`/depenses/${t.id}`, { state: { month: monthKey(last) } });
+      // terminé : ouvert sur son bilan ; sinon sur le mois de sa dernière dépense
+      navigate(`/depenses/${t.id}`, finished ? undefined : { state: { month: monthKey(last) } });
     },
   });
 
@@ -151,6 +154,14 @@ export function TricountImport() {
         )}
         <p className="pt-1 text-xs text-ink-soft">Compare le solde avec celui de Tricount avant d'importer (un centime d'écart est possible sur les partages inégaux).</p>
       </div>
+
+      <label className="flex items-center gap-3 rounded-2xl bg-white p-4 font-bold shadow-soft">
+        <input type="checkbox" className="h-5 w-5 accent-sky-deep" checked={finished} onChange={(e) => setFinished(e.target.checked)} />
+        <span>
+          Ce tricount est terminé
+          <span className="block text-xs font-semibold text-ink-soft">Rangé dans les carnets terminés, ouvert sur son bilan</span>
+        </span>
+      </label>
 
       {save.error && <p className="text-center text-sm font-semibold text-rose-deep">{save.error.message}</p>}
       <div className="flex gap-2">

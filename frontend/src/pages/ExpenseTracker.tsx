@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { BarChart, type Bar } from "../components/BarChart";
 import { ExpenseForm } from "../components/ExpenseForm";
+import { ExpenseRow } from "../components/ExpenseRow";
+import { TrackerSummary } from "../components/TrackerSummary";
 import { TrackerForm } from "../components/TrackerForm";
 import { Modal } from "../components/Modal";
-import { type Expense, type ExpenseInput } from "../lib/api";
+import { api, type Expense, type ExpenseInput, type ExpenseTracker as Tracker } from "../lib/api";
 import { useMe } from "../lib/auth";
 import { computeDebt, useExpenses, useTrackers } from "../lib/expenses";
 import { fromIso, monthKey, monthLabel, shiftMonth, shortDate, toIso } from "../lib/dates";
@@ -12,6 +15,7 @@ import { useMembers } from "../lib/members";
 import { formatEur, formatEurRound } from "../lib/money";
 
 type Editing = { expense?: Expense; initial?: Partial<ExpenseInput> } | null;
+type View = "month" | "summary";
 
 export function ExpenseTracker() {
   const { id = "" } = useParams<{ id: string }>();
@@ -27,6 +31,16 @@ export function ExpenseTracker() {
   const [month, setMonth] = useState(initialMonth ?? currentMonth);
   const [editing, setEditing] = useState<Editing>(null);
   const [renaming, setRenaming] = useState(false);
+  // null = automatique : bilan pour un carnet terminé, mois sinon
+  const [chosenView, setView] = useState<View | null>(initialMonth ? "month" : null);
+  const qc = useQueryClient();
+  const finish = useMutation({
+    mutationFn: (finished: boolean) => api<Tracker>(`/expense-trackers/${id}/finished`, { method: "PUT", json: { finished } }),
+    onSuccess: (t) => {
+      qc.invalidateQueries({ queryKey: ["expense-trackers"] });
+      setView(t.finishedAt ? "summary" : null);
+    },
+  });
 
   const name = (id: string) => members.find((m) => m.id === id)?.name ?? "?";
 
@@ -84,6 +98,8 @@ export function ExpenseTracker() {
 
   if (loadingTrackers) return <p className="text-center text-ink-soft">Chargement…</p>;
   if (!tracker) return <p className="text-center text-ink-soft">Carnet introuvable</p>;
+  const finished = Boolean(tracker.finishedAt);
+  const view: View = chosenView ?? (finished ? "summary" : "month");
 
   return (
     <section>
@@ -98,10 +114,21 @@ export function ExpenseTracker() {
         <button className="btn-ghost shrink-0 px-3 py-2" onClick={() => setRenaming(true)} aria-label="Modifier le carnet">
           ✏️
         </button>
-        <button className="btn shrink-0 bg-sky px-4 py-2 shadow-soft" onClick={() => setEditing({})} disabled={!members.length}>
-          + Ajouter
-        </button>
+        {!finished && (
+          <button className="btn shrink-0 bg-sky px-4 py-2 shadow-soft" onClick={() => setEditing({})} disabled={!members.length}>
+            + Ajouter
+          </button>
+        )}
       </div>
+
+      {finished && (
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-3xl bg-mint-soft px-5 py-3">
+          <p className="text-sm font-extrabold">✓ Carnet terminé le {shortDate(tracker.finishedAt!)} {tracker.finishedAt!.slice(0, 4)}</p>
+          <button className="btn bg-white px-4 py-2 text-sm shadow-soft" onClick={() => finish.mutate(false)} disabled={finish.isPending}>
+            Rouvrir
+          </button>
+        </div>
+      )}
 
       {/* solde */}
       <div className="mb-4 rounded-3xl bg-sky-soft p-5">
@@ -120,92 +147,104 @@ export function ExpenseTracker() {
         )}
       </div>
 
-      {/* navigation mois */}
-      <div className="mb-4 flex items-center justify-between rounded-2xl bg-white p-2 shadow-soft">
-        <button className="btn px-4 py-2 hover:bg-sky-soft" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Mois précédent">
-          ◀
-        </button>
-        <button className="text-center" onClick={() => setMonth(currentMonth)}>
-          <p className="font-extrabold capitalize">{monthLabel(month, "long")}</p>
-          <p className="text-xs font-semibold text-ink-soft">{month === currentMonth ? "Ce mois-ci" : "Revenir à ce mois"}</p>
-        </button>
-        <button className="btn px-4 py-2 hover:bg-sky-soft" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Mois suivant">
-          ▶
-        </button>
+      <div className="mb-4 grid grid-cols-2 gap-1 rounded-2xl bg-white p-1 shadow-soft">
+        {(
+          [
+            ["month", "📅 Par mois"],
+            ["summary", "📊 Bilan"],
+          ] as const
+        ).map(([v, label]) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`rounded-xl py-2 text-sm font-bold transition ${view === v ? "bg-sky-deep text-white" : "text-ink-soft"}`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* chiffres du mois */}
-      <div className="mb-4 rounded-3xl bg-white p-5 shadow-soft">
-        <p className="text-sm font-bold text-ink-soft">Total du mois</p>
-        <p className="text-4xl font-extrabold">{formatEur(monthTotal)}</p>
-        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold text-ink-soft">
-          {members.map((m) => (
-            <span key={m.id}>
-              {m.name} a payé <span className="text-ink">{formatEur(paidInMonth(m.id))}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* graphiques */}
-      <div className="mb-4 space-y-6 rounded-3xl bg-white p-5 shadow-soft">
-        <div>
-          <p className="mb-4 text-sm font-bold text-ink-soft">Par mois · 12 derniers mois</p>
-          <BarChart
-            title="Dépenses par mois"
-            bars={monthBars}
-            selectedKey={month}
-            onSelect={setMonth}
-            formatTick={formatEurRound}
-            formatValue={formatEur}
-          />
-        </div>
-        <div>
-          <p className="mb-4 text-sm font-bold text-ink-soft">
-            Par jour · <span className="capitalize">{monthLabel(month, "long")}</span>
-          </p>
-          <BarChart title="Dépenses par jour" bars={dayBars} formatTick={formatEurRound} formatValue={formatEur} />
-        </div>
-      </div>
-
-      {/* liste */}
-      {isLoading ? (
-        <p className="text-center text-ink-soft">Chargement…</p>
-      ) : monthExpenses.length === 0 ? (
-        <div className="rounded-3xl bg-sky-soft p-8 text-center text-ink-soft">
-          <p className="text-3xl">💸</p>
-          <p className="mt-2 font-semibold">Aucune dépense ce mois-ci</p>
-        </div>
+      {view === "summary" ? (
+        <TrackerSummary expenses={expenses} members={members} meId={me?.id} onOpen={(expense) => setEditing({ expense })} />
       ) : (
-        <ul className="space-y-2">
-          {monthExpenses.map((e) => {
-            const myShare = e.shares.find((s) => s.userId === me?.id)?.amountCents ?? 0;
-            return (
-              <li key={e.id}>
-                <button
-                  onClick={() => setEditing({ expense: e })}
-                  className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-soft transition active:scale-[0.98]"
-                >
-                  <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${e.isReimbursement ? "bg-mint" : "bg-sky-soft"}`}>
-                    {e.isReimbursement ? "↔︎" : "💶"}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-bold">{e.title}</span>
-                    <span className="block text-xs font-semibold text-ink-soft">
-                      {shortDate(e.date)} · payé par {name(e.paidById)}
-                    </span>
-                  </span>
-                  <span className="text-right">
-                    <span className="block font-extrabold tabular-nums">{formatEur(e.amountCents)}</span>
-                    {!e.isReimbursement && (
-                      <span className="block text-xs font-semibold tabular-nums text-ink-soft">ma part {formatEur(myShare)}</span>
-                    )}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          {/* navigation mois */}
+          <div className="mb-4 flex items-center justify-between rounded-2xl bg-white p-2 shadow-soft">
+            <button className="btn px-4 py-2 hover:bg-sky-soft" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Mois précédent">
+              ◀
+            </button>
+            <button className="text-center" onClick={() => setMonth(currentMonth)}>
+              <p className="font-extrabold capitalize">{monthLabel(month, "long")}</p>
+              <p className="text-xs font-semibold text-ink-soft">{month === currentMonth ? "Ce mois-ci" : "Revenir à ce mois"}</p>
+            </button>
+            <button className="btn px-4 py-2 hover:bg-sky-soft" onClick={() => setMonth(shiftMonth(month, 1))} aria-label="Mois suivant">
+              ▶
+            </button>
+          </div>
+
+          {/* chiffres du mois */}
+          <div className="mb-4 rounded-3xl bg-white p-5 shadow-soft">
+            <p className="text-sm font-bold text-ink-soft">Total du mois</p>
+            <p className="text-4xl font-extrabold">{formatEur(monthTotal)}</p>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm font-semibold text-ink-soft">
+              {members.map((m) => (
+                <span key={m.id}>
+                  {m.name} a payé <span className="text-ink">{formatEur(paidInMonth(m.id))}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* graphiques */}
+          <div className="mb-4 space-y-6 rounded-3xl bg-white p-5 shadow-soft">
+            <div>
+              <p className="mb-4 text-sm font-bold text-ink-soft">Par mois · 12 derniers mois</p>
+              <BarChart
+                title="Dépenses par mois"
+                bars={monthBars}
+                selectedKey={month}
+                onSelect={setMonth}
+                formatTick={formatEurRound}
+                formatValue={formatEur}
+              />
+            </div>
+            <div>
+              <p className="mb-4 text-sm font-bold text-ink-soft">
+                Par jour · <span className="capitalize">{monthLabel(month, "long")}</span>
+              </p>
+              <BarChart title="Dépenses par jour" bars={dayBars} formatTick={formatEurRound} formatValue={formatEur} />
+            </div>
+          </div>
+
+          {/* liste */}
+          {isLoading ? (
+            <p className="text-center text-ink-soft">Chargement…</p>
+          ) : monthExpenses.length === 0 ? (
+            <div className="rounded-3xl bg-sky-soft p-8 text-center text-ink-soft">
+              <p className="text-3xl">💸</p>
+              <p className="mt-2 font-semibold">Aucune dépense ce mois-ci</p>
+            </div>
+          ) : (
+            <ul className="space-y-2">
+              {monthExpenses.map((e) => (
+                <ExpenseRow key={e.id} expense={e} meId={me?.id} name={name} onOpen={(expense) => setEditing({ expense })} />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      {!finished && expenses.length > 0 && (
+        <div className="mt-8 text-center">
+          <button className="btn-ghost" onClick={() => finish.mutate(true)} disabled={finish.isPending}>
+            ✓ Marquer le carnet comme terminé
+          </button>
+          {debt && (
+            <p className="mt-2 text-xs font-semibold text-ink-soft">
+              Il reste {formatEur(debt.cents)} à rembourser : pense à l'enregistrer avant.
+            </p>
+          )}
+        </div>
       )}
 
       {editing && me && (

@@ -9,6 +9,8 @@ const trackerBody = z.object({
 
 // import d'un ancien Tricount : le carnet et toutes ses dépenses d'un coup
 const importBody = trackerBody.extend({
+  // carnet déjà terminé : date de fin (en général celle de la dernière dépense)
+  finishedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().default(null),
   expenses: z
     .array(
       z.object({
@@ -24,11 +26,16 @@ const importBody = trackerBody.extend({
     .max(5000),
 });
 
+const TRACKER = { id: true, name: true, emoji: true, finishedAt: true } as const;
+
+// date du jour à Paris, au format YYYY-MM-DD
+const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date());
+
 export async function expenseTrackerRoutes(app: FastifyInstance) {
   app.get("/", async (req) =>
     prisma.expenseTracker.findMany({
       where: { householdId: req.user.householdId, ownerId: null },
-      select: { id: true, name: true, emoji: true },
+      select: TRACKER,
       orderBy: { createdAt: "asc" },
     }),
   );
@@ -37,7 +44,7 @@ export async function expenseTrackerRoutes(app: FastifyInstance) {
     const body = trackerBody.parse(req.body);
     return prisma.expenseTracker.create({
       data: { ...body, householdId: req.user.householdId, createdById: req.user.id },
-      select: { id: true, name: true, emoji: true },
+      select: TRACKER,
     });
   });
 
@@ -57,7 +64,7 @@ export async function expenseTrackerRoutes(app: FastifyInstance) {
     const { expenses, ...tracker } = body;
     const base = { householdId: req.user.householdId, createdById: req.user.id };
     return prisma.$transaction(async (tx) => {
-      const created = await tx.expenseTracker.create({ data: { ...tracker, ...base }, select: { id: true, name: true, emoji: true } });
+      const created = await tx.expenseTracker.create({ data: { ...tracker, ...base }, select: TRACKER });
       for (const { shares, ...e } of expenses) {
         await tx.expense.create({ data: { ...e, ...base, trackerId: created.id, shares: { create: shares } } });
       }
@@ -74,7 +81,21 @@ export async function expenseTrackerRoutes(app: FastifyInstance) {
     return prisma.expenseTracker.update({
       where: { id: existing.id },
       data: body,
-      select: { id: true, name: true, emoji: true },
+      select: TRACKER,
+    });
+  });
+
+  // terminer un carnet (ou le rouvrir)
+  app.put<{ Params: { id: string } }>("/:id/finished", async (req, reply) => {
+    const { finished } = z.object({ finished: z.boolean() }).parse(req.body);
+    const existing = await prisma.expenseTracker.findFirst({
+      where: { id: req.params.id, householdId: req.user.householdId },
+    });
+    if (!existing) return reply.code(404).send({ error: "Introuvable" });
+    return prisma.expenseTracker.update({
+      where: { id: existing.id },
+      data: { finishedAt: finished ? today() : null },
+      select: TRACKER,
     });
   });
 

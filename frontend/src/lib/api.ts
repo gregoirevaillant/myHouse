@@ -70,7 +70,8 @@ export type ShoppingItem = { id: string; label: string; checked: boolean; create
 export type Member = { id: string; name: string; email: string };
 
 export type ExpenseShare = { userId: string; amountCents: number };
-export type ExpenseTracker = { id: string; name: string; emoji: string };
+// finishedAt : carnet terminé (YYYY-MM-DD), absent des réponses d'avant les carnets terminés
+export type ExpenseTracker = { id: string; name: string; emoji: string; finishedAt?: string | null };
 export type Expense = {
   id: string;
   trackerId: string;

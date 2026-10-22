@@ -147,6 +147,8 @@ model ExpenseTracker {
   ownerId     String?
   name        String
   emoji       String
+  // carnet terminé (YYYY-MM-DD) : rangé à part, ouvert sur son bilan ; null = en cours
+  finishedAt  String?
   expenses    Expense[]
   createdAt   DateTime  @default(now())
 }
