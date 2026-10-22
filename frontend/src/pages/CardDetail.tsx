@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { CardForm } from "../components/CardForm";
@@ -7,6 +7,7 @@ import { Modal } from "../components/Modal";
 import { cardsQuery } from "../lib/offline";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { api } from "../lib/api";
+import { exitFullscreen, useWakeLock } from "../lib/screen";
 
 export function CardDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,10 @@ export function CardDetail() {
   // la carte vient de la liste des cartes, gardée sur le téléphone pour le hors-ligne
   const { data: cards, isPending } = useQuery(cardsQuery);
   const card = cards?.find((c) => c.id === id);
+
+  // en caisse : l'écran ne se met pas en veille, et on quitte le plein écran en sortant de la carte
+  useWakeLock();
+  useEffect(() => exitFullscreen, []);
 
   const remove = useMutation({
     mutationFn: () => api(`/cards/${id}`, { method: "DELETE" }),
