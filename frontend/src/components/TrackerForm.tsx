@@ -2,8 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api, type ExpenseTracker } from "../lib/api";
-
-const EMOJIS = ["🏠", "✈️", "🏔️", "🏖️", "🎉", "🎁", "🚗", "🍽️", "🛒", "🏡"];
+import { EMOJIS } from "../lib/expenses";
 
 export function TrackerForm({ tracker, onDone }: { tracker?: ExpenseTracker; onDone: (created?: ExpenseTracker) => void }) {
   const qc = useQueryClient();

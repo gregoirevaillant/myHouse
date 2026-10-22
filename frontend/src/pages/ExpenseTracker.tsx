@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { BarChart, type Bar } from "../components/BarChart";
 import { ExpenseForm } from "../components/ExpenseForm";
 import { TrackerForm } from "../components/TrackerForm";
@@ -22,7 +22,9 @@ export function ExpenseTracker() {
   const tracker = trackers?.find((t) => t.id === id);
   const expenses = useMemo(() => allExpenses.filter((e) => e.trackerId === id), [allExpenses, id]);
   const currentMonth = monthKey(toIso(new Date()));
-  const [month, setMonth] = useState(currentMonth);
+  // un carnet tout juste importé s'ouvre sur le mois de sa dernière dépense
+  const initialMonth = (useLocation().state as { month?: string } | null)?.month;
+  const [month, setMonth] = useState(initialMonth ?? currentMonth);
   const [editing, setEditing] = useState<Editing>(null);
   const [renaming, setRenaming] = useState(false);
 

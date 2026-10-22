@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Modal } from "../components/Modal";
 import { TrackerForm } from "../components/TrackerForm";
+import { TricountImport } from "../components/TricountImport";
 import { useExpenses, useTrackers, computeDebt } from "../lib/expenses";
 import { useMembers } from "../lib/members";
 import { formatEur } from "../lib/money";
@@ -11,6 +12,7 @@ const COLORS = ["bg-sky-soft", "bg-mint-soft", "bg-lavender-soft", "bg-peach-sof
 export function Expenses() {
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const { data: trackers = [], isLoading } = useTrackers();
   const { data: expenses = [] } = useExpenses();
   const { data: members = [] } = useMembers();
@@ -63,6 +65,15 @@ export function Expenses() {
         </div>
       )}
 
+      <button className="btn-ghost mt-4 w-full" onClick={() => setImporting(true)}>
+        📥 Importer un ancien Tricount
+      </button>
+
+      {importing && (
+        <Modal title="Importer un Tricount" onClose={() => setImporting(false)}>
+          <TricountImport />
+        </Modal>
+      )}
       {adding && (
         <Modal title="Nouveau carnet" onClose={() => setAdding(false)}>
           <TrackerForm

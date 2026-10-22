@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, type Expense, type ExpenseTracker, type Member } from "./api";
 
+// icônes proposées pour un carnet
+export const EMOJIS = ["🏠", "✈️", "🏔️", "🏖️", "🎉", "🎁", "🚗", "🍽️", "🛒", "🏡"];
+
 export const expensesQuery = { queryKey: ["expenses"], queryFn: () => api<Expense[]>("/expenses") };
 
 export const trackersQuery = { queryKey: ["expense-trackers"], queryFn: () => api<ExpenseTracker[]>("/expense-trackers") };
