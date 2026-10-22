@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useMe } from "../lib/auth";
 import { useLiveUpdates } from "../lib/live";
 import { useOfflineWarmup } from "../lib/offline";
 import { useVisibleTabs } from "../lib/tabs";
+import { GlobalSearch } from "./GlobalSearch";
+import { Modal } from "./Modal";
 import { OfflineBanner } from "./OfflineBanner";
 
 export function Layout() {
   const { data: me } = useMe();
   const tabs = useVisibleTabs();
   const isHome = useLocation().pathname === "/";
+  const [searching, setSearching] = useState(false);
   // ?? true : une session gardée hors ligne avant l'ajout de la préférence n'a pas le champ
   const showNavBar = me?.showNavBar ?? true;
   useOfflineWarmup();
@@ -31,6 +35,13 @@ export function Layout() {
           <p className="text-sm font-semibold text-ink-soft">Bonjour {me?.name} 👋</p>
           <h1 className="text-2xl font-extrabold">Notre maison</h1>
         </Link>
+        <button
+          onClick={() => setSearching(true)}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-lg shadow-soft transition active:scale-90"
+          aria-label="Rechercher"
+        >
+          🔍
+        </button>
         <NavLink
           to="/profil"
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose text-lg font-extrabold shadow-soft"
@@ -39,6 +50,12 @@ export function Layout() {
           {me?.name.charAt(0).toUpperCase()}
         </NavLink>
       </header>
+
+      {searching && (
+        <Modal title="Rechercher" onClose={() => setSearching(false)}>
+          <GlobalSearch onClose={() => setSearching(false)} />
+        </Modal>
+      )}
 
       <OfflineBanner />
       <Outlet />

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { Modal } from "../components/Modal";
 import { RandomPick } from "../components/RandomPick";
 import { RestaurantForm } from "../components/RestaurantForm";
@@ -57,6 +58,12 @@ export function Restaurants() {
   const [status, setStatus] = useState<Status>(() => readPref("restos-status", ["ALL", "DONE", "TODO"] as const, "ALL"));
   const [search, setSearch] = useState("");
   const [opened, setOpened] = useState<Opened>(null);
+  // { open: id } : fiche ouverte directement (depuis la recherche), même si on est déjà sur la page
+  const location = useLocation();
+  const openId = (location.state as { open?: string } | null)?.open;
+  useEffect(() => {
+    if (openId) setOpened({ kind: "sheet", id: openId });
+  }, [openId, location.key]);
 
   const chooseView = (v: View) => {
     setView(v);

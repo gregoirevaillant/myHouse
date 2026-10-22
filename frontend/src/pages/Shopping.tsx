@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CoursesTabs } from "../components/CoursesTabs";
 import { ProductPhoto } from "../components/ProductPhoto";
+import { StoreMode } from "../components/StoreMode";
 import { api, type Product, type ShoppingItem } from "../lib/api";
 import { shoppingQuery } from "../lib/offline";
 import { normalize, productImage, useProducts } from "../lib/products";
@@ -12,6 +13,7 @@ export function Shopping() {
   const qc = useQueryClient();
   const [label, setLabel] = useState("");
   const [viewing, setViewing] = useState<Product | null>(null);
+  const [inStore, setInStore] = useState(false);
   const { data: products = [] } = useProducts();
   const { data: items = [], isLoading } = useQuery(shoppingQuery);
 
@@ -66,9 +68,16 @@ export function Shopping() {
 
   return (
     <section>
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-extrabold">
-        <span className="rounded-xl bg-mint px-2 py-1">🛒</span> Courses
-      </h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-lg font-extrabold">
+          <span className="rounded-xl bg-mint px-2 py-1">🛒</span> Courses
+        </h2>
+        {items.length > 0 && (
+          <button className="btn bg-mint px-4 py-2 shadow-soft" onClick={() => setInStore(true)}>
+            🏪 Mode magasin
+          </button>
+        )}
+      </div>
       <CoursesTabs />
 
       <form onSubmit={submit} className={`flex gap-2 ${suggestions.length ? "mb-2" : "mb-6"}`}>
@@ -149,6 +158,7 @@ export function Shopping() {
         </>
       )}
 
+      {inStore && <StoreMode items={items} onToggle={(item) => toggle.mutate(item)} onClose={() => setInStore(false)} />}
       {viewing && <ProductPhoto product={viewing} onClose={() => setViewing(null)} />}
     </section>
   );
