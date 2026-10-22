@@ -50,38 +50,43 @@ export function CardDetail() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: card.color }}>
-      <div className="mx-auto max-w-lg px-4 pb-10 pt-[calc(1.25rem+env(safe-area-inset-top))]">
-        <div className="mb-6 flex items-center justify-between">
-          <Link to="/cartes" className="rounded-full bg-white/70 px-4 py-2 font-bold shadow-soft">← Cartes</Link>
-          <button onClick={() => setEditing(true)} className="rounded-full bg-white/70 px-4 py-2 font-bold shadow-soft">
-            Modifier
-          </button>
+    // fond blanc pur : l'écran paraît plus lumineux et les lecteurs de caisse lisent mieux le code
+    <div className="min-h-screen bg-white">
+      <header className="rounded-b-3xl px-4 pb-5 pt-[calc(1rem+env(safe-area-inset-top))]" style={{ backgroundColor: card.color }}>
+        <div className="mx-auto max-w-lg">
+          <div className="mb-3 flex items-center justify-between">
+            <Link to="/cartes" className="rounded-full bg-white/70 px-4 py-2 font-bold shadow-soft">← Cartes</Link>
+            <button onClick={() => setEditing(true)} className="rounded-full bg-white/70 px-4 py-2 font-bold shadow-soft">
+              Modifier
+            </button>
+          </div>
+          <h1 className="text-center text-3xl font-extrabold">{card.name}</h1>
         </div>
+      </header>
 
+      <div className="mx-auto max-w-lg px-4 pb-10">
         <OfflineBanner />
-        <h1 className="mb-6 text-center text-3xl font-extrabold">{card.name}</h1>
 
-        <div className="rounded-3xl bg-white p-6 shadow-soft">
-          {card.type === "BARCODE" && card.value && <Barcode value={card.value} format={card.barcodeFormat} />}
+        <div className="py-10">
+          {card.type === "BARCODE" && card.value && <Barcode value={card.value} format={card.barcodeFormat} large />}
           {card.type === "QR" &&
             (card.value ? (
-              <QrCode value={card.value} />
+              <QrCode value={card.value} large />
             ) : card.hasImage ? (
-              <img src={`/api/cards/${card.id}/image`} alt="QR code" className="mx-auto max-h-80 rounded-2xl" />
+              <img src={`/api/cards/${card.id}/image`} alt="QR code" className="mx-auto max-h-[60vh] w-full object-contain" />
             ) : null)}
           {card.type === "NUMBER" && (
-            <p className="break-all text-center font-mono text-3xl font-bold tracking-widest">{card.value}</p>
+            <p className="break-all text-center font-mono text-5xl font-bold tracking-widest">{card.value}</p>
           )}
           {card.value && card.type !== "QR" && (
-            <button onClick={copy} className="mx-auto mt-4 block text-sm font-bold text-lavender-deep">
+            <button onClick={copy} className="mx-auto mt-6 block text-sm font-bold text-lavender-deep">
               {copied ? "Copié ✓" : "Copier le numéro"}
             </button>
           )}
         </div>
 
         {card.description && (
-          <div className="mt-4 whitespace-pre-wrap rounded-3xl bg-white/70 p-5 font-semibold shadow-soft">{card.description}</div>
+          <div className="whitespace-pre-wrap rounded-3xl bg-ink/5 p-5 font-semibold">{card.description}</div>
         )}
 
         <div className="mt-8 text-center">

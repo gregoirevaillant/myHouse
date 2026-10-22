@@ -11,7 +11,8 @@ export const BARCODE_FORMATS = [
   { value: "ITF", label: "ITF" },
 ];
 
-export function Barcode({ value, format }: { value: string; format?: string | null }) {
+// large : affichage en caisse, le code occupe toute la largeur de l'écran
+export function Barcode({ value, format, large }: { value: string; format?: string | null; large?: boolean }) {
   const ref = useRef<SVGSVGElement>(null);
   const [error, setError] = useState(false);
 
@@ -22,28 +23,28 @@ export function Barcode({ value, format }: { value: string; format?: string | nu
         format: format || "CODE128",
         displayValue: true,
         font: "Nunito",
-        fontSize: 18,
-        margin: 12,
-        height: 110,
+        fontSize: large ? 22 : 18,
+        margin: large ? 0 : 12,
+        height: large ? 160 : 110,
       });
       setError(false);
     } catch {
       setError(true);
     }
-  }, [value, format]);
+  }, [value, format, large]);
 
   return (
     <div className="flex flex-col items-center">
-      <svg ref={ref} className={error ? "hidden" : "h-auto max-w-full"} />
+      <svg ref={ref} className={error ? "hidden" : large ? "h-auto w-full" : "h-auto max-w-full"} />
       {error && <p className="text-sm text-rose-deep">Ce code n'est pas valide pour ce format.</p>}
     </div>
   );
 }
 
-export function QrCode({ value }: { value: string }) {
+export function QrCode({ value, large }: { value: string; large?: boolean }) {
   const [src, setSrc] = useState<string>();
   useEffect(() => {
     QRCode.toDataURL(value, { margin: 2, width: 600 }).then(setSrc, () => setSrc(undefined));
   }, [value]);
-  return src ? <img src={src} alt="QR code" className="mx-auto w-64 max-w-full [image-rendering:pixelated]" /> : null;
+  return src ? <img src={src} alt="QR code" className={`mx-auto max-w-full [image-rendering:pixelated] ${large ? "w-full sm:w-96" : "w-64"}`} /> : null;
 }
