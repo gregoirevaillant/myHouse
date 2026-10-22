@@ -4,15 +4,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { CardForm } from "../components/CardForm";
 import { Modal } from "../components/Modal";
 import { cardsQuery } from "../lib/offline";
+import { normalize } from "../lib/products";
 
 const TYPE_LABEL = { BARCODE: "Code-barres", QR: "QR code", NUMBER: "Numéro" };
 
 export function Cards() {
   const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const { data: cards = [], isLoading } = useQuery({
     ...cardsQuery,
   });
+  const filtered = cards.filter((c) => normalize(`${c.name} ${c.description ?? ""}`).includes(normalize(search)));
 
   return (
     <section>
@@ -25,6 +28,15 @@ export function Cards() {
         </button>
       </div>
 
+      {cards.length > 0 && (
+        <input
+          className="input mb-4 focus:border-lavender"
+          placeholder="Rechercher une carte…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      )}
+
       {isLoading ? (
         <p className="text-center text-ink-soft">Chargement…</p>
       ) : cards.length === 0 ? (
@@ -32,9 +44,11 @@ export function Cards() {
           <p className="text-3xl">💳</p>
           <p className="mt-2 font-semibold">Aucune carte pour l'instant</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-ink-soft">Aucune carte ne correspond à « {search} »</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {cards.map((card) => (
+          {filtered.map((card) => (
             <Link
               key={card.id}
               to={`/cartes/${card.id}`}
