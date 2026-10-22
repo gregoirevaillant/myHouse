@@ -22,6 +22,12 @@ export default defineConfig({
           { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
           { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
         ],
+        // appui long sur l'icône de l'appli (Android, ordinateur ; pas sur iPhone)
+        shortcuts: [
+          { name: "Cartes de fidélité", short_name: "Cartes", url: "/cartes", icons: [{ src: "shortcut-cartes.png", sizes: "192x192", type: "image/png" }] },
+          { name: "Liste de courses", short_name: "Courses", url: "/courses", icons: [{ src: "shortcut-courses.png", sizes: "192x192", type: "image/png" }] },
+          { name: "On mange où ?", short_name: "On mange où ?", url: "/restos?hasard", icons: [{ src: "shortcut-hasard.png", sizes: "192x192", type: "image/png" }] },
+        ],
       },
       workbox: {
         navigateFallbackDenylist: [/^\/api/],
