@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { Modal } from "../components/Modal";
 import { RandomPick } from "../components/RandomPick";
@@ -7,19 +7,31 @@ import { RestaurantSheet } from "../components/RestaurantSheet";
 import { Stars } from "../components/Stars";
 import { api, type Meal, type Restaurant } from "../lib/api";
 import { addDays, mondayOf, fromIso, shortDate, toIso } from "../lib/dates";
-import { cuisineInfo, groupRestaurants, matchesSearch, priceLabel, useAddVisit, useRestaurants, type GroupBy } from "../lib/restaurants";
+import {
+  cuisineInfo,
+  distanceLabel,
+  distanceTo,
+  groupRestaurants,
+  matchesSearch,
+  priceLabel,
+  useAddVisit,
+  useMyPosition,
+  useRestaurants,
+  type GroupBy,
+} from "../lib/restaurants";
 
 // la carte (Leaflet) n'est téléchargée qu'à la première ouverture
 const RestaurantMap = lazy(() => import("../components/RestaurantMap"));
 
-type View = GroupBy | "map";
+type View = GroupBy | "map" | "near";
 type Status = "ALL" | "DONE" | "TODO";
 type Opened = { kind: "sheet"; id: string } | { kind: "form"; id?: string } | { kind: "random" } | null;
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "cuisine", label: "🍱 Cuisine" },
-  { id: "district", label: "📍 Arrondissement" },
+  { id: "district", label: "📍 Arrond." },
   { id: "map", label: "🗺️ Carte" },
+  { id: "near", label: "🧭 Proches" },
 ];
 
 // préférences de cette personne sur cet appareil (vue, filtre, bandeaux écartés) : facultatives
@@ -41,7 +53,7 @@ function writePref(key: string, value: string) {
 
 export function Restaurants() {
   const { data: restaurants = [], isLoading } = useRestaurants();
-  const [view, setView] = useState<View>(() => readPref("restos-view", ["cuisine", "district", "map"] as const, "cuisine"));
+  const [view, setView] = useState<View>(() => readPref("restos-view", ["cuisine", "district", "map", "near"] as const, "cuisine"));
   const [status, setStatus] = useState<Status>(() => readPref("restos-status", ["ALL", "DONE", "TODO"] as const, "ALL"));
   const [search, setSearch] = useState("");
   const [opened, setOpened] = useState<Opened>(null);
@@ -78,7 +90,7 @@ export function Restaurants() {
         </button>
       </div>
 
-      <div className="mb-3 grid grid-cols-3 gap-1 rounded-2xl bg-white p-1 shadow-soft">
+      <div className="mb-3 grid grid-cols-4 gap-1 rounded-2xl bg-white p-1 shadow-soft">
         {VIEWS.map((v) => (
           <button
             key={v.id}
@@ -110,6 +122,8 @@ export function Restaurants() {
 
       {isLoading ? (
         <p className="text-center text-ink-soft">Chargement…</p>
+      ) : view === "near" ? (
+        <Nearby restaurants={filtered} onOpen={open} />
       ) : view === "map" ? (
         <>
           <Suspense fallback={<div className="h-[60vh] animate-pulse rounded-3xl bg-peach-soft" />}>
@@ -170,13 +184,24 @@ export function Restaurants() {
   );
 }
 
-function RestaurantRow({ restaurant: r, showEmoji, onOpen }: { restaurant: Restaurant; showEmoji: boolean; onOpen: (r: Restaurant) => void }) {
+function RestaurantRow({
+  restaurant: r,
+  showEmoji,
+  distance,
+  onOpen,
+}: {
+  restaurant: Restaurant;
+  showEmoji: boolean;
+  distance?: number;
+  onOpen: (r: Restaurant) => void;
+}) {
   return (
     <li>
       <button onClick={() => onOpen(r)} className="flex w-full items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-left shadow-soft transition active:scale-[0.98]">
         {showEmoji && <span className="text-lg">{cuisineInfo(r.cuisine).emoji}</span>}
         <span className="min-w-0 flex-1">
           <span className="block truncate font-bold">{r.name}</span>
+          {distance != null && <span className="block text-xs font-extrabold text-peach-deep">🧭 {distanceLabel(distance)}</span>}
           <span className="block text-xs font-semibold text-ink-soft">
             {r.wishlist
               ? "✨ À tester"
@@ -192,11 +217,65 @@ function RestaurantRow({ restaurant: r, showEmoji, onOpen }: { restaurant: Resta
   );
 }
 
-function Unplaced({ restaurants, onOpen }: { restaurants: Restaurant[]; onOpen: (r: Restaurant) => void }) {
+// « Autour de moi » : les restos placés, du plus proche au plus loin
+function Nearby({ restaurants, onOpen }: { restaurants: Restaurant[]; onOpen: (r: Restaurant) => void }) {
+  const position = useMyPosition();
+  const { locate } = position;
+  useEffect(locate, [locate]);
+
+  if (position.status !== "ok") {
+    const message = {
+      idle: "Recherche de ta position…",
+      locating: "Recherche de ta position…",
+      denied: "La localisation est refusée. Autorise-la dans Réglages › Confidentialité › Service de localisation, puis réessaie.",
+      error: "Impossible de trouver ta position pour l'instant.",
+    }[position.status];
+    return (
+      <div className="rounded-3xl bg-peach-soft p-8 text-center text-ink-soft">
+        <p className={`text-3xl ${position.status === "locating" || position.status === "idle" ? "animate-pulse" : ""}`}>🧭</p>
+        <p className="mt-2 font-semibold">{message}</p>
+        {(position.status === "denied" || position.status === "error") && (
+          <button className="btn mt-4 bg-white px-4 shadow-soft" onClick={locate}>
+            Réessayer
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const here = position.position;
+  const placed = restaurants
+    .map((r) => ({ r, d: distanceTo(here, r) }))
+    .filter((x): x is { r: Restaurant; d: number } => x.d != null)
+    .sort((a, b) => a.d - b.d);
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center px-1">
+        <p className="flex-1 text-sm font-extrabold text-ink-soft">Du plus proche au plus loin</p>
+        <button className="text-sm font-bold text-peach-deep" onClick={locate}>
+          ↻ Actualiser
+        </button>
+      </div>
+      {placed.length ? (
+        <ul className="space-y-1.5">
+          {placed.map(({ r, d }) => (
+            <RestaurantRow key={r.id} restaurant={r} showEmoji distance={d} onOpen={onOpen} />
+          ))}
+        </ul>
+      ) : (
+        <p className="rounded-3xl bg-peach-soft p-6 text-center font-semibold text-ink-soft">Aucun resto avec une adresse</p>
+      )}
+      <Unplaced restaurants={restaurants.filter((r) => r.lat == null || r.lng == null)} onOpen={onOpen} title="Sans adresse, donc pas de distance" />
+    </div>
+  );
+}
+
+function Unplaced({ restaurants, onOpen, title = "Pas encore placés sur la carte" }: { restaurants: Restaurant[]; onOpen: (r: Restaurant) => void; title?: string }) {
   if (!restaurants.length) return null;
   return (
     <div className="mt-4">
-      <p className="mb-2 px-1 text-sm font-extrabold text-ink-soft">Pas encore placés sur la carte</p>
+      <p className="mb-2 px-1 text-sm font-extrabold text-ink-soft">{title}</p>
       <ul className="space-y-1.5">
         {restaurants.map((r) => (
           <RestaurantRow key={r.id} restaurant={r} showEmoji onOpen={onOpen} />

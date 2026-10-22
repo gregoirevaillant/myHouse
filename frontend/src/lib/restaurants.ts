@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type MealSlot, type Restaurant } from "./api";
 import { normalize } from "./products";
@@ -131,4 +132,39 @@ export function shareText(r: Restaurant) {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+// « Autour de moi » : position de l'iPhone, demandée seulement quand on en a besoin
+export type Position = { lat: number; lng: number };
+export type Locating = { status: "idle" | "locating" | "denied" | "error" } | { status: "ok"; position: Position };
+
+export function useMyPosition() {
+  const [state, setState] = useState<Locating>({ status: "idle" });
+  const locate = useCallback(() => {
+    if (!navigator.geolocation) return setState({ status: "error" });
+    setState((s) => (s.status === "ok" ? s : { status: "locating" }));
+    navigator.geolocation.getCurrentPosition(
+      (p) => setState({ status: "ok", position: { lat: p.coords.latitude, lng: p.coords.longitude } }),
+      (e) => setState({ status: e.code === e.PERMISSION_DENIED ? "denied" : "error" }),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 },
+    );
+  }, []);
+  return { ...state, locate };
+}
+
+// distance à vol d'oiseau en mètres (null si le resto n'est pas placé)
+export function distanceTo(from: Position, r: Pick<Restaurant, "lat" | "lng">) {
+  if (r.lat == null || r.lng == null) return null;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(r.lat - from.lat);
+  const dLng = rad(r.lng - from.lng);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(from.lat)) * Math.cos(rad(r.lat)) * Math.sin(dLng / 2) ** 2;
+  return 6371000 * 2 * Math.asin(Math.sqrt(a));
+}
+
+export function distanceLabel(m: number) {
+  const dist = m < 1000 ? `${Math.max(10, Math.round(m / 10) * 10)} m` : `${(m / 1000).toFixed(1).replace(".", ",")} km`;
+  // ~4,5 km/h, détours compris
+  const walk = Math.round((m * 1.3) / 75);
+  return walk <= 30 ? `${dist} · ${Math.max(1, walk)} min à pied` : dist;
 }
