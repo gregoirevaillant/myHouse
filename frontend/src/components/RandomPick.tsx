@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Restaurant } from "../lib/api";
-import { compareDistricts, cuisineInfo, distanceLabel, distanceTo, districtLabel, priceLabel, useMyPosition } from "../lib/restaurants";
-import { PlanMeal } from "./RestaurantSheet";
+import { compareDistricts, cuisineInfo, distanceLabel, distanceTo, districtLabel, priceLabel, restaurantMealText, useMyPosition } from "../lib/restaurants";
+import { PlanMeal } from "./PlanMeal";
 import { Stars } from "./Stars";
 
 type Status = "ALL" | "DONE" | "TODO";
@@ -107,7 +107,7 @@ export function RandomPick({ restaurants, onOpen }: { restaurants: Restaurant[];
       )}
 
       {planning && pick ? (
-        <PlanMeal restaurant={pick} onDone={() => setPlanning(false)} />
+        <PlanMeal title={pick.name} text={restaurantMealText(pick)} restaurantId={pick.id} onDone={() => setPlanning(false)} />
       ) : (
         <div className="flex gap-2">
           <button className="btn flex-1 bg-peach-deep text-white shadow-soft" disabled={!pool.length} onClick={draw}>

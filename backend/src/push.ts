@@ -67,10 +67,10 @@ export async function notifyOthers(author: { id: string; householdId: string }, 
 const RECENT_WINDOW = 2 * 60 * 1000;
 const recentAdds = new Map<string, { labels: string[]; until: number }>();
 
-export function notifyShoppingAdded(author: { id: string; householdId: string }, label: string) {
+export function notifyShoppingAdded(author: { id: string; householdId: string }, ...added: string[]) {
   const now = Date.now();
   const recent = recentAdds.get(author.id);
-  const labels = recent && recent.until > now ? [...recent.labels, label] : [label];
+  const labels = recent && recent.until > now ? [...recent.labels, ...added] : added;
   recentAdds.set(author.id, { labels, until: now + RECENT_WINDOW });
   const list = labels.length <= 3 ? joinFr(labels) : `${labels.slice(-2).join(", ")} et ${labels.length - 2} autres`;
   notifyOthers(author, "SHOPPING", (name) => ({

@@ -3,6 +3,7 @@ import { useMe } from "./auth";
 export const tabs = [
   { to: "/cartes", label: "Cartes", icon: "💳", active: "bg-lavender" },
   { to: "/repas", label: "Repas", icon: "🍽️", active: "bg-peach" },
+  { to: "/recettes", label: "Recettes", icon: "📖", active: "bg-rose" },
   { to: "/courses", label: "Courses", icon: "🛒", active: "bg-mint" },
   { to: "/restos", label: "Restos", icon: "🍜", active: "bg-peach" },
   { to: "/depenses", label: "Dépenses", icon: "💶", active: "bg-sky" },

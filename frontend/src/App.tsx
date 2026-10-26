@@ -15,6 +15,8 @@ import { Login } from "./pages/Login";
 import { Meals } from "./pages/Meals";
 import { Products } from "./pages/Products";
 import { Profile } from "./pages/Profile";
+import { RecipeDetail } from "./pages/RecipeDetail";
+import { Recipes } from "./pages/Recipes";
 import { Recurring } from "./pages/Recurring";
 import { Restaurants } from "./pages/Restaurants";
 import { Shopping } from "./pages/Shopping";
@@ -36,6 +38,8 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/cartes" element={<Cards />} />
         <Route path="/repas" element={<Meals />} />
+        <Route path="/recettes" element={<Recipes />} />
+        <Route path="/recettes/:id" element={<RecipeDetail />} />
         <Route path="/courses" element={<Shopping />} />
         <Route path="/courses/produits" element={<Products />} />
         <Route path="/restos" element={<Restaurants />} />

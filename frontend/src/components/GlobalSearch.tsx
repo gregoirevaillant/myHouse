@@ -6,6 +6,7 @@ import { useExpenses, useTrackers } from "../lib/expenses";
 import { formatEur } from "../lib/money";
 import { cardsQuery, infosQuery, shoppingQuery } from "../lib/offline";
 import { normalize, useProducts } from "../lib/products";
+import { recipeCategory, useRecipes } from "../lib/recipes";
 import { cuisineInfo, districtLabel, useRestaurants } from "../lib/restaurants";
 import { useVisibleTabs } from "../lib/tabs";
 
@@ -14,7 +15,7 @@ type Section = { label: string; results: Result[] };
 
 const MAX_PER_SECTION = 5;
 
-// Recherche dans toute l'app : courses, produits, cartes, restos, infos, dépenses (pages visibles seulement)
+// Recherche dans toute l'app : courses, produits, cartes, recettes, restos, infos, dépenses (pages visibles seulement)
 export function GlobalSearch({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const visible = new Set(useVisibleTabs().map((t) => t.to));
@@ -27,6 +28,7 @@ export function GlobalSearch({ onClose }: { onClose: () => void }) {
   const { data: infos = [] } = useQuery({ ...infosQuery, enabled: visible.has("/infos") });
   const { data: expenses = [] } = useExpenses(visible.has("/depenses"));
   const { data: trackers = [] } = useTrackers();
+  const { data: recipes = [] } = useRecipes(visible.has("/recettes"));
 
   const q = normalize(query);
   const matches = (...fields: (string | null | undefined)[]) => fields.some((f) => f && normalize(f).includes(q));
@@ -52,6 +54,18 @@ export function GlobalSearch({ onClose }: { onClose: () => void }) {
           results: infos
             .filter((i) => matches(i.label, i.value, i.note))
             .map((i) => ({ key: `i-${i.id}`, icon: "🔑", title: i.label, subtitle: i.value, to: "/infos" })),
+        },
+        {
+          label: "Recettes",
+          results: recipes
+            .filter((r) => matches(r.name, r.ingredients))
+            .map((r) => ({
+              key: `rc-${r.id}`,
+              icon: recipeCategory(r.category).emoji,
+              title: r.name,
+              subtitle: recipeCategory(r.category).label,
+              to: `/recettes/${r.id}`,
+            })),
         },
         {
           label: "Restos",
@@ -106,7 +120,7 @@ export function GlobalSearch({ onClose }: { onClose: () => void }) {
     <div className="space-y-4">
       <input
         className="input focus:border-lavender"
-        placeholder="Un resto, un code, un produit, une dépense…"
+        placeholder="Un resto, une recette, un code, une dépense…"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         autoFocus

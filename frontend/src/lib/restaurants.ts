@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type MealSlot, type Restaurant } from "./api";
+import { api, type Restaurant } from "./api";
 import { normalize } from "./products";
 
 export const CUISINES = [
@@ -94,17 +94,8 @@ export function useAddVisit() {
 }
 
 // « Prévoir » : place le resto dans le planning des repas
-export function usePlanMeal() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ restaurant, date, slot }: { restaurant: Restaurant; date: string; slot: MealSlot }) =>
-      api("/meals", {
-        method: "PUT",
-        json: { date, slot, text: `${cuisineInfo(restaurant.cuisine).emoji} Resto : ${restaurant.name}`, restaurantId: restaurant.id },
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["meals"] }),
-  });
-}
+// texte inscrit dans les repas quand on prévoit ce resto
+export const restaurantMealText = (r: Restaurant) => `${cuisineInfo(r.cuisine).emoji} Resto : ${r.name}`;
 
 export const directionsUrl = (r: Restaurant) =>
   r.lat != null && r.lng != null

@@ -24,6 +24,7 @@ model Household {
   recurringItems  RecurringItem[]
   restaurants     Restaurant[]
   infos           HouseInfo[]
+  recipes         Recipe[]
 }
 
 model User {
@@ -315,6 +316,27 @@ model HouseInfo {
   label       String
   value       String
   note        String?
+  createdAt   DateTime  @default(now())
+
+  @@index([householdId])
+}
+
+// Recette du foyer. Ingrédients et étapes : une ligne chacun.
+model Recipe {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String?
+  name        String
+  category    String // PLAT | ENTREE | DESSERT | APERO | PETIT_DEJ | AUTRE
+  servings    Int?
+  minutes     Int? // temps total
+  ingredients String    @default("")
+  steps       String    @default("")
+  note        String?
+  url         String? // source (site, vidéo…)
+  imagePath   String?
   createdAt   DateTime  @default(now())
 
   @@index([householdId])

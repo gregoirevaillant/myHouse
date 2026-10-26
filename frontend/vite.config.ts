@@ -27,10 +27,10 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/],
         // réception et clic des notifications push
         importScripts: ["push-sw.js"],
-        // photos des cartes et produits gardées pour le hors-ligne, mises à jour en arrière-plan
+        // photos des cartes, produits et recettes gardées pour le hors-ligne, mises à jour en arrière-plan
         runtimeCaching: [
           {
-            urlPattern: /\/api\/(cards|products)\/[^/]+\/image$/,
+            urlPattern: /\/api\/(cards|products|recipes)\/[^/]+\/image$/,
             handler: "StaleWhileRevalidate",
             options: { cacheName: "images", expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 60 } },
           },

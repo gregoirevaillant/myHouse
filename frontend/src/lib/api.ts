@@ -88,6 +88,21 @@ export type InfoCategory = "CODE" | "WIFI" | "CONTACT" | "MAISON" | "AUTRE";
 export type HouseInfo = { id: string; category: InfoCategory; label: string; value: string; note: string | null; private: boolean };
 export type HouseInfoInput = Omit<HouseInfo, "id">;
 
+export type RecipeCategory = "PLAT" | "ENTREE" | "DESSERT" | "APERO" | "PETIT_DEJ" | "AUTRE";
+// ingredients et steps : une ligne chacun
+export type Recipe = {
+  id: string;
+  name: string;
+  category: RecipeCategory;
+  servings: number | null;
+  minutes: number | null;
+  ingredients: string;
+  steps: string;
+  note: string | null;
+  url: string | null;
+  hasImage: boolean;
+};
+
 export type JournalSummary = { id: string; title: string; entryCount: number; lastDate: string | null };
 export type JournalEntry = { date: string; text: string };
 export type Journal = { id: string; title: string; entries: JournalEntry[] };

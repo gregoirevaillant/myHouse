@@ -21,6 +21,7 @@ import { journalRoutes } from "./routes/journals.js";
 import { mealRoutes } from "./routes/meals.js";
 import { productRoutes } from "./routes/products.js";
 import { pushRoutes } from "./routes/push.js";
+import { recipeRoutes } from "./routes/recipes.js";
 import { restaurantRoutes } from "./routes/restaurants.js";
 import { shoppingRoutes } from "./routes/shopping.js";
 import { userRoutes } from "./routes/users.js";
@@ -58,6 +59,7 @@ await app.register(
       await priv.register(restaurantRoutes, { prefix: "/restaurants" });
       await priv.register(journalRoutes, { prefix: "/journals" });
       await priv.register(infoRoutes, { prefix: "/infos" });
+      await priv.register(recipeRoutes, { prefix: "/recipes" });
       await priv.register(userRoutes, { prefix: "/users" });
       await priv.register(budgetRoutes, { prefix: "/budget" });
       await priv.register(bankRoutes, { prefix: "/bank" });

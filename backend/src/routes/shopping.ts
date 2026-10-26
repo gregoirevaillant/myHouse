@@ -39,6 +39,35 @@ export async function shoppingRoutes(app: FastifyInstance) {
     return withProduct(item);
   });
 
+  // plusieurs articles d'un coup (ingrédients d'une recette) ; ceux déjà à acheter sont ignorés
+  app.post("/many", async (req) => {
+    const { labels } = z.object({ labels: z.array(z.string().trim().min(1).max(200)).min(1).max(100) }).parse(req.body);
+    const householdId = req.user.householdId;
+    const [pending, products] = await Promise.all([
+      prisma.shoppingItem.findMany({ where: { householdId, ownerId: null, checked: false }, select: { label: true } }),
+      prisma.product.findMany({ where: { householdId }, select: { id: true, nameKey: true } }),
+    ]);
+    const seen = new Set(pending.map((i) => nameKey(i.label)));
+    const toAdd = labels.filter((label) => {
+      const key = nameKey(label);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (toAdd.length) {
+      await prisma.shoppingItem.createMany({
+        data: toAdd.map((label) => ({
+          label,
+          productId: products.find((p) => p.nameKey === nameKey(label))?.id,
+          householdId,
+          createdById: req.user.id,
+        })),
+      });
+      notifyShoppingAdded(req.user, ...toAdd);
+    }
+    return { added: toAdd.length };
+  });
+
   // déclarée avant /:id pour ne pas être capturée par le paramètre
   app.delete("/checked", async (req) => {
     const { count } = await prisma.shoppingItem.deleteMany({

@@ -8,6 +8,7 @@ import { computeDebt, useExpenses } from "../lib/expenses";
 import { useMembers } from "../lib/members";
 import { formatEur } from "../lib/money";
 import { cardsQuery, infosQuery, shoppingQuery } from "../lib/offline";
+import { recipeCategory, useRecipes } from "../lib/recipes";
 import { cuisineInfo, useRestaurants } from "../lib/restaurants";
 import { useVisibleTabs } from "../lib/tabs";
 
@@ -33,6 +34,7 @@ export function Home() {
 
   const { data: restaurants = [] } = useRestaurants(visible.has("/restos"));
   const { data: infos = [] } = useQuery({ ...infosQuery, enabled: visible.has("/infos") });
+  const { data: recipes = [] } = useRecipes(visible.has("/recettes"));
 
   const { data: budget } = useBudgetMonth(monthKey(today), visible.has("/budget"));
 
@@ -43,6 +45,8 @@ export function Home() {
   const budgetLeft = budget && budget.totals.income - budget.totals.outflow - budget.totals.invested;
   const tested = restaurants.filter((r) => !r.wishlist);
   const lastVisited = tested.filter((r) => r.visits[0]).sort((a, b) => b.visits[0].localeCompare(a.visits[0]))[0];
+  // idée du jour : change chaque jour, la même pour les deux
+  const idea = recipes.length ? recipes[Math.floor(Date.parse(today) / 86_400_000) % recipes.length] : undefined;
   const nextDue = budget?.recurring
     .filter((r) => r.upcoming.length && r.amountCents < 0)
     .sort((a, b) => a.upcoming[0].localeCompare(b.upcoming[0]))[0];
@@ -117,6 +121,27 @@ export function Home() {
               Dernier : {cuisineInfo(lastVisited.cuisine).emoji} {lastVisited.name}
             </p>
           )}
+        </Tile>
+      ),
+    },
+    {
+      to: "/recettes",
+      node: (
+        <Tile to="/recettes" icon="📖" className="bg-rose">
+          <Label>Recettes</Label>
+          {idea ? (
+            <>
+              <p className="mt-1 text-xs font-bold text-ink/60">Idée du jour</p>
+              <p className="line-clamp-2 font-extrabold leading-snug">
+                {recipeCategory(idea.category).emoji} {idea.name}
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-lg font-extrabold leading-tight">Nos recettes</p>
+          )}
+          <p className="mt-2 text-sm font-bold text-ink/60">
+            {recipes.length} recette{recipes.length > 1 ? "s" : ""}
+          </p>
         </Tile>
       ),
     },
