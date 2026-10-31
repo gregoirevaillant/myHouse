@@ -1,4 +1,4 @@
-import { bankEnabled, env } from "./env.js";
+import { env } from "./env.js";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
@@ -9,9 +9,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { ZodError } from "zod";
 import { COOKIE_NAME, authRoutes, requireAuth } from "./auth.js";
-import { syncEveryone } from "./budget/sync.js";
 import { invalidateOnWrite, liveRoutes } from "./live.js";
-import { bankRoutes } from "./routes/bank.js";
 import { budgetRoutes } from "./routes/budget.js";
 import { cardRoutes } from "./routes/cards.js";
 import { expenseRoutes } from "./routes/expenses.js";
@@ -62,7 +60,6 @@ await app.register(
       await priv.register(recipeRoutes, { prefix: "/recipes" });
       await priv.register(userRoutes, { prefix: "/users" });
       await priv.register(budgetRoutes, { prefix: "/budget" });
-      await priv.register(bankRoutes, { prefix: "/bank" });
       await priv.register(pushRoutes, { prefix: "/push" });
       await priv.register(liveRoutes, { prefix: "/events" });
     });
@@ -81,10 +78,3 @@ if (existsSync(publicDir)) {
 }
 
 await app.listen({ port: env.port, host: "0.0.0.0" });
-
-// Synchro bancaire automatique : au démarrage puis toutes les 6 h
-if (bankEnabled) {
-  const syncAll = () => syncEveryone((msg) => app.log.warn(msg)).catch((err) => app.log.error(err));
-  setTimeout(syncAll, 30_000);
-  setInterval(syncAll, 6 * 60 * 60 * 1000);
-}

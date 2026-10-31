@@ -1,7 +1,6 @@
-import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useMe } from "./lib/auth";
-import { Bank } from "./pages/Bank";
 import { Budget } from "./pages/Budget";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
@@ -17,7 +16,6 @@ import { Products } from "./pages/Products";
 import { Profile } from "./pages/Profile";
 import { RecipeDetail } from "./pages/RecipeDetail";
 import { Recipes } from "./pages/Recipes";
-import { Recurring } from "./pages/Recurring";
 import { Restaurants } from "./pages/Restaurants";
 import { Shopping } from "./pages/Shopping";
 
@@ -49,19 +47,10 @@ export default function App() {
         <Route path="/journal/:id" element={<JournalDetail />} />
         <Route path="/infos" element={<Infos />} />
         <Route path="/budget" element={<Budget />} />
-        <Route path="/budget/recurrent" element={<Recurring />} />
-        <Route path="/budget/banque" element={<Bank />} />
-        <Route path="/bank/callback" element={<BankCallback />} />
         <Route path="/profil" element={<Profile />} />
       </Route>
       <Route path="/cartes/:id" element={<CardDetail />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-}
-
-// URL de retour déclarée sur Enable Banking : on renvoie vers la page Banque en gardant ?code&state
-function BankCallback() {
-  const { search } = useLocation();
-  return <Navigate to={{ pathname: "/budget/banque", search }} replace />;
 }

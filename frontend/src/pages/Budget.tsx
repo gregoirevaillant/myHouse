@@ -1,370 +1,334 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { BarChart, type Bar } from "../components/BarChart";
-import { BudgetTabs } from "../components/BudgetTabs";
-import { CategoryPicker } from "../components/CategoryPicker";
+import { useState, type FormEvent } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { BarChart } from "../components/BarChart";
 import { Modal } from "../components/Modal";
-import type { BudgetTransaction } from "../lib/api";
-import {
-  category,
-  consentWarning,
-  signedEur,
-  useBudgetMonth,
-  useBudgetTrend,
-  useSetTransactionCategory,
-  useSyncBank,
-} from "../lib/budget";
-import { monthKey, monthLabel, shiftMonth, shortDate, toIso } from "../lib/dates";
-import { formatEur, formatEurRound } from "../lib/money";
+import { api, type BudgetItem, type BudgetItemInput, type BudgetKind, type BudgetPeriod } from "../lib/api";
+import { budgetSummary, category, categoriesOf, monthlyCents, monthlyOutflows, nextDue, useBudgetItems } from "../lib/budget";
+import { monthLabel, shortDate, toIso } from "../lib/dates";
+import { centsToInput, formatEur, formatEurRound, parseEur } from "../lib/money";
 
-const AUTO_SYNC_AFTER = 6 * 60 * 60 * 1000;
-const TOP_MERCHANTS = 5;
+type Tab = "MONTHLY" | "YEARLY" | "CALENDAR";
+const TABS: { id: Tab; label: string }[] = [
+  { id: "MONTHLY", label: "Mensuel" },
+  { id: "YEARLY", label: "Annuel" },
+  { id: "CALENDAR", label: "Calendrier" },
+];
+const MONTHS = Array.from({ length: 12 }, (_, i) => new Date(2000, i, 1).toLocaleDateString("fr-FR", { month: "long" }));
 
-// filtre des opérations : une catégorie ou une enseigne
-type Filter = { category: string } | { merchantKey: string; label: string };
-
-// « carrefour city » → « Carrefour City »
-const merchantName = (key: string) => key.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
+type Opened = { id?: string } | null;
 
 export function Budget() {
-  const currentMonth = monthKey(toIso(new Date()));
-  const [month, setMonth] = useState(currentMonth);
-  const [filter, setFilter] = useState<Filter | null>(null);
-  const [editing, setEditing] = useState<BudgetTransaction | null>(null);
-  const { data, isLoading } = useBudgetMonth(month);
-  const { data: trend = [] } = useBudgetTrend(currentMonth);
-  const sync = useSyncBank();
-
-  // à l'ouverture, on rafraîchit si la dernière synchro date un peu
-  const autoSynced = useRef(false);
-  useEffect(() => {
-    if (!data?.bank.enabled || !data.bank.connected || autoSynced.current) return;
-    const last = data.bank.lastSyncAt ? new Date(data.bank.lastSyncAt).getTime() : 0;
-    autoSynced.current = true;
-    if (Date.now() - last > AUTO_SYNC_AFTER) sync.mutate();
-  }, [data, sync]);
-
-  const expenseCategories = useMemo(
-    () =>
-      Object.entries(data?.byCategory ?? {})
-        .filter(([id, cents]) => category(id).kind === "EXPENSE" && cents < 0)
-        .map(([id, cents]) => ({ id, cents: -cents }))
-        .sort((a, b) => b.cents - a.cents),
-    [data],
-  );
-  const maxCategory = Math.max(1, ...expenseCategories.map((c) => c.cents));
-
-  // enseignes où l'on a le plus dépensé ce mois-ci, remboursements déduits
-  const topMerchants = useMemo(() => {
-    const totals = new Map<string, { key: string; cents: number; count: number; category: string }>();
-    for (const t of data?.transactions ?? []) {
-      if (category(t.category).kind !== "EXPENSE") continue;
-      const m = totals.get(t.merchantKey) ?? { key: t.merchantKey, cents: 0, count: 0, category: t.category };
-      m.cents -= t.amountCents;
-      if (t.amountCents < 0) m.count++;
-      totals.set(t.merchantKey, m);
-    }
-    return [...totals.values()]
-      .filter((m) => m.cents > 0)
-      .sort((a, b) => b.cents - a.cents)
-      .slice(0, TOP_MERCHANTS);
-  }, [data]);
-
-  const trendBars: Bar[] = trend.map((t) => ({
-    key: t.month,
-    label: monthLabel(t.month, "long"),
-    tooltip: monthLabel(t.month, "long"),
-    axisLabel: monthLabel(t.month, "short").charAt(0).toUpperCase(),
-    value: Math.max(0, t.outflow),
-  }));
-
-  if (isLoading || !data) {
-    return (
-      <section>
-        <Header />
-        <p className="text-center text-ink-soft">Chargement…</p>
-      </section>
-    );
-  }
-
-  const { totals, bank } = data;
-  const left = totals.income - totals.outflow - totals.invested;
-  const upcoming = data.recurring.filter((r) => r.upcoming.length);
-  const upcomingCents = upcoming.reduce((s, r) => s + r.amountCents * r.upcoming.length, 0);
-  const warning = consentWarning(bank.consentUntil);
-  const transactions = !filter
-    ? data.transactions
-    : "category" in filter
-      ? data.transactions.filter((t) => t.category === filter.category)
-      : data.transactions.filter((t) => t.merchantKey === filter.merchantKey);
-  const isFilter = (f: Filter) =>
-    filter !== null && ("category" in f ? "category" in filter && filter.category === f.category : "merchantKey" in filter && filter.merchantKey === f.merchantKey);
-  const toggleFilter = (f: Filter) => setFilter(isFilter(f) ? null : f);
+  const { data: items = [], isLoading } = useBudgetItems();
+  const [tab, setTab] = useState<Tab>("MONTHLY");
+  const [opened, setOpened] = useState<Opened>(null);
+  const today = toIso(new Date());
+  const summary = budgetSummary(items, today);
+  const openedItem = opened?.id ? items.find((i) => i.id === opened.id) : undefined;
 
   return (
     <section>
-      <Header
-        action={
-          bank.connected && (
-            <button className="btn bg-rose px-4 py-2 shadow-soft" onClick={() => sync.mutate()} disabled={sync.isPending || !bank.enabled}>
-              {sync.isPending ? "Synchro…" : "↻ Synchroniser"}
-            </button>
-          )
-        }
-      />
-      <BudgetTabs />
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 text-lg font-extrabold">
+          <span className="rounded-xl bg-rose px-2 py-1">📊</span> Budget
+        </h2>
+        <button className="btn bg-rose px-4 py-2 shadow-soft" onClick={() => setOpened({})}>
+          + Ajouter
+        </button>
+      </div>
 
-      {!bank.connected ? (
-        <div className="rounded-3xl bg-rose-soft p-8 text-center">
-          <p className="text-3xl">🏦</p>
-          <p className="mt-2 font-extrabold">Connecte ta banque</p>
-          <p className="mt-1 text-sm font-semibold text-ink-soft">
-            Revenus, dépenses, abonnements et épargne seront calculés automatiquement à partir de tes opérations.
-          </p>
-          <Link to="/budget/banque" className="btn-primary mt-4">
-            Connecter une banque
-          </Link>
+      {isLoading ? (
+        <p className="text-center text-ink-soft">Chargement…</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-3xl bg-rose-soft p-8 text-center text-ink-soft">
+          <p className="text-3xl">📊</p>
+          <p className="mt-2 font-semibold">Loyer, assurances, abonnements, impôts… ajoute tes charges mensuelles et annuelles pour voir ce qui te reste chaque mois</p>
         </div>
       ) : (
         <>
-          {warning && (
-            <Link to="/budget/banque" className="mb-4 block rounded-2xl bg-peach px-4 py-3 text-sm font-bold shadow-soft">
-              ⚠️ {warning}
-            </Link>
-          )}
-          {sync.data?.errors.length ? (
-            <p className="mb-4 rounded-2xl bg-rose-soft px-4 py-3 text-sm font-semibold text-rose-deep">{sync.data.errors.join(" · ")}</p>
-          ) : null}
-          {sync.error && <p className="mb-4 rounded-2xl bg-rose-soft px-4 py-3 text-sm font-semibold text-rose-deep">{sync.error.message}</p>}
-
-          {/* navigation mois */}
-          <div className="mb-4 flex items-center justify-between rounded-2xl bg-white p-2 shadow-soft">
-            <button className="btn px-4 py-2 hover:bg-rose-soft" onClick={() => setMonth(shiftMonth(month, -1))} aria-label="Mois précédent">
-              ◀
-            </button>
-            <button className="text-center" onClick={() => setMonth(currentMonth)}>
-              <p className="font-extrabold capitalize">{monthLabel(month, "long")}</p>
-              <p className="text-xs font-semibold text-ink-soft">{month === currentMonth ? "Ce mois-ci" : "Revenir à ce mois"}</p>
-            </button>
-            <button
-              className="btn px-4 py-2 hover:bg-rose-soft"
-              onClick={() => setMonth(shiftMonth(month, 1))}
-              disabled={month >= currentMonth}
-              aria-label="Mois suivant"
-            >
-              ▶
-            </button>
-          </div>
-
-          {/* bilan du mois */}
-          <div className="mb-4 rounded-3xl bg-white p-5 shadow-soft">
-            <p className="text-sm font-bold text-ink-soft">Reste</p>
-            <p className={`text-4xl font-extrabold ${left < 0 ? "text-rose-deep" : ""}`}>{formatEur(left)}</p>
-            {month === currentMonth && upcomingCents !== 0 && (
-              <p className="mt-1 text-sm font-semibold text-ink-soft">
-                après les échéances à venir : <span className="text-ink">{formatEur(left + upcomingCents)}</span>
-              </p>
-            )}
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <Stat label="Revenus" cents={totals.income} className="bg-mint-soft" />
-              <Stat label="Dépenses" cents={totals.outflow} className="bg-peach-soft" />
-              <Stat label="Épargné" cents={totals.invested} className="bg-lavender-soft" />
+          <div className="mb-4 rounded-3xl bg-rose-soft p-4">
+            <p className="text-sm font-bold text-ink-soft">Reste par mois</p>
+            <p className={`text-3xl font-extrabold ${summary.leftCents < 0 ? "text-rose-deep" : ""}`}>{formatEur(summary.leftCents)}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm font-bold">
+              <div className="rounded-2xl bg-white px-3 py-2 shadow-soft">
+                <span className="block text-xs text-ink-soft">Revenus</span>
+                {formatEur(summary.incomeCents)}
+              </div>
+              <div className="rounded-2xl bg-white px-3 py-2 shadow-soft">
+                <span className="block text-xs text-ink-soft">Charges</span>
+                {formatEur(summary.expenseCents)}
+              </div>
             </div>
-            {data.householdShareCents > 0 && (
-              <p className="mt-3 text-xs font-semibold text-ink-soft">
-                Dont ta part des dépenses du foyer : {formatEur(data.householdShareCents)} (déjà comptée dans tes opérations)
-              </p>
+            {summary.yearlySmoothedCents > 0 && (
+              <p className="mt-2 text-xs font-semibold text-ink-soft">dont {formatEur(summary.yearlySmoothedCents)} par mois à mettre de côté pour les charges annuelles</p>
             )}
           </div>
 
-          {/* répartition des dépenses */}
-          {expenseCategories.length > 0 && (
-            <div className="mb-4 rounded-3xl bg-white p-5 shadow-soft">
-              <p className="mb-3 text-sm font-bold text-ink-soft">Où part l'argent</p>
-              <ul className="space-y-2">
-                {expenseCategories.map(({ id, cents }) => {
-                  const c = category(id);
-                  return (
-                    <li key={id}>
-                      <button
-                        className={`w-full rounded-xl px-2 py-1 text-left transition ${isFilter({ category: id }) ? "bg-rose-soft" : ""}`}
-                        onClick={() => toggleFilter({ category: id })}
-                      >
-                        <span className="flex justify-between text-sm font-bold">
-                          <span>
-                            {c.icon} {c.label}
-                          </span>
-                          <span className="tabular-nums">{formatEur(cents)}</span>
-                        </span>
-                        <span className="mt-1 block h-2 overflow-hidden rounded-full bg-cream">
-                          <span className={`block h-full rounded-full ${c.color}`} style={{ width: `${(cents / maxCategory) * 100}%` }} />
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          {/* top des enseignes */}
-          {topMerchants.length > 0 && (
-            <div className="mb-4 rounded-3xl bg-white p-5 shadow-soft">
-              <p className="mb-3 text-sm font-bold text-ink-soft">Top des enseignes</p>
-              <ol className="space-y-1">
-                {topMerchants.map((m, i) => {
-                  const f = { merchantKey: m.key, label: merchantName(m.key) };
-                  return (
-                    <li key={m.key}>
-                      <button
-                        className={`flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left transition ${isFilter(f) ? "bg-rose-soft" : ""}`}
-                        onClick={() => toggleFilter(f)}
-                      >
-                        <span className="w-5 shrink-0 text-center font-extrabold text-ink-soft">{i + 1}</span>
-                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${category(m.category).color}`}>
-                          {category(m.category).icon}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-bold">{f.label}</span>
-                          <span className="block text-xs font-semibold text-ink-soft">
-                            {m.count} achat{m.count > 1 ? "s" : ""}
-                          </span>
-                        </span>
-                        <span className="text-sm font-extrabold tabular-nums">{formatEur(m.cents)}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          )}
-
-          {/* échéances à venir */}
-          {month === currentMonth && upcoming.length > 0 && (
-            <div className="mb-4 rounded-3xl bg-lavender-soft p-5">
-              <p className="mb-3 text-sm font-bold text-ink-soft">À venir ce mois-ci</p>
-              <ul className="space-y-2">
-                {upcoming.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 text-sm font-bold">
-                    <span className="min-w-0 truncate">
-                      {category(r.category).icon} {r.label}
-                    </span>
-                    <span className="shrink-0 text-right tabular-nums">
-                      {signedEur(r.amountCents, formatEur)}
-                      <span className="block text-xs font-semibold text-ink-soft">{r.upcoming.map(shortDate).join(", ")}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* tendance */}
-          <div className="mb-4 rounded-3xl bg-white p-5 shadow-soft">
-            <p className="mb-4 text-sm font-bold text-ink-soft">Dépenses · 12 derniers mois</p>
-            <BarChart
-              title="Dépenses par mois"
-              bars={trendBars}
-              selectedKey={month}
-              onSelect={setMonth}
-              formatTick={formatEurRound}
-              formatValue={formatEur}
-            />
-          </div>
-
-          {/* opérations */}
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-bold text-ink-soft">
-              Opérations{filter && ` · ${"category" in filter ? category(filter.category).label : filter.label}`}
-            </p>
-            {filter && (
-              <button className="text-sm font-bold text-rose-deep" onClick={() => setFilter(null)}>
-                Tout voir
+          <div className="mb-4 flex gap-1.5">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex-1 rounded-full px-3 py-1.5 text-sm font-bold shadow-soft transition active:scale-95 ${tab === t.id ? "bg-rose" : "bg-white text-ink-soft"}`}
+              >
+                {t.label}
               </button>
-            )}
+            ))}
           </div>
-          {transactions.length === 0 ? (
-            <div className="rounded-3xl bg-rose-soft p-8 text-center text-ink-soft">
-              <p className="text-3xl">🧾</p>
-              <p className="mt-2 font-semibold">Aucune opération ce mois-ci</p>
-            </div>
+
+          {tab === "CALENDAR" ? (
+            <Calendar items={items} today={today} />
           ) : (
-            <ul className="space-y-2">
-              {transactions.map((t) => {
-                const c = category(t.category);
-                return (
-                  <li key={t.id}>
-                    <button
-                      onClick={() => setEditing(t)}
-                      className={`flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-soft transition active:scale-[0.98] ${
-                        c.kind === "TRANSFER" ? "opacity-60" : ""
-                      }`}
-                    >
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${c.color}`}>{c.icon}</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-bold">{t.label}</span>
-                        <span className="block truncate text-xs font-semibold text-ink-soft">
-                          {shortDate(t.date)} · {c.label}
-                          {t.recurringId && " · 🔁"}
-                        </span>
-                      </span>
-                      <span className={`font-extrabold tabular-nums ${t.amountCents > 0 ? "text-mint-deep" : ""}`}>
-                        {signedEur(t.amountCents, formatEur)}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <ItemList items={items.filter((i) => i.period === tab)} period={tab} today={today} onEdit={(id) => setOpened({ id })} />
           )}
         </>
       )}
 
-      {editing && <TransactionModal transaction={editing} onClose={() => setEditing(null)} />}
+      {opened && (
+        <Modal title={openedItem ? "Modifier la ligne" : "Nouvelle ligne"} onClose={() => setOpened(null)}>
+          <ItemForm item={openedItem} defaultPeriod={tab === "YEARLY" ? "YEARLY" : "MONTHLY"} onDone={() => setOpened(null)} />
+        </Modal>
+      )}
     </section>
   );
 }
 
-function Header({ action }: { action?: ReactNode }) {
+function ItemList({ items, period, today, onEdit }: { items: BudgetItem[]; period: BudgetPeriod; today: string; onEdit: (id: string) => void }) {
+  if (items.length === 0) {
+    return <p className="rounded-3xl bg-rose-soft p-6 text-center font-semibold text-ink-soft">{period === "MONTHLY" ? "Aucune ligne mensuelle" : "Aucune charge annuelle"}</p>;
+  }
+  const groups = Object.keys(Object.fromEntries(items.map((i) => [i.category, 1]))).map((id) => ({ id, ...category(id), items: items.filter((i) => i.category === id) }));
   return (
-    <div className="mb-4 flex items-center justify-between">
-      <h2 className="flex items-center gap-2 text-lg font-extrabold">
-        <span className="rounded-xl bg-rose px-2 py-1">📊</span> Budget
-      </h2>
-      {action}
+    <div className="space-y-4">
+      {groups.map((g) => (
+        <div key={g.id} className="rounded-3xl bg-rose-soft p-3">
+          <p className="mb-2 flex items-center gap-2 px-1 font-extrabold">
+            <span className="text-xl">{g.icon}</span> {g.label}
+          </p>
+          <ul className="space-y-1.5">
+            {g.items.map((i) => (
+              <li key={i.id}>
+                <button onClick={() => onEdit(i.id)} className={`flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-2.5 text-left shadow-soft ${i.active ? "" : "opacity-50"}`}>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold">
+                      {i.private && "🔒 "}
+                      {i.label}
+                    </span>
+                    <span className="block text-xs font-semibold text-ink-soft">
+                      {i.active ? (i.kind === "EXPENSE" ? `prochain : ${shortDate(nextDue(i, today))}` : period === "MONTHLY" ? `le ${i.dueDay} du mois` : `le ${shortDate(nextDue(i, today))}`) : "en pause"}
+                      {period === "YEARLY" && ` · ${formatEur(monthlyCents(i))}/mois`}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 text-lg font-extrabold ${i.kind === "INCOME" ? "text-mint-deep" : ""}`}>
+                    {i.kind === "INCOME" ? "+" : ""}
+                    {formatEur(i.amountCents)}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
 
-function Stat({ label, cents, className }: { label: string; cents: number; className: string }) {
-  return (
-    <div className={`rounded-2xl px-2 py-3 ${className}`}>
-      <p className="text-xs font-bold text-ink-soft">{label}</p>
-      <p className="font-extrabold tabular-nums">{formatEurRound(cents)}</p>
-    </div>
-  );
-}
+function Calendar({ items, today }: { items: BudgetItem[]; today: string }) {
+  const months = monthlyOutflows(items, today);
+  const [selected, setSelected] = useState(months[0].key);
+  const current = months.find((m) => m.key === selected) ?? months[0];
+  const monthNumber = current.date.getMonth() + 1;
+  const due = items
+    .filter((i) => i.active && i.kind === "EXPENSE" && (i.period === "MONTHLY" || i.dueMonth === monthNumber))
+    .sort((a, b) => a.dueDay - b.dueDay);
 
-function TransactionModal({ transaction: t, onClose }: { transaction: BudgetTransaction; onClose: () => void }) {
-  const save = useSetTransactionCategory();
   return (
-    <Modal title={t.label} onClose={onClose}>
-      <div className="mb-4 rounded-2xl bg-white p-4 shadow-soft">
-        <p className="text-2xl font-extrabold tabular-nums">{signedEur(t.amountCents, formatEur)}</p>
-        <p className="text-sm font-semibold text-ink-soft">
-          {shortDate(t.date)} · {t.accountName}
-        </p>
-        {t.detail && <p className="mt-1 break-words text-xs font-semibold text-ink-soft">{t.detail}</p>}
+    <div className="space-y-4">
+      <div className="rounded-3xl bg-rose-soft p-4">
+        <BarChart
+          title="Charges des 12 prochains mois"
+          bars={months.map((m) => ({ key: m.key, label: monthLabel(m.key, "short"), tooltip: `${monthLabel(m.key, "long")} : ${formatEur(m.cents)}`, value: m.cents }))}
+          formatTick={formatEurRound}
+          formatValue={formatEur}
+          selectedKey={selected}
+          onSelect={setSelected}
+        />
       </div>
-      <p className="mb-3 text-sm font-semibold text-ink-soft">
-        La catégorie choisie sera retenue pour les prochaines opérations au même libellé.
-      </p>
-      {save.error && <p className="mb-3 text-sm font-semibold text-rose-deep">{save.error.message}</p>}
-      <CategoryPicker
-        value={t.category}
-        disabled={save.isPending}
-        onPick={(id) => save.mutate({ id: t.id, category: id }, { onSuccess: onClose })}
-      />
-    </Modal>
+      <div className="rounded-3xl bg-rose-soft p-3">
+        <p className="mb-2 px-1 font-extrabold">
+          {monthLabel(current.key, "long")} · {formatEur(current.cents)}
+        </p>
+        <ul className="space-y-1.5">
+          {due.map((i) => (
+            <li key={i.id} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-2.5 shadow-soft">
+              <span className="w-8 text-center text-sm font-extrabold text-ink-soft">{i.dueDay}</span>
+              <span className="min-w-0 flex-1 truncate font-bold">
+                {category(i.category).icon} {i.label}
+              </span>
+              <span className="font-extrabold">{formatEur(i.amountCents)}</span>
+            </li>
+          ))}
+          {due.length === 0 && <li className="p-3 text-center font-semibold text-ink-soft">Rien à payer ce mois-ci</li>}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function ItemForm({ item, defaultPeriod, onDone }: { item?: BudgetItem; defaultPeriod: BudgetPeriod; onDone: () => void }) {
+  const qc = useQueryClient();
+  const [kind, setKind] = useState<BudgetKind>(item?.kind ?? "EXPENSE");
+  const [period, setPeriod] = useState<BudgetPeriod>(item?.period ?? defaultPeriod);
+  const [label, setLabel] = useState(item?.label ?? "");
+  const [amount, setAmount] = useState(item ? centsToInput(item.amountCents) : "");
+  const [cat, setCat] = useState(item?.category ?? "LOGEMENT");
+  const [dueDay, setDueDay] = useState(String(item?.dueDay ?? 1));
+  const [dueMonth, setDueMonth] = useState(item?.dueMonth ?? 1);
+  const [active, setActive] = useState(item?.active ?? true);
+  const [note, setNote] = useState(item?.note ?? "");
+  const [isPrivate, setIsPrivate] = useState(item?.private ?? true);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const cents = parseEur(amount);
+
+  const changeKind = (k: BudgetKind) => {
+    setKind(k);
+    setCat(categoriesOf(k)[0][0]);
+  };
+
+  const done = () => {
+    qc.invalidateQueries({ queryKey: ["budget"] });
+    onDone();
+  };
+
+  const save = useMutation({
+    mutationFn: () => {
+      const body: BudgetItemInput = {
+        label,
+        kind,
+        period,
+        amountCents: cents ?? 0,
+        category: cat,
+        dueDay: Math.min(31, Math.max(1, Number(dueDay) || 1)),
+        dueMonth: period === "YEARLY" ? dueMonth : null,
+        active,
+        note: note.trim() || null,
+        private: isPrivate,
+      };
+      return api<BudgetItem>(item ? `/budget/${item.id}` : "/budget", { method: item ? "PATCH" : "POST", json: body });
+    },
+    onSuccess: done,
+  });
+
+  const remove = useMutation({
+    mutationFn: () => api(`/budget/${item!.id}`, { method: "DELETE" }),
+    onSuccess: done,
+  });
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    if (cents) save.mutate();
+  };
+
+  const pill = (on: boolean) => `rounded-full px-3 py-1.5 text-sm font-bold shadow-soft transition active:scale-95 ${on ? "bg-rose" : "bg-white text-ink-soft"}`;
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <div className="flex gap-1.5">
+        <button type="button" className={`flex-1 ${pill(kind === "EXPENSE")}`} onClick={() => changeKind("EXPENSE")}>
+          Charge
+        </button>
+        <button type="button" className={`flex-1 ${pill(kind === "INCOME")}`} onClick={() => changeKind("INCOME")}>
+          Revenu
+        </button>
+      </div>
+      <div className="flex gap-1.5">
+        <button type="button" className={`flex-1 ${pill(period === "MONTHLY")}`} onClick={() => setPeriod("MONTHLY")}>
+          Chaque mois
+        </button>
+        <button type="button" className={`flex-1 ${pill(period === "YEARLY")}`} onClick={() => setPeriod("YEARLY")}>
+          Chaque année
+        </button>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="budget-label">Nom</label>
+        <input id="budget-label" className="input focus:border-rose" placeholder={kind === "INCOME" ? "Salaire, allocations…" : "Loyer, assurance auto, Netflix…"} value={label} onChange={(e) => setLabel(e.target.value)} required />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label" htmlFor="budget-amount">Montant (€)</label>
+          <input id="budget-amount" className="input focus:border-rose" inputMode="decimal" placeholder="0,00" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+        </div>
+        <div>
+          <label className="label" htmlFor="budget-day">Jour du mois</label>
+          <input id="budget-day" className="input focus:border-rose" inputMode="numeric" value={dueDay} onChange={(e) => setDueDay(e.target.value.replace(/\D/g, "").slice(0, 2))} required />
+        </div>
+      </div>
+      {amount && cents === null && <p className="text-sm font-bold text-rose-deep">Montant invalide</p>}
+
+      {period === "YEARLY" && (
+        <div>
+          <label className="label" htmlFor="budget-month">Mois</label>
+          <select id="budget-month" className="input focus:border-rose" value={dueMonth} onChange={(e) => setDueMonth(Number(e.target.value))}>
+            {MONTHS.map((m, i) => (
+              <option key={m} value={i + 1}>{m}</option>
+            ))}
+          </select>
+          {cents ? <p className="mt-1 text-xs font-semibold text-ink-soft">soit {formatEur(Math.round(cents / 12))} à mettre de côté chaque mois</p> : null}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-1.5">
+        {categoriesOf(kind).map(([id, c]) => (
+          <button key={id} type="button" className={pill(cat === id)} onClick={() => setCat(id)}>
+            {c.icon} {c.label}
+          </button>
+        ))}
+      </div>
+
+      <div>
+        <label className="label" htmlFor="budget-note">Note (facultatif)</label>
+        <textarea id="budget-note" className="input focus:border-rose" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
+      </div>
+
+      <label className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 font-bold shadow-soft">
+        <input type="checkbox" className="h-5 w-5 accent-rose-deep" checked={active} onChange={(e) => setActive(e.target.checked)} />
+        <span>
+          Actif
+          <span className="block text-xs font-semibold text-ink-soft">Décoche pour suspendre sans supprimer</span>
+        </span>
+      </label>
+      <label className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 font-bold shadow-soft">
+        <input type="checkbox" className="h-5 w-5 accent-rose-deep" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+        <span>
+          🔒 Rien que pour moi
+          <span className="block text-xs font-semibold text-ink-soft">Décoche pour la partager avec le foyer</span>
+        </span>
+      </label>
+
+      {save.error && <p className="text-sm font-bold text-rose-deep">{save.error.message}</p>}
+      <button className="btn-primary w-full" disabled={save.isPending || !cents}>
+        {item ? "Enregistrer" : "Ajouter"}
+      </button>
+
+      {item && (
+        <div className="text-center">
+          {confirmDelete ? (
+            <div className="flex justify-center gap-2">
+              <button type="button" className="btn-ghost" onClick={() => setConfirmDelete(false)}>
+                Annuler
+              </button>
+              <button type="button" className="btn bg-rose-deep text-white" onClick={() => remove.mutate()} disabled={remove.isPending}>
+                Supprimer
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="text-sm font-bold text-ink-soft" onClick={() => setConfirmDelete(true)}>
+              Supprimer la ligne
+            </button>
+          )}
+        </div>
+      )}
+    </form>
   );
 }

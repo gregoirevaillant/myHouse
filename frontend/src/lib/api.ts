@@ -107,58 +107,19 @@ export type JournalSummary = { id: string; title: string; entryCount: number; la
 export type JournalEntry = { date: string; text: string };
 export type Journal = { id: string; title: string; entries: JournalEntry[] };
 
-export type BudgetTransaction = {
-  id: string;
-  date: string;
-  amountCents: number;
-  label: string;
-  detail: string | null;
-  merchantKey: string;
-  category: string;
-  byUser: boolean;
-  recurringId: string | null;
-  accountName: string;
-};
-export type BudgetRecurringDue = {
+export type BudgetKind = "EXPENSE" | "INCOME";
+export type BudgetPeriod = "MONTHLY" | "YEARLY";
+export type BudgetItem = {
   id: string;
   label: string;
-  category: string;
-  period: RecurringPeriod;
+  kind: BudgetKind;
+  period: BudgetPeriod;
   amountCents: number;
-  paidCents: number;
-  upcoming: string[];
-};
-export type BudgetMonth = {
-  month: string;
-  totals: { income: number; outflow: number; invested: number };
-  byCategory: Record<string, number>;
-  transactions: BudgetTransaction[];
-  recurring: BudgetRecurringDue[];
-  householdShareCents: number;
-  bank: { enabled: boolean; connected: boolean; consentUntil: string | null; lastSyncAt: string | null };
-};
-export type BudgetTrend = { month: string; income: number; outflow: number; invested: number }[];
-
-export type RecurringPeriod = "WEEKLY" | "MONTHLY" | "QUARTERLY" | "YEARLY";
-export type RecurringItem = {
-  id: string;
-  label: string;
   category: string;
-  period: RecurringPeriod;
-  amountCents: number;
-  monthlyCents: number;
-  lastDate: string;
-  nextDate: string;
-  status: "ACTIVE" | "ENDED" | "DISMISSED";
+  dueDay: number;
+  dueMonth: number | null;
+  active: boolean;
+  note: string | null;
+  private: boolean;
 };
-
-export type BankAccount = {
-  id: string;
-  name: string;
-  iban: string | null;
-  isSavings: boolean;
-  currency: string;
-  balanceCents: number | null;
-  lastSyncAt: string | null;
-};
-export type BankConnection = { id: string; aspspName: string; validUntil: string; accounts: BankAccount[] };
+export type BudgetItemInput = Omit<BudgetItem, "id">;

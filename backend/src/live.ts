@@ -19,9 +19,6 @@ export function isLive(userId: string) {
   return false;
 }
 
-// tout le budget peut bouger après une synchro (cf. useInvalidateBudget côté front)
-export const budgetKeys = [["budget"], ["budget-trend"], ["recurring"], ["bank-connections"]];
-
 // clés à rafraîchir selon la route modifiée ; private = seulement les autres appareils de la même personne
 const INVALIDATIONS: { prefix: string; keys: string[][]; private?: boolean }[] = [
   { prefix: "/api/shopping", keys: [["shopping"]] },
@@ -34,8 +31,7 @@ const INVALIDATIONS: { prefix: string; keys: string[][]; private?: boolean }[] =
   { prefix: "/api/infos", keys: [["infos"]] },
   { prefix: "/api/recipes", keys: [["recipes"]] },
   { prefix: "/api/journals", keys: [["journals"], ["journal"]], private: true },
-  { prefix: "/api/budget", keys: budgetKeys, private: true },
-  { prefix: "/api/bank", keys: budgetKeys, private: true },
+  { prefix: "/api/budget", keys: [["budget"]], private: true },
   { prefix: "/api/auth/preferences", keys: [["me"]], private: true },
 ];
 

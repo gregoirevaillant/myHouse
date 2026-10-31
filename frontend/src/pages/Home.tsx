@@ -2,8 +2,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type JournalSummary, type Meal } from "../lib/api";
-import { consentWarning, useBudgetMonth } from "../lib/budget";
-import { mondayOf, monthKey, shortDate, toIso } from "../lib/dates";
+import { budgetSummary, useBudgetItems } from "../lib/budget";
+import { mondayOf, shortDate, toIso } from "../lib/dates";
 import { computeDebt, useExpenses } from "../lib/expenses";
 import { useMembers } from "../lib/members";
 import { formatEur } from "../lib/money";
@@ -36,20 +36,17 @@ export function Home() {
   const { data: infos = [] } = useQuery({ ...infosQuery, enabled: visible.has("/infos") });
   const { data: recipes = [] } = useRecipes(visible.has("/recettes"));
 
-  const { data: budget } = useBudgetMonth(monthKey(today), visible.has("/budget"));
+  const { data: budgetItems = [] } = useBudgetItems(visible.has("/budget"));
 
   const toBuy = items.filter((i) => !i.checked);
   const meal = (slot: Meal["slot"]) => meals.find((m) => m.date === today && m.slot === slot)?.text;
   const debt = computeDebt(expenses, members);
   const wroteToday = journals.some((j) => j.lastDate === today);
-  const budgetLeft = budget && budget.totals.income - budget.totals.outflow - budget.totals.invested;
+  const budget = budgetSummary(budgetItems, today);
   const tested = restaurants.filter((r) => !r.wishlist);
   const lastVisited = tested.filter((r) => r.visits[0]).sort((a, b) => b.visits[0].localeCompare(a.visits[0]))[0];
   // idée du jour : change chaque jour, la même pour les deux
   const idea = recipes.length ? recipes[Math.floor(Date.parse(today) / 86_400_000) % recipes.length] : undefined;
-  const nextDue = budget?.recurring
-    .filter((r) => r.upcoming.length && r.amountCents < 0)
-    .sort((a, b) => a.upcoming[0].localeCompare(b.upcoming[0]))[0];
 
   // l'ordre des tuiles compose la grille ; grid-flow-dense comble les trous quand une page est masquée
   const tiles: { to: string; node: ReactNode }[] = [
@@ -202,20 +199,16 @@ export function Home() {
       node: (
         <Tile to="/budget" icon="📊" className="bg-rose">
           <Label>Budget</Label>
-          {!budget?.bank.connected ? (
-            <p className="mt-2 text-lg font-extrabold leading-tight">Connecte ta banque</p>
+          {budgetItems.length === 0 ? (
+            <p className="mt-2 text-lg font-extrabold leading-tight">Ajoute tes charges</p>
           ) : (
             <>
-              <p className="mt-1 text-2xl font-extrabold">{formatEur(budgetLeft ?? 0)}</p>
-              <p className="text-sm font-bold text-ink/60">reste ce mois</p>
-              {consentWarning(budget.bank.consentUntil) ? (
-                <p className="mt-2 text-xs font-bold">⚠️ Accès banque à renouveler</p>
-              ) : (
-                nextDue && (
-                  <p className="mt-2 truncate text-xs font-bold text-ink/60">
-                    {shortDate(nextDue.upcoming[0])} · {nextDue.label} {formatEur(-nextDue.amountCents)}
-                  </p>
-                )
+              <p className="mt-1 text-2xl font-extrabold">{formatEur(budget.leftCents)}</p>
+              <p className="text-sm font-bold text-ink/60">reste par mois</p>
+              {budget.next && (
+                <p className="mt-2 truncate text-xs font-bold text-ink/60">
+                  {shortDate(budget.next.date)} · {budget.next.item.label} {formatEur(budget.next.item.amountCents)}
+                </p>
               )}
             </>
           )}
