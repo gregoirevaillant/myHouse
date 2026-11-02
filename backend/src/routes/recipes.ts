@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { importRecipe } from "../recipeImport.js";
 import { readMultipart, removeImage, saveImage, sendImage } from "../uploads.js";
 
 const publicRecipe = <T extends { imagePath: string | null }>({ imagePath, ...r }: T) => ({ ...r, hasImage: !!imagePath });
@@ -59,6 +60,12 @@ export async function recipeRoutes(app: FastifyInstance) {
     const recipe = await find(req.params.id, req.user.householdId);
     if (!recipe?.imagePath) return reply.code(404).send({ error: "Introuvable" });
     return sendImage(reply, recipe.imagePath);
+  });
+
+  // lit une page de recette (JSON-LD schema.org) et renvoie les champs pré-remplis, sans rien enregistrer
+  app.post("/import", async (req) => {
+    const { url } = z.object({ url: z.string().trim().min(1).max(1000) }).parse(req.body);
+    return importRecipe(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   });
 
   app.post("/", async (req) => {

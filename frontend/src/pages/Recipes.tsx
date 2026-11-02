@@ -1,8 +1,9 @@
-import { useState, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { Modal } from "../components/Modal";
-import { RecipeForm } from "../components/RecipeForm";
-import type { RecipeCategory } from "../lib/api";
+import { RecipeForm, type RecipeDraft } from "../components/RecipeForm";
+import { api, type RecipeCategory } from "../lib/api";
 import { normalize } from "../lib/products";
 import { RECIPE_CATEGORIES, recipeCategory, recipeImage, recipeMeta, useRecipes } from "../lib/recipes";
 
@@ -85,7 +86,7 @@ export function Recipes() {
 
       {adding && (
         <Modal title="Nouvelle recette" onClose={() => setAdding(false)}>
-          <RecipeForm onDone={(r) => navigate(`/recettes/${r.id}`)} />
+          <AddRecipe onDone={(id) => navigate(`/recettes/${id}`)} />
         </Modal>
       )}
     </section>
@@ -100,5 +101,57 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     >
       {children}
     </button>
+  );
+}
+
+type Imported = Omit<RecipeDraft, "image"> & { image: string | null };
+
+// saisie d'un lien (import) ou d'une recette à la main ; l'import pré-remplit le formulaire à relire
+function AddRecipe({ onDone }: { onDone: (id: string) => void }) {
+  const [link, setLink] = useState("");
+  const [draft, setDraft] = useState<RecipeDraft | null>(null);
+  const [manual, setManual] = useState(false);
+
+  const load = useMutation({
+    mutationFn: async () => {
+      const r = await api<Imported>("/recipes/import", { method: "POST", json: { url: link } });
+      const { image, ...rest } = r;
+      const file = image ? new File([await (await fetch(image)).blob()], "recette", { type: image.slice(5, image.indexOf(";")) }) : null;
+      return { ...rest, image: file } satisfies RecipeDraft;
+    },
+    onSuccess: setDraft,
+  });
+
+  if (draft || manual) return <RecipeForm draft={draft ?? undefined} onDone={(r) => onDone(r.id)} />;
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    load.mutate();
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <div>
+        <label className="label" htmlFor="recipe-import">🔗 Importer depuis un site</label>
+        <input
+          id="recipe-import"
+          type="url"
+          className="input focus:border-rose"
+          placeholder="https://marmiton.org/…"
+          autoCapitalize="off"
+          autoCorrect="off"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+        />
+        <p className="mt-1 text-xs font-semibold text-ink-soft">Titre, ingrédients, étapes et photo sont repris ; vous pourrez tout relire avant d'enregistrer.</p>
+      </div>
+      {load.error && <p className="text-center text-sm font-semibold text-rose-deep">{load.error.message}</p>}
+      <button className="btn w-full bg-rose-deep text-white shadow-soft" disabled={!link.trim() || load.isPending}>
+        {load.isPending ? "Lecture de la page…" : "Importer la recette"}
+      </button>
+      <button type="button" className="btn-ghost w-full" onClick={() => setManual(true)}>
+        ✏️ Saisir à la main
+      </button>
+    </form>
   );
 }

@@ -4,18 +4,31 @@ import { api, type Recipe, type RecipeCategory } from "../lib/api";
 import { compressImage } from "../lib/image";
 import { RECIPE_CATEGORIES, recipeImage } from "../lib/recipes";
 
-export function RecipeForm({ recipe, onDone, onDeleted }: { recipe?: Recipe; onDone: (saved: Recipe) => void; onDeleted?: () => void }) {
+export type RecipeDraft = Omit<Recipe, "id" | "hasImage" | "note"> & { image: File | null };
+
+export function RecipeForm({
+  recipe,
+  draft,
+  onDone,
+  onDeleted,
+}: {
+  recipe?: Recipe;
+  draft?: RecipeDraft; // pré-remplissage (import par lien), pour une nouvelle recette
+  onDone: (saved: Recipe) => void;
+  onDeleted?: () => void;
+}) {
+  const init = recipe ?? draft;
   const qc = useQueryClient();
-  const [name, setName] = useState(recipe?.name ?? "");
-  const [category, setCategory] = useState<RecipeCategory>(recipe?.category ?? "PLAT");
-  const [minutes, setMinutes] = useState(recipe?.minutes?.toString() ?? "");
-  const [servings, setServings] = useState(recipe?.servings?.toString() ?? "");
-  const [ingredients, setIngredients] = useState(recipe?.ingredients ?? "");
-  const [steps, setSteps] = useState(recipe?.steps ?? "");
-  const [url, setUrl] = useState(recipe?.url ?? "");
+  const [name, setName] = useState(init?.name ?? "");
+  const [category, setCategory] = useState<RecipeCategory>(init?.category ?? "PLAT");
+  const [minutes, setMinutes] = useState(init?.minutes?.toString() ?? "");
+  const [servings, setServings] = useState(init?.servings?.toString() ?? "");
+  const [ingredients, setIngredients] = useState(init?.ingredients ?? "");
+  const [steps, setSteps] = useState(init?.steps ?? "");
+  const [url, setUrl] = useState(init?.url ?? "");
   const [note, setNote] = useState(recipe?.note ?? "");
-  const [image, setImage] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [image, setImage] = useState<File | null>(draft?.image ?? null);
+  const [preview, setPreview] = useState<string | null>(() => (draft?.image ? URL.createObjectURL(draft.image) : null));
   const [removeImage, setRemoveImage] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
