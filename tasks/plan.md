@@ -1,59 +1,30 @@
-# Plan : ordre des pages du menu + accueil « bento » amélioré
+# Plan : bouton retour toujours visible, défilement indépendant entre pages
 
 ## Contexte (état actuel)
-- `frontend/src/lib/tabs.ts` : liste fixe `tabs` (10 pages). `useVisibleTabs()` (barre) et `useHomeTabs()` (accueil) la filtrent selon `User.hiddenTabs` / `User.hiddenHome`. **Aucun ordre personnalisable** : barre et accueil suivent l'ordre du tableau.
-- `pages/Home.tsx` (289 lignes) : un tableau `tiles` dans un ordre codé en dur, filtré par `visible`. Les tailles sont codées dans chaque tuile (`Repas` = `col-span-2`, `Courses` = `row-span-2`), grille `grid-cols-2 sm:grid-cols-3`, `grid-flow-dense`.
-- `components/Layout.tsx` : barre du bas, `justify-around`, tous les onglets sur la largeur (10 onglets = libellés à 10 px, tronqués).
-- `pages/Profile.tsx` : `MenuSettings` + `PageList` (cases à cocher barre / accueil).
-- Préférences : `User` (Prisma) → `publicUser` / `PATCH /auth/preferences` (`auth.ts`) → `useUpdatePreferences` (optimiste). Pas de suite de tests : vérification par `tsc`, `lint`, `prisma migrate diff`, puis contrôle à la main sur iPhone.
+- Toute l'app défile avec **la fenêtre** (pas de conteneur à défilement propre) : `Layout.tsx` est un `div` normal, le `<header>` (bouton ◀ Accueil, titre, 🔍, profil) est dans le flux, donc il part avec le défilement.
+- Aucune gestion du défilement lors d'un changement de page : `BrowserRouter` (`main.tsx`) ne remet rien à zéro. Si on défile l'accueil puis qu'on ouvre une page, la nouvelle page s'affiche **à la même position** : le bouton ◀ est déjà hors de l'écran, et la page commence au milieu.
+- Le bouton ◀ renvoie à `/` (Accueil), il n'est affiché que hors de l'accueil (`!isHome`).
+- La barre du bas est déjà `fixed` (`z-40`) ; les modales sont `fixed z-50` et bloquent le défilement du `body`. `CardDetail` est une route à part (hors `Layout`) avec son propre bouton retour.
+- Couleur de fond : `bg-cream` (variable CSS, clair et sombre). Zone sûre iPhone : `env(safe-area-inset-top)` déjà utilisée dans le `padding-top` du conteneur.
 
-## Décisions d'architecture
-1. **Un seul ordre, partagé par la barre et l'accueil** (`User.menuOrder`, CSV de routes comme `hiddenTabs`). Plus simple à régler et à comprendre ; la séparation des *pages affichées* existe déjà. (Question ouverte 1.)
-2. **Réordonner avec des flèches ▲ ▼** dans Réglages, pas de glisser-déposer : sur iPhone le glisser est fragile (conflit avec le défilement) et demanderait une dépendance.
-3. **Pages absentes de l'ordre enregistré** (nouvelle page ajoutée plus tard, session gardée hors ligne sans le champ) : placées à la fin, dans l'ordre par défaut. `menuOrder ?? []` comme pour `hiddenTabs`.
-4. L'ordre est appliqué **à un seul endroit** (`lib/tabs.ts`) ; `Home`, `Layout` et la recherche n'ont rien à savoir de plus. `Home` trie ses tuiles avec la même fonction.
-5. « Améliorer le bento » est vague : je propose trois améliorations concrètes, **optionnelles et ordonnées** (phase 3), à valider avant de les faire.
+## Décisions
+1. **En-tête collant (`sticky top-0`)** plutôt que bouton flottant : le titre, la recherche et le profil restent aussi accessibles, rien à repositionner, aucun nouveau composant. Alternative écartée : ne coller que le bouton ◀ (il recouvrirait le contenu de la page).
+2. **Remise en haut à chaque navigation** par un petit composant `ScrollToTop` placé dans `App.tsx` (couvre aussi `CardDetail`, hors `Layout`). Utilise `useLocation` + `useNavigationType`.
+3. **Retour arrière du navigateur** : on retrouve la position de la page précédente (utile pour revenir sur une longue liste). Gardé comme tâche séparée et facultative : plus fragile que la remise à zéro.
+4. Le `padding-top` (zone sûre) passe du conteneur à l'en-tête collant, sinon le contenu défilerait derrière l'encoche.
 
 ## Graphe de dépendances
 ```
-User.menuOrder (schéma + migration)
-   └── PATCH /auth/preferences + publicUser
-          └── type User + Preferences (frontend)
-                 └── orderTabs() dans lib/tabs.ts ──┬── Layout (barre)
-                        │                           └── Home (tuiles)
-                        └── flèches ▲▼ dans Profile (PageList)
-
-Layout : barre défilante (indépendant)
-Home : extraction des tuiles ──► tailles réglables ──► actions rapides
+T1 en-tête collant (Layout.tsx)        T2 remise en haut (App.tsx + nouveau composant)
+        └─────────── indépendantes, T3 dépend de T2 ───────────┘
+                                                  └── T3 position restaurée au retour (facultatif)
 ```
 
-## Phase 1 : ordre des pages
-- T1 Ordre enregistré et appliqué (backend + `orderTabs`)
-- T2 Flèches ▲ ▼ dans les Réglages
-- Checkpoint 1
-
-## Phase 2 : tout voir dans la barre
-- T3 Barre de menu défilante au-delà de 7 pages
-- Checkpoint 2
-
-## Phase 3 : accueil bento (optionnel, à valider)
-- T4 Sortir les tuiles de `Home.tsx` (refactor, sans changement visible)
-- T5 Taille de tuile réglable (normale / large)
-- T6 Actions rapides sur les tuiles (Courses, Calories)
-- Checkpoint 3
-
-Le détail des tâches (critères, vérifications, fichiers) est dans `tasks/todo.md`.
-
-## Risques et parades
+## Risques
 | Risque | Impact | Parade |
-|---|---|---|
-| iPhone garde l'ancienne version de l'app en cache (déjà vu) | Moyen | Dire de rouvrir l'app deux fois ; `menuOrder ?? []` rend le nouveau code tolérant aux anciennes sessions |
-| Tailles réglables + `grid-flow-dense` laissent des trous dans la grille | Moyen | T5 limité à 2 tailles (1×1 / 2×1) ; contrôle visuel iPhone clair et sombre avant de livrer |
-| Migration SQLite écrite à la main qui diverge du schéma | Moyen | `prisma migrate diff` après `migrate deploy` (fait pour les migrations précédentes) |
-| `Home.tsx` grossit encore (289 lignes) | Faible | T4 avant T5/T6 |
-| Les deux comptes ont des réglages différents (Noémie masque des pages) | Faible | Ordre stocké par personne ; aucun réglage existant modifié |
-
-## Questions ouvertes (valeurs par défaut si pas de réponse)
-1. Un même ordre pour la barre et l'accueil, ou deux ordres séparés ? **Défaut : un seul.**
-2. Que veux-tu dire par « améliorer le bento » ? Mes propositions : tailles réglables (T5), actions rapides (T6), grille plus lisible. **Défaut : faire la phase 1 et 2, puis valider T4–T6 avec toi.**
-3. Flèches ▲ ▼ ou glisser-déposer ? **Défaut : flèches.**
+|--------|--------|--------|
+| Contenu qui passe visiblement sous l'en-tête collant (fond transparent) | Moyen | Fond `bg-cream` opaque, léger dégradé ou ombre non nécessaire |
+| Encoche / barre d'état iPhone : en-tête mal placé en mode PWA | Moyen | Zone sûre dans le `padding-top` de l'en-tête ; contrôle sur iPhone installé |
+| En-tête collant et modales (`z-50`) ou barre du bas (`z-40`) | Faible | En-tête en `z-30` |
+| `scrollTo` exécuté avant que la page soit rendue (contenu plus court, position qui « saute ») | Faible | `useLayoutEffect` dans `ScrollToTop` |
+| Perte de la position au retour arrière (T3) si le contenu charge après coup | Faible | T3 facultative ; sinon retour en haut, acceptable |

@@ -26,9 +26,9 @@ export function Layout() {
   useLiveUpdates();
   return (
     <div
-      className={`mx-auto min-h-screen max-w-2xl px-4 pt-[calc(1.25rem+env(safe-area-inset-top))] ${showNavBar ? "pb-32" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}
+      className={`mx-auto min-h-screen max-w-2xl px-4 ${showNavBar ? "pb-32" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}
     >
-      <header className="mb-6 flex items-center gap-3">
+      <header className="sticky top-0 z-30 -mx-4 mb-3 flex items-center gap-3 bg-cream px-4 pb-3 pt-[calc(1.25rem+env(safe-area-inset-top))]">
         {!isHome && (
           <Link
             to="/"
