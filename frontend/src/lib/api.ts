@@ -26,6 +26,7 @@ export type User = {
   name: string;
   calorieGoal?: number | null; // absent des sessions gardées hors ligne avant son ajout
   hiddenTabs: string[];
+  hiddenHome?: string[]; // absent des sessions gardées hors ligne avant son ajout
   showNavBar: boolean;
   mutedNotifications: NotificationType[];
 };

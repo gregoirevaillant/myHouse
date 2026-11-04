@@ -13,6 +13,13 @@ export const tabs = [
   { to: "/budget", label: "Budget", icon: "📊", active: "bg-rose" },
 ];
 
+// pages affichées sur l'accueil ; ?? hiddenTabs : une session gardée hors ligne avant ce réglage masquait les mêmes pages que la barre
+export function useHomeTabs() {
+  const { data: me } = useMe();
+  const hidden = me?.hiddenHome ?? me?.hiddenTabs ?? [];
+  return tabs.filter((t) => !hidden.includes(t.to));
+}
+
 // onglets affichés dans la barre de menu, selon les préférences de la personne connectée
 export function useVisibleTabs() {
   const { data: me } = useMe();

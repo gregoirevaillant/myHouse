@@ -77,11 +77,9 @@ export function RecipeDetail() {
         <button className={ACTION} onClick={() => setPlanning((p) => !p)}>
           <span className="text-lg">📅</span> Prévoir
         </button>
-        {recipe.calories && (
-          <button className={ACTION} onClick={() => setLogging((l) => !l)}>
-            <span className="text-lg">🔥</span> Calories
-          </button>
-        )}
+        <button className={ACTION} onClick={() => setLogging((l) => !l)}>
+          <span className="text-lg">🔥</span> Calories
+        </button>
         {"wakeLock" in navigator && (
           <button className={`${ACTION} ${awake ? "!bg-lemon" : ""}`} onClick={() => setAwake((a) => !a)} aria-pressed={awake}>
             <span className="text-lg">🔆</span> {awake ? "Écran allumé" : "Garder allumé"}
@@ -99,7 +97,7 @@ export function RecipeDetail() {
 
       {planning && <PlanMeal title={recipe.name} text={`${cat.emoji} ${recipe.name}`} onDone={() => setPlanning(false)} />}
 
-      {logging && recipe.calories && <RecipeToCalories recipe={recipe} onDone={() => setLogging(false)} />}
+      {logging && <RecipeToCalories recipe={recipe} onDone={() => setLogging(false)} />}
 
       {ingredients.length > 0 && (
         <div className="rounded-3xl bg-rose-soft p-4">

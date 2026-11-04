@@ -8,7 +8,7 @@ import { cardsQuery, infosQuery, shoppingQuery } from "../lib/offline";
 import { normalize, useProducts } from "../lib/products";
 import { recipeCategory, useRecipes } from "../lib/recipes";
 import { cuisineInfo, districtLabel, useRestaurants } from "../lib/restaurants";
-import { useVisibleTabs } from "../lib/tabs";
+import { useHomeTabs, useVisibleTabs } from "../lib/tabs";
 
 type Result = { key: string; icon: string; title: string; subtitle?: string; to: string; state?: unknown };
 type Section = { label: string; results: Result[] };
@@ -18,7 +18,7 @@ const MAX_PER_SECTION = 5;
 // Recherche dans toute l'app : courses, produits, cartes, recettes, restos, infos, dépenses (pages visibles seulement)
 export function GlobalSearch({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
-  const visible = new Set(useVisibleTabs().map((t) => t.to));
+  const visible = new Set([...useVisibleTabs(), ...useHomeTabs()].map((t) => t.to));
   const [query, setQuery] = useState("");
 
   const { data: items = [] } = useQuery({ ...shoppingQuery, enabled: visible.has("/courses") });

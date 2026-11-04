@@ -11,7 +11,9 @@ export function RecipeToCalories({ recipe, onDone }: { recipe: Recipe; onDone: (
   const [meal, setMeal] = useState<CalorieMeal>(mealNow());
   const [portions, setPortions] = useState("1");
   const count = Number(portions.replace(",", "."));
-  const total = Math.round((recipe.calories ?? 0) * count);
+  // recette sans calories connues : on les saisit ici (pour ce repas seulement)
+  const [perPortion, setPerPortion] = useState(recipe.calories?.toString() ?? "");
+  const total = Math.round(Number(perPortion) * count);
   const valid = count > 0 && count <= 20 && total >= 1;
 
   const add = useMutation({
@@ -45,6 +47,12 @@ export function RecipeToCalories({ recipe, onDone }: { recipe: Recipe; onDone: (
     <div className="space-y-3 rounded-3xl bg-peach-soft p-4">
       <p className="font-extrabold">🔥 Ajouter à mon suivi</p>
       <MealPicker value={meal} onChange={setMeal} />
+      {!recipe.calories && (
+        <div>
+          <label className="label" htmlFor="per-portion">Calories par portion (kcal)</label>
+          <input id="per-portion" className="input focus:border-peach" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={perPortion} onChange={(e) => setPerPortion(e.target.value.replace(/\D/g, ""))} />
+        </div>
+      )}
       <div className="flex items-end gap-3">
         <div className="flex-1">
           <label className="label" htmlFor="portions">Portions mangées</label>

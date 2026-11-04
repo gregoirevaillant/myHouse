@@ -125,20 +125,19 @@ export function Calories() {
 function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: CalorieEntry; meal?: CalorieMeal; date: string; onDone: () => void }) {
   const qc = useQueryClient();
   const { data: recipes = [] } = useRecipes();
-  const withCalories = recipes.filter((r) => r.calories);
   const [meal, setMeal] = useState<CalorieMeal>(entry?.meal ?? initialMeal ?? mealNow());
   const [label, setLabel] = useState(entry?.label ?? "");
   const [kcal, setKcal] = useState(entry?.kcal.toString() ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  // produit scanné : kcal pour 100 g, la quantité mangée recalcule le total
+  // produit scanné (kcal / 100 g) ou recette (kcal / portion) : la quantité mangée recalcule le total
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState("");
-  const [per100, setPer100] = useState<number | null>(null);
-  const [grams, setGrams] = useState("100");
+  const [base, setBase] = useState<{ kcal: number; unit: "g" | "portion" } | null>(null);
+  const [qty, setQty] = useState("100");
   const value = Number(kcal);
-  const onGrams = (g: string) => {
-    setGrams(g);
-    if (per100 !== null) setKcal(String(Math.round((per100 * Number(g)) / 100)));
+  const onQty = (q: string, b = base) => {
+    setQty(q);
+    if (b) setKcal(String(Math.round((b.kcal * Number(q.replace(",", "."))) / (b.unit === "g" ? 100 : 1))));
   };
   const onCode = useCallback((code: string) => {
     setScanning(false);
@@ -146,8 +145,8 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
     api<{ name: string; kcalPer100g: number }>(`/calories/product/${code}`)
       .then((p) => {
         setLabel(p.name);
-        setPer100(p.kcalPer100g);
-        setGrams("100");
+        setBase({ kcal: p.kcalPer100g, unit: "g" });
+        setQty("100");
         setKcal(String(p.kcalPer100g));
       })
       .catch((e: Error) => setScanError(e.message));
@@ -185,7 +184,7 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
         ))}
       {scanError && <p className="text-sm font-bold text-rose-deep">{scanError}</p>}
 
-      {!entry && withCalories.length > 0 && (
+      {!entry && recipes.length > 0 && (
         <div>
           <label className="label" htmlFor="cal-recipe">Depuis une recette</label>
           <select
@@ -194,16 +193,22 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
             value=""
             onChange={(e) => {
               const r = recipes.find((x) => x.id === e.target.value);
-              if (r?.calories) {
-                setLabel(r.name);
-                setKcal(String(r.calories));
+              if (!r) return;
+              setLabel(r.name);
+              if (r.calories) {
+                const b = { kcal: r.calories, unit: "portion" as const };
+                setBase(b);
+                onQty("1", b);
+              } else {
+                setBase(null);
+                setKcal("");
               }
             }}
           >
-            <option value="">Choisir… (par portion)</option>
-            {withCalories.map((r) => (
+            <option value="">Choisir une recette…</option>
+            {recipes.map((r) => (
               <option key={r.id} value={r.id}>
-                {r.name} · {r.calories} kcal
+                {r.name}{r.calories ? ` · ${r.calories} kcal / portion` : ""}
               </option>
             ))}
           </select>
@@ -214,10 +219,12 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
         <label className="label" htmlFor="cal-label">Quoi ?</label>
         <input id="cal-label" className="input focus:border-peach" placeholder="Pâtes bolo, yaourt, pomme…" value={label} onChange={(e) => setLabel(e.target.value)} required />
       </div>
-      {per100 !== null && (
+      {base && (
         <div>
-          <label className="label" htmlFor="cal-grams">Quantité mangée (g) · {per100} kcal / 100 g</label>
-          <input id="cal-grams" className="input focus:border-peach" inputMode="numeric" pattern="[0-9]*" value={grams} onChange={(e) => onGrams(e.target.value.replace(/\D/g, ""))} />
+          <label className="label" htmlFor="cal-qty">
+            {base.unit === "g" ? `Quantité mangée (g) · ${base.kcal} kcal / 100 g` : `Portions mangées · ${base.kcal} kcal / portion`}
+          </label>
+          <input id="cal-qty" className="input focus:border-peach" inputMode="decimal" value={qty} onChange={(e) => onQty(e.target.value)} />
         </div>
       )}
       <div>

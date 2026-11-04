@@ -15,7 +15,7 @@ export function mealNow(): CalorieMeal {
 }
 
 // entrées d'une plage de jours (YYYY-MM-DD, bornes incluses)
-export const useCalorieEntries = (from: string, to: string) =>
-  useQuery({ queryKey: ["calories", from, to], queryFn: () => api<CalorieEntry[]>(`/calories?from=${from}&to=${to}`) });
+export const useCalorieEntries = (from: string, to: string, enabled = true) =>
+  useQuery({ queryKey: ["calories", from, to], queryFn: () => api<CalorieEntry[]>(`/calories?from=${from}&to=${to}`), enabled });
 
 export const totalKcal = (entries: CalorieEntry[]) => entries.reduce((sum, e) => sum + e.kcal, 0);

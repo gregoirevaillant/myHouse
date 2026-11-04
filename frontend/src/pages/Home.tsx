@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, type JournalSummary, type Meal } from "../lib/api";
 import { budgetSummary, useBudgetItems } from "../lib/budget";
+import { totalKcal, useCalorieEntries } from "../lib/calories";
+import { useMe } from "../lib/auth";
 import { mondayOf, shortDate, toIso } from "../lib/dates";
 import { computeDebt, useExpenses } from "../lib/expenses";
 import { useMembers } from "../lib/members";
@@ -10,10 +12,10 @@ import { formatEur } from "../lib/money";
 import { cardsQuery, infosQuery, shoppingQuery } from "../lib/offline";
 import { recipeCategory, useRecipes } from "../lib/recipes";
 import { cuisineInfo, useRestaurants } from "../lib/restaurants";
-import { useVisibleTabs } from "../lib/tabs";
+import { useHomeTabs } from "../lib/tabs";
 
 export function Home() {
-  const visible = new Set(useVisibleTabs().map((t) => t.to));
+  const visible = new Set(useHomeTabs().map((t) => t.to));
   const today = toIso(new Date());
   const week = mondayOf(new Date());
 
@@ -37,6 +39,9 @@ export function Home() {
   const { data: recipes = [] } = useRecipes(visible.has("/recettes"));
 
   const { data: budgetItems = [] } = useBudgetItems(visible.has("/budget"));
+
+  const { data: me } = useMe();
+  const { data: todayKcal = [] } = useCalorieEntries(today, today, visible.has("/calories"));
 
   const toBuy = items.filter((i) => !i.checked);
   const meal = (slot: Meal["slot"]) => meals.find((m) => m.date === today && m.slot === slot)?.text;
@@ -190,6 +195,20 @@ export function Home() {
           )}
           <p className="mt-2 text-sm font-bold text-ink/60">
             {infos.length} info{infos.length > 1 ? "s" : ""}
+          </p>
+        </Tile>
+      ),
+    },
+    {
+      to: "/calories",
+      node: (
+        <Tile to="/calories" icon="🔥" className="bg-peach">
+          <Label>Calories</Label>
+          <p className="mt-1 text-2xl font-extrabold">
+            {totalKcal(todayKcal)} <span className="text-sm font-bold text-ink/60">kcal</span>
+          </p>
+          <p className="text-sm font-bold text-ink/60">
+            {me?.calorieGoal ? `sur ${me.calorieGoal} aujourd'hui` : "aujourd'hui"}
           </p>
         </Tile>
       ),

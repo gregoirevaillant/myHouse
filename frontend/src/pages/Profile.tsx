@@ -72,11 +72,7 @@ export function Profile() {
 function MenuSettings() {
   const { data: me } = useMe();
   const save = useUpdatePreferences();
-  const hidden = me?.hiddenTabs ?? [];
   const showNavBar = me?.showNavBar ?? true;
-
-  const toggle = (to: string) =>
-    save.mutate({ hiddenTabs: hidden.includes(to) ? hidden.filter((t) => t !== to) : [...hidden, to] });
 
   return (
     <div className="space-y-3 rounded-3xl bg-white p-6 shadow-soft">
@@ -99,12 +95,24 @@ function MenuSettings() {
         />
       </label>
 
-      <p className="pt-2 text-sm font-bold text-ink-soft">Pages affichées (accueil et barre de menu)</p>
+      {showNavBar && (
+        <PageList title="Pages de la barre de menu" hidden={me?.hiddenTabs ?? []} onChange={(hiddenTabs) => save.mutate({ hiddenTabs })} requireOne />
+      )}
+      <PageList title="Pages de l'accueil" hidden={me?.hiddenHome ?? me?.hiddenTabs ?? []} onChange={(hiddenHome) => save.mutate({ hiddenHome })} />
+      {save.error && <p className="text-sm font-semibold text-rose-deep">{save.error.message}</p>}
+    </div>
+  );
+}
+
+// liste de pages à cocher ; requireOne : au moins une page doit rester visible
+function PageList({ title, hidden, onChange, requireOne }: { title: string; hidden: string[]; onChange: (hidden: string[]) => void; requireOne?: boolean }) {
+  return (
+    <>
+      <p className="pt-2 text-sm font-bold text-ink-soft">{title}</p>
       <div className="space-y-2">
         {tabs.map((t) => {
           const shown = !hidden.includes(t.to);
-          // au moins une page doit rester visible
-          const last = shown && tabs.every((o) => o.to === t.to || hidden.includes(o.to));
+          const last = requireOne && shown && tabs.every((o) => o.to === t.to || hidden.includes(o.to));
           return (
             <label key={t.to} className={`flex items-center gap-3 rounded-2xl px-3 py-2 font-bold ${shown ? t.active : "bg-cream text-ink-soft"}`}>
               <input
@@ -112,7 +120,7 @@ function MenuSettings() {
                 className="h-5 w-5 accent-lavender-deep"
                 checked={shown}
                 disabled={last}
-                onChange={() => toggle(t.to)}
+                onChange={() => onChange(shown ? [...hidden, t.to] : hidden.filter((h) => h !== t.to))}
               />
               <span className="text-xl">{t.icon}</span>
               {t.label}
@@ -120,8 +128,7 @@ function MenuSettings() {
           );
         })}
       </div>
-      {save.error && <p className="text-sm font-semibold text-rose-deep">{save.error.message}</p>}
-    </div>
+    </>
   );
 }
 
