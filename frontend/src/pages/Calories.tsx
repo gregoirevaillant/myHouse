@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { BarcodeScanner } from "../components/BarcodeScanner";
 import { MealPicker } from "../components/MealPicker";
 import { Modal } from "../components/Modal";
 import { api, type CalorieEntry, type CalorieEntryInput, type CalorieMeal } from "../lib/api";
@@ -129,7 +130,28 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
   const [label, setLabel] = useState(entry?.label ?? "");
   const [kcal, setKcal] = useState(entry?.kcal.toString() ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // produit scanné : kcal pour 100 g, la quantité mangée recalcule le total
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState("");
+  const [per100, setPer100] = useState<number | null>(null);
+  const [grams, setGrams] = useState("100");
   const value = Number(kcal);
+  const onGrams = (g: string) => {
+    setGrams(g);
+    if (per100 !== null) setKcal(String(Math.round((per100 * Number(g)) / 100)));
+  };
+  const onCode = useCallback((code: string) => {
+    setScanning(false);
+    setScanError("");
+    api<{ name: string; kcalPer100g: number }>(`/calories/product/${code}`)
+      .then((p) => {
+        setLabel(p.name);
+        setPer100(p.kcalPer100g);
+        setGrams("100");
+        setKcal(String(p.kcalPer100g));
+      })
+      .catch((e: Error) => setScanError(e.message));
+  }, []);
   const done = () => {
     qc.invalidateQueries({ queryKey: ["calories"] });
     onDone();
@@ -152,6 +174,16 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
   return (
     <form onSubmit={submit} className="space-y-4">
       <MealPicker value={meal} onChange={setMeal} />
+
+      {!entry &&
+        (scanning ? (
+          <BarcodeScanner onCode={onCode} onClose={() => setScanning(false)} />
+        ) : (
+          <button type="button" className="btn-ghost w-full" onClick={() => setScanning(true)}>
+            📷 Scanner un produit
+          </button>
+        ))}
+      {scanError && <p className="text-sm font-bold text-rose-deep">{scanError}</p>}
 
       {!entry && withCalories.length > 0 && (
         <div>
@@ -182,6 +214,12 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
         <label className="label" htmlFor="cal-label">Quoi ?</label>
         <input id="cal-label" className="input focus:border-peach" placeholder="Pâtes bolo, yaourt, pomme…" value={label} onChange={(e) => setLabel(e.target.value)} required />
       </div>
+      {per100 !== null && (
+        <div>
+          <label className="label" htmlFor="cal-grams">Quantité mangée (g) · {per100} kcal / 100 g</label>
+          <input id="cal-grams" className="input focus:border-peach" inputMode="numeric" pattern="[0-9]*" value={grams} onChange={(e) => onGrams(e.target.value.replace(/\D/g, ""))} />
+        </div>
+      )}
       <div>
         <label className="label" htmlFor="cal-kcal">Calories (kcal)</label>
         <input id="cal-kcal" className="input focus:border-peach" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={kcal} onChange={(e) => setKcal(e.target.value.replace(/\D/g, ""))} required />
