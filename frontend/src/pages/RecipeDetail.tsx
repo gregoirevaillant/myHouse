@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Modal } from "../components/Modal";
 import { PlanMeal } from "../components/PlanMeal";
+import { RecipeToCalories } from "../components/RecipeToCalories";
 import { RecipeForm } from "../components/RecipeForm";
 import { api } from "../lib/api";
 import { lines, recipeCategory, recipeImage, recipeMeta, useRecipes } from "../lib/recipes";
@@ -16,6 +17,7 @@ export function RecipeDetail() {
   const recipe = recipes.find((r) => r.id === id);
   const [editing, setEditing] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [logging, setLogging] = useState(false);
   const [awake, setAwake] = useState(false);
   // ingrédients cochés (à acheter) et étapes faites : juste sur cet écran
   const [picked, setPicked] = useState<Set<number>>(new Set());
@@ -75,6 +77,11 @@ export function RecipeDetail() {
         <button className={ACTION} onClick={() => setPlanning((p) => !p)}>
           <span className="text-lg">📅</span> Prévoir
         </button>
+        {recipe.calories && (
+          <button className={ACTION} onClick={() => setLogging((l) => !l)}>
+            <span className="text-lg">🔥</span> Calories
+          </button>
+        )}
         {"wakeLock" in navigator && (
           <button className={`${ACTION} ${awake ? "!bg-lemon" : ""}`} onClick={() => setAwake((a) => !a)} aria-pressed={awake}>
             <span className="text-lg">🔆</span> {awake ? "Écran allumé" : "Garder allumé"}
@@ -91,6 +98,8 @@ export function RecipeDetail() {
       </div>
 
       {planning && <PlanMeal title={recipe.name} text={`${cat.emoji} ${recipe.name}`} onDone={() => setPlanning(false)} />}
+
+      {logging && recipe.calories && <RecipeToCalories recipe={recipe} kcal={recipe.calories} onDone={() => setLogging(false)} />}
 
       {ingredients.length > 0 && (
         <div className="rounded-3xl bg-rose-soft p-4">

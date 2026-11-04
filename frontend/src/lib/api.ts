@@ -24,6 +24,7 @@ export type User = {
   id: string;
   email: string;
   name: string;
+  calorieGoal?: number | null; // absent des sessions gardées hors ligne avant son ajout
   hiddenTabs: string[];
   showNavBar: boolean;
   mutedNotifications: NotificationType[];
@@ -95,6 +96,7 @@ export type Recipe = {
   name: string;
   category: RecipeCategory;
   servings: number | null;
+  calories: number | null; // kcal par portion
   minutes: number | null;
   ingredients: string;
   steps: string;
@@ -123,3 +125,7 @@ export type BudgetItem = {
   private: boolean;
 };
 export type BudgetItemInput = Omit<BudgetItem, "id">;
+
+export type CalorieMeal = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+export type CalorieEntry = { id: string; date: string; meal: CalorieMeal; label: string; kcal: number };
+export type CalorieEntryInput = Omit<CalorieEntry, "id">;

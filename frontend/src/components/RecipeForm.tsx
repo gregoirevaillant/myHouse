@@ -23,6 +23,7 @@ export function RecipeForm({
   const [category, setCategory] = useState<RecipeCategory>(init?.category ?? "PLAT");
   const [minutes, setMinutes] = useState(init?.minutes?.toString() ?? "");
   const [servings, setServings] = useState(init?.servings?.toString() ?? "");
+  const [calories, setCalories] = useState(init?.calories?.toString() ?? "");
   const [ingredients, setIngredients] = useState(init?.ingredients ?? "");
   const [steps, setSteps] = useState(init?.steps ?? "");
   const [url, setUrl] = useState(init?.url ?? "");
@@ -35,7 +36,7 @@ export function RecipeForm({
   const save = useMutation({
     mutationFn: async () => {
       const fd = new FormData();
-      Object.entries({ name, category, minutes, servings, ingredients, steps, url, note }).forEach(([k, v]) => fd.set(k, v));
+      Object.entries({ name, category, minutes, servings, calories, ingredients, steps, url, note }).forEach(([k, v]) => fd.set(k, v));
       if (image) fd.set("image", await compressImage(image));
       if (removeImage && !image) fd.set("removeImage", "true");
       return api<Recipe>(recipe ? `/recipes/${recipe.id}` : "/recipes", { method: recipe ? "PATCH" : "POST", body: fd });
@@ -97,6 +98,11 @@ export function RecipeForm({
           <label className="label" htmlFor="recipe-servings">👥 Personnes</label>
           <input id="recipe-servings" className="input focus:border-rose" inputMode="numeric" pattern="[0-9]*" placeholder="4" value={servings} onChange={(e) => setServings(e.target.value.replace(/\D/g, ""))} />
         </div>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="recipe-calories">🔥 Calories par portion (kcal)</label>
+        <input id="recipe-calories" className="input focus:border-rose" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={calories} onChange={(e) => setCalories(e.target.value.replace(/\D/g, ""))} />
       </div>
 
       <div>

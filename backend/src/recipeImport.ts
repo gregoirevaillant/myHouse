@@ -5,6 +5,7 @@ export type ImportedRecipe = {
   name: string;
   category: "PLAT" | "ENTREE" | "DESSERT" | "APERO" | "PETIT_DEJ" | "AUTRE";
   servings: number | null;
+  calories: number | null;
   minutes: number | null;
   ingredients: string;
   steps: string;
@@ -169,12 +170,15 @@ export async function importRecipe(rawUrl: string): Promise<ImportedRecipe> {
 
   const total = duration(recipe.totalTime) || duration(recipe.prepTime) + duration(recipe.cookTime);
   const servings = Number(/\d+/.exec([recipe.recipeYield].flat().map(text).join(" "))?.[0]);
+  // nutrition.calories : « 350 kcal » (par portion)
+  const kcal = Number(/\d+/.exec(text((recipe.nutrition as Json)?.calories))?.[0]);
   const imageUrl = imageUrlOf(recipe);
 
   return {
     name: name.slice(0, 150),
     category: categoryOf(recipe),
     servings: servings >= 1 && servings <= 100 ? servings : null,
+    calories: kcal >= 1 && kcal <= 10000 ? kcal : null,
     minutes: total >= 1 && total <= 10000 ? total : null,
     ingredients: ingredients.join("\n").slice(0, 10000),
     steps: stepsOf(recipe.recipeInstructions).join("\n").slice(0, 20000),

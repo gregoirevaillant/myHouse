@@ -9,6 +9,7 @@ export const tabs = [
   { to: "/depenses", label: "Dépenses", icon: "💶", active: "bg-sky" },
   { to: "/journal", label: "Journal", icon: "📔", active: "bg-lemon" },
   { to: "/infos", label: "Infos", icon: "🔑", active: "bg-lavender" },
+  { to: "/calories", label: "Calories", icon: "🔥", active: "bg-peach" },
   { to: "/budget", label: "Budget", icon: "📊", active: "bg-rose" },
 ];
 

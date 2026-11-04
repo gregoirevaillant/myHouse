@@ -28,6 +28,7 @@ const publicUser = (u: {
   id: string;
   email: string;
   name: string;
+  calorieGoal: number | null;
   hiddenTabs: string;
   showNavBar: boolean;
   mutedNotifications: string;
@@ -35,6 +36,7 @@ const publicUser = (u: {
   id: u.id,
   email: u.email,
   name: u.name,
+  calorieGoal: u.calorieGoal,
   hiddenTabs: u.hiddenTabs ? u.hiddenTabs.split(",") : [],
   showNavBar: u.showNavBar,
   // ignore les types de notification supprimés depuis
@@ -80,6 +82,7 @@ export async function authRoutes(app: FastifyInstance) {
         hiddenTabs: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20),
         showNavBar: z.boolean(),
         mutedNotifications: z.array(z.enum(NOTIFICATION_TYPES)),
+        calorieGoal: z.number().int().min(500).max(10000).nullable(),
       })
       .partial()
       .parse(req.body);
@@ -88,6 +91,7 @@ export async function authRoutes(app: FastifyInstance) {
       data: {
         hiddenTabs: body.hiddenTabs?.join(","),
         showNavBar: body.showNavBar,
+        calorieGoal: body.calorieGoal,
         mutedNotifications: body.mutedNotifications?.join(","),
       },
     });

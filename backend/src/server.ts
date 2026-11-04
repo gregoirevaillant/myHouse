@@ -11,6 +11,7 @@ import { ZodError } from "zod";
 import { COOKIE_NAME, authRoutes, requireAuth } from "./auth.js";
 import { invalidateOnWrite, liveRoutes } from "./live.js";
 import { budgetRoutes } from "./routes/budget.js";
+import { calorieRoutes } from "./routes/calories.js";
 import { cardRoutes } from "./routes/cards.js";
 import { expenseRoutes } from "./routes/expenses.js";
 import { expenseTrackerRoutes } from "./routes/expenseTrackers.js";
@@ -60,6 +61,7 @@ await app.register(
       await priv.register(recipeRoutes, { prefix: "/recipes" });
       await priv.register(userRoutes, { prefix: "/users" });
       await priv.register(budgetRoutes, { prefix: "/budget" });
+      await priv.register(calorieRoutes, { prefix: "/calories" });
       await priv.register(pushRoutes, { prefix: "/push" });
       await priv.register(liveRoutes, { prefix: "/events" });
     });

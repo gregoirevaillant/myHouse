@@ -33,4 +33,4 @@ export function formatMinutes(minutes: number) {
 
 // « ⏱ 45 min · 👥 4 »
 export const recipeMeta = (r: Recipe) =>
-  [r.minutes && `⏱ ${formatMinutes(r.minutes)}`, r.servings && `👥 ${r.servings}`].filter(Boolean).join(" · ");
+  [r.minutes && `⏱ ${formatMinutes(r.minutes)}`, r.servings && `👥 ${r.servings}`, r.calories && `🔥 ${r.calories} kcal`].filter(Boolean).join(" · ");

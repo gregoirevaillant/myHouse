@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useMe } from "./lib/auth";
 import { Budget } from "./pages/Budget";
+import { Calories } from "./pages/Calories";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
 import { ExpenseTracker } from "./pages/ExpenseTracker";
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="/journal/:id" element={<JournalDetail />} />
         <Route path="/infos" element={<Infos />} />
         <Route path="/budget" element={<Budget />} />
+        <Route path="/calories" element={<Calories />} />
         <Route path="/profil" element={<Profile />} />
       </Route>
       <Route path="/cartes/:id" element={<CardDetail />} />

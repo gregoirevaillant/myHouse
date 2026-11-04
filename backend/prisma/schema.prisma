@@ -23,6 +23,7 @@ model Household {
   restaurants     Restaurant[]
   infos           HouseInfo[]
   recipes         Recipe[]
+  calorieEntries  CalorieEntry[]
 }
 
 model User {
@@ -33,6 +34,7 @@ model User {
   householdId  String
   household    Household @relation(fields: [householdId], references: [id])
   // chemins des onglets masqués dans la barre de menu, séparés par des virgules
+  calorieGoal  Int? // objectif quotidien en kcal
   hiddenTabs   String    @default("")
   showNavBar   Boolean   @default(true)
   // types de notifications coupés (SHOPPING, EXPENSES), séparés par des virgules
@@ -230,6 +232,22 @@ model BudgetItem {
   @@index([householdId, ownerId])
 }
 
+// Repas saisi dans le suivi des calories : toujours privé (ownerId = la personne)
+model CalorieEntry {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String
+  date        String // YYYY-MM-DD
+  meal        String // BREAKFAST | LUNCH | DINNER | SNACK
+  label       String
+  kcal        Int
+  createdAt   DateTime  @default(now())
+
+  @@index([householdId, ownerId, date])
+}
+
 // Abonnement Web Push d'un appareil (un par navigateur / téléphone)
 model PushSubscription {
   id          String   @id @default(cuid())
@@ -268,6 +286,7 @@ model Recipe {
   name        String
   category    String // PLAT | ENTREE | DESSERT | APERO | PETIT_DEJ | AUTRE
   servings    Int?
+  calories    Int? // kcal par portion
   minutes     Int? // temps total
   ingredients String    @default("")
   steps       String    @default("")
