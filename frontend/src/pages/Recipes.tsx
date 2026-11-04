@@ -9,10 +9,29 @@ import { RECIPE_CATEGORIES, recipeCategory, recipeImage, recipeMeta, useRecipes 
 
 export function Recipes() {
   const navigate = useNavigate();
-  const { data: recipes = [], isLoading } = useRecipes();
+  const { data: all = [], isLoading } = useRecipes(true, true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<RecipeCategory | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addingFood, setAddingFood] = useState(false);
+  // « Mes calories » : mes aliments privés, cachés de la liste commune (réglage gardé sur l'appareil)
+  const [foodMode, setFoodMode] = useState(() => {
+    try {
+      return localStorage.getItem("recipes-food") === "1";
+    } catch {
+      return false; // stockage indisponible (navigation privée)
+    }
+  });
+  const switchMode = (v: boolean) => {
+    setFoodMode(v);
+    setCategory(null);
+    try {
+      localStorage.setItem("recipes-food", v ? "1" : "0");
+    } catch {
+      // sans stockage, le réglage n'est simplement pas retenu
+    }
+  };
+  const recipes = all.filter((r) => !!r.private === foodMode);
 
   const q = normalize(search);
   const filtered = recipes.filter((r) => (!category || r.category === category) && (!q || normalize(`${r.name} ${r.ingredients}`).includes(q)));
@@ -25,9 +44,18 @@ export function Recipes() {
         <h2 className="flex items-center gap-2 text-lg font-extrabold">
           <span className="rounded-xl bg-rose px-2 py-1">📖</span> Recettes
         </h2>
-        <button className="btn bg-rose px-4 py-2 shadow-soft" onClick={() => setAdding(true)}>
+        <button className="btn bg-rose px-4 py-2 shadow-soft" onClick={() => (foodMode ? setAddingFood(true) : setAdding(true))}>
           + Ajouter
         </button>
+      </div>
+
+      <div className="mb-4 flex gap-1.5">
+        <Chip active={!foodMode} onClick={() => switchMode(false)}>
+          📖 Recettes
+        </Chip>
+        <Chip active={foodMode} onClick={() => switchMode(true)}>
+          🔥 Mes calories
+        </Chip>
       </div>
 
       {recipes.length > 0 && (
@@ -53,10 +81,12 @@ export function Recipes() {
       ) : filtered.length === 0 ? (
         <div className="rounded-3xl bg-rose-soft p-8 text-center text-ink-soft">
           <p className="text-3xl">📖</p>
-          <p className="mt-2 font-semibold">{recipes.length ? "Aucune recette trouvée" : "Vos recettes préférées, à portée de main en cuisine"}</p>
+          <p className="mt-2 font-semibold">
+            {recipes.length ? "Aucun résultat" : foodMode ? "Vos aliments habituels, visibles de vous seulement : ajoutez-les en un geste au suivi des calories" : "Vos recettes préférées, à portée de main en cuisine"}
+          </p>
           {!recipes.length && (
-            <button className="btn mt-4 bg-rose px-4 py-2 text-ink shadow-soft" onClick={() => setAdding(true)}>
-              + Première recette
+            <button className="btn mt-4 bg-rose px-4 py-2 text-ink shadow-soft" onClick={() => (foodMode ? setAddingFood(true) : setAdding(true))}>
+              {foodMode ? "+ Premier aliment" : "+ Première recette"}
             </button>
           )}
         </div>
@@ -84,6 +114,11 @@ export function Recipes() {
         </ul>
       )}
 
+      {addingFood && (
+        <Modal title="Nouvel aliment" onClose={() => setAddingFood(false)}>
+          <RecipeForm caloriesOnly onDone={(r) => navigate(`/recettes/${r.id}`)} />
+        </Modal>
+      )}
       {adding && (
         <Modal title="Nouvelle recette" onClose={() => setAdding(false)}>
           <AddRecipe onDone={(id) => navigate(`/recettes/${id}`)} />

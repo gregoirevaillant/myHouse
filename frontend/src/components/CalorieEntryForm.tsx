@@ -1,14 +1,16 @@
 import { useCallback, useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type CalorieEntry, type CalorieEntryInput, type CalorieMeal } from "../lib/api";
+import { api, type CalorieEntry, type CalorieEntryInput, type CalorieMeal, type Recipe } from "../lib/api";
 import { mealNow } from "../lib/calories";
-import { useRecipes } from "../lib/recipes";
+import { caloriesLabel, useRecipes } from "../lib/recipes";
 import { BarcodeScanner } from "./BarcodeScanner";
 import { MealPicker } from "./MealPicker";
 
 export function CalorieEntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: CalorieEntry; meal?: CalorieMeal; date: string; onDone: () => void }) {
   const qc = useQueryClient();
-  const { data: recipes = [] } = useRecipes();
+  const { data: recipes = [] } = useRecipes(true, true);
+  const foods = recipes.filter((r) => r.private);
+  const dishes = recipes.filter((r) => !r.private);
   const [meal, setMeal] = useState<CalorieMeal>(entry?.meal ?? initialMeal ?? mealNow());
   const [label, setLabel] = useState(entry?.label ?? "");
   const [kcal, setKcal] = useState(entry?.kcal.toString() ?? "");
@@ -47,6 +49,21 @@ export function CalorieEntryForm({ entry, meal: initialMeal, date, onDone }: { e
     },
     onSuccess: done,
   });
+  // garde l'aliment (produit scanné ou saisie) dans « Mes calories » pour le re-choisir en un geste
+  const keep = useMutation({
+    mutationFn: () => {
+      const perGram = base?.unit === "g";
+      const fd = new FormData();
+      Object.entries({
+        name: label.trim(), category: "AUTRE", calories: String(perGram ? base.kcal : value), per100g: String(perGram),
+        ingredients: "", steps: "", minutes: "", servings: "", url: "", note: "", private: "true",
+      }).forEach(([k, v]) => fd.set(k, v));
+      return api<Recipe>("/recipes", { method: "POST", body: fd });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["recipes"] }),
+  });
+  const known = foods.some((f) => f.name.trim().toLowerCase() === label.trim().toLowerCase());
+  const canKeep = !entry && base?.unit !== "portion" && !!label.trim() && value > 0 && !known;
   const remove = useMutation({ mutationFn: () => api(`/calories/${entry!.id}`, { method: "DELETE" }), onSuccess: done });
 
   const submit = (e: FormEvent) => {
@@ -70,7 +87,7 @@ export function CalorieEntryForm({ entry, meal: initialMeal, date, onDone }: { e
 
       {!entry && recipes.length > 0 && (
         <div>
-          <label className="label" htmlFor="cal-recipe">Depuis une recette</label>
+          <label className="label" htmlFor="cal-recipe">Mes aliments et recettes</label>
           <select
             id="cal-recipe"
             className="input focus:border-peach"
@@ -80,21 +97,30 @@ export function CalorieEntryForm({ entry, meal: initialMeal, date, onDone }: { e
               if (!r) return;
               setLabel(r.name);
               if (r.calories) {
-                const b = { kcal: r.calories, unit: "portion" as const };
+                const b = { kcal: r.calories, unit: r.per100g ? ("g" as const) : ("portion" as const) };
                 setBase(b);
-                onQty("1", b);
+                onQty(r.per100g ? "100" : "1", b);
               } else {
                 setBase(null);
                 setKcal("");
               }
             }}
           >
-            <option value="">Choisir une recette…</option>
-            {recipes.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}{r.calories ? ` · ${r.calories} kcal / portion` : ""}
-              </option>
-            ))}
+            <option value="">Choisir…</option>
+            {foods.length > 0 && (
+              <optgroup label="🔥 Mes aliments">
+                {foods.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name} · {caloriesLabel(r)}</option>
+                ))}
+              </optgroup>
+            )}
+            {dishes.length > 0 && (
+              <optgroup label="📖 Recettes">
+                {dishes.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}{r.calories ? ` · ${caloriesLabel(r)}` : ""}</option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
       )}
@@ -116,6 +142,13 @@ export function CalorieEntryForm({ entry, meal: initialMeal, date, onDone }: { e
         <input id="cal-kcal" className="input focus:border-peach" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={kcal} onChange={(e) => setKcal(e.target.value.replace(/\D/g, ""))} required />
       </div>
 
+      {canKeep && !keep.isSuccess && (
+        <button type="button" className="btn-ghost w-full" onClick={() => keep.mutate()} disabled={keep.isPending}>
+          ⭐ Garder dans mes aliments
+        </button>
+      )}
+      {keep.isSuccess && <p className="text-center text-sm font-bold">⭐ Gardé dans mes aliments (Recettes › Mes calories)</p>}
+      {keep.error && <p className="text-sm font-bold text-rose-deep">{keep.error.message}</p>}
       {save.error && <p className="text-sm font-bold text-rose-deep">{save.error.message}</p>}
       <button className="btn-primary w-full" disabled={save.isPending || !label.trim() || !(value > 0)}>
         {entry ? "Enregistrer" : "Ajouter"}

@@ -9,19 +9,20 @@ import { toIso } from "../lib/dates";
 // ajoute une recette (en portions) au suivi des calories d'aujourd'hui
 export function RecipeToCalories({ recipe, onDone }: { recipe: Recipe; onDone: () => void }) {
   const [meal, setMeal] = useState<CalorieMeal>(mealNow());
-  const [portions, setPortions] = useState("1");
+  const grams = !!recipe.per100g; // calories données pour 100 g : on saisit des grammes
+  const [portions, setPortions] = useState(grams ? "100" : "1");
   const count = Number(portions.replace(",", "."));
   // recette sans calories connues : on les saisit ici (pour ce repas seulement)
   const [perPortion, setPerPortion] = useState(recipe.calories?.toString() ?? "");
-  const total = Math.round(Number(perPortion) * count);
-  const valid = count > 0 && count <= 20 && total >= 1;
+  const total = Math.round((Number(perPortion) * count) / (grams ? 100 : 1));
+  const valid = count > 0 && count <= (grams ? 5000 : 20) && total >= 1;
 
   const add = useMutation({
     mutationFn: () => {
       const body: CalorieEntryInput = {
         date: toIso(new Date()),
         meal,
-        label: count === 1 ? recipe.name : `${recipe.name} × ${portions.replace(",", ".")}`,
+        label: grams ? `${recipe.name} · ${portions.replace(",", ".")} g` : count === 1 ? recipe.name : `${recipe.name} × ${portions.replace(",", ".")}`,
         kcal: total,
       };
       return api<CalorieEntry>("/calories", { method: "POST", json: body });
@@ -49,13 +50,13 @@ export function RecipeToCalories({ recipe, onDone }: { recipe: Recipe; onDone: (
       <MealPicker value={meal} onChange={setMeal} />
       {!recipe.calories && (
         <div>
-          <label className="label" htmlFor="per-portion">Calories par portion (kcal)</label>
+          <label className="label" htmlFor="per-portion">Calories {grams ? "pour 100 g" : "par portion"} (kcal)</label>
           <input id="per-portion" className="input focus:border-peach" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={perPortion} onChange={(e) => setPerPortion(e.target.value.replace(/\D/g, ""))} />
         </div>
       )}
       <div className="flex items-end gap-3">
         <div className="flex-1">
-          <label className="label" htmlFor="portions">Portions mangées</label>
+          <label className="label" htmlFor="portions">{grams ? "Quantité mangée (g)" : "Portions mangées"}</label>
           <input id="portions" className="input focus:border-peach" inputMode="decimal" value={portions} onChange={(e) => setPortions(e.target.value)} />
         </div>
         <p className="pb-3 text-lg font-extrabold">{total} kcal</p>

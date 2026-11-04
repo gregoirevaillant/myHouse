@@ -13,7 +13,7 @@ const ACTION = "btn-ghost min-w-0 flex-1 flex-col gap-0.5 whitespace-nowrap px-2
 export function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: recipes = [], isLoading } = useRecipes();
+  const { data: recipes = [], isLoading } = useRecipes(true, true);
   const recipe = recipes.find((r) => r.id === id);
   const [editing, setEditing] = useState(false);
   const [planning, setPlanning] = useState(false);
@@ -66,21 +66,23 @@ export function RecipeDetail() {
       <div>
         <h2 className="text-2xl font-extrabold leading-tight">{recipe.name}</h2>
         <div className="mt-2 flex flex-wrap gap-1.5 text-sm font-bold">
-          <span className={`rounded-full px-3 py-1 ${cat.color}`}>
-            {cat.emoji} {cat.label}
+          <span className={`rounded-full px-3 py-1 ${recipe.private ? "bg-peach" : cat.color}`}>
+            {recipe.private ? "🔒 Aliment privé" : `${cat.emoji} ${cat.label}`}
           </span>
           {meta && <span className="rounded-full bg-white px-3 py-1 shadow-soft">{meta}</span>}
         </div>
       </div>
 
       <div className="flex gap-2">
-        <button className={ACTION} onClick={() => setPlanning((p) => !p)}>
-          <span className="text-lg">📅</span> Prévoir
-        </button>
+        {!recipe.private && (
+          <button className={ACTION} onClick={() => setPlanning((p) => !p)}>
+            <span className="text-lg">📅</span> Prévoir
+          </button>
+        )}
         <button className={ACTION} onClick={() => setLogging((l) => !l)}>
           <span className="text-lg">🔥</span> Calories
         </button>
-        {"wakeLock" in navigator && (
+        {!recipe.private && "wakeLock" in navigator && (
           <button className={`${ACTION} ${awake ? "!bg-lemon" : ""}`} onClick={() => setAwake((a) => !a)} aria-pressed={awake}>
             <span className="text-lg">🔆</span> {awake ? "Écran allumé" : "Garder allumé"}
           </button>

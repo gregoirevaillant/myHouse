@@ -11,9 +11,18 @@ export const RECIPE_CATEGORIES: { id: RecipeCategory; label: string; emoji: stri
 ];
 export const recipeCategory = (id: RecipeCategory) => RECIPE_CATEGORIES.find((c) => c.id === id) ?? RECIPE_CATEGORIES[RECIPE_CATEGORIES.length - 1];
 
-export function useRecipes(enabled = true) {
-  return useQuery({ queryKey: ["recipes"], queryFn: () => api<Recipe[]>("/recipes"), enabled });
+// par défaut seulement les recettes partagées ; withPrivate ajoute mes aliments privés (suivi des calories)
+export function useRecipes(enabled = true, withPrivate = false) {
+  return useQuery({
+    queryKey: ["recipes"],
+    queryFn: () => api<Recipe[]>("/recipes"),
+    select: (list) => (withPrivate ? list : list.filter((r) => !r.private)),
+    enabled,
+  });
 }
+
+// « 250 kcal / 100 g » ou « 180 kcal / portion »
+export const caloriesLabel = (r: Pick<Recipe, "calories" | "per100g">) => (r.calories ? `${r.calories} kcal / ${r.per100g ? "100 g" : "portion"}` : "");
 
 export const recipeImage = (r: Pick<Recipe, "id">) => `/api/recipes/${r.id}/image`;
 
@@ -33,4 +42,4 @@ export function formatMinutes(minutes: number) {
 
 // « ⏱ 45 min · 👥 4 »
 export const recipeMeta = (r: Recipe) =>
-  [r.minutes && `⏱ ${formatMinutes(r.minutes)}`, r.servings && `👥 ${r.servings}`, r.calories && `🔥 ${r.calories} kcal`].filter(Boolean).join(" · ");
+  [r.minutes && `⏱ ${formatMinutes(r.minutes)}`, r.servings && `👥 ${r.servings}`, r.calories && `🔥 ${r.calories} kcal${r.per100g ? " / 100 g" : ""}`].filter(Boolean).join(" · ");

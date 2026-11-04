@@ -9,16 +9,21 @@ export type RecipeDraft = Omit<Recipe, "id" | "hasImage" | "note"> & { image: Fi
 export function RecipeForm({
   recipe,
   draft,
+  caloriesOnly,
   onDone,
   onDeleted,
 }: {
   recipe?: Recipe;
+  caloriesOnly?: boolean; // nouvel aliment privé, juste pour le suivi des calories
   draft?: RecipeDraft; // pré-remplissage (import par lien), pour une nouvelle recette
   onDone: (saved: Recipe) => void;
   onDeleted?: () => void;
 }) {
   const init = recipe ?? draft;
   const qc = useQueryClient();
+  // aliment privé : seulement nom, calories (par portion ou pour 100 g) et photo
+  const food = recipe ? !!recipe.private : !!caloriesOnly;
+  const [per100g, setPer100g] = useState(!!init?.per100g);
   const [name, setName] = useState(init?.name ?? "");
   const [category, setCategory] = useState<RecipeCategory>(init?.category ?? "PLAT");
   const [minutes, setMinutes] = useState(init?.minutes?.toString() ?? "");
@@ -36,7 +41,8 @@ export function RecipeForm({
   const save = useMutation({
     mutationFn: async () => {
       const fd = new FormData();
-      Object.entries({ name, category, minutes, servings, calories, ingredients, steps, url, note }).forEach(([k, v]) => fd.set(k, v));
+      Object.entries({ name, category, minutes, servings, calories, ingredients, steps, url, note, per100g: String(per100g) }).forEach(([k, v]) => fd.set(k, v));
+      if (!recipe && food) fd.set("private", "true");
       if (image) fd.set("image", await compressImage(image));
       if (removeImage && !image) fd.set("removeImage", "true");
       return api<Recipe>(recipe ? `/recipes/${recipe.id}` : "/recipes", { method: recipe ? "PATCH" : "POST", body: fd });
@@ -73,9 +79,10 @@ export function RecipeForm({
     <form onSubmit={submit} className="space-y-4">
       <div>
         <label className="label" htmlFor="recipe-name">Nom</label>
-        <input id="recipe-name" className="input focus:border-rose" placeholder="Lasagnes de mamie, curry de lentilles…" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input id="recipe-name" className="input focus:border-rose" placeholder={food ? "Brownie Marque, yaourt grec…" : "Lasagnes de mamie, curry de lentilles…"} value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
+      {!food && (
       <div className="flex flex-wrap gap-1.5">
         {RECIPE_CATEGORIES.map((c) => (
           <button
@@ -88,7 +95,9 @@ export function RecipeForm({
           </button>
         ))}
       </div>
+      )}
 
+      {!food && (
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label" htmlFor="recipe-minutes">⏱ Temps (min)</label>
@@ -100,11 +109,23 @@ export function RecipeForm({
         </div>
       </div>
 
+      )}
+
       <div>
-        <label className="label" htmlFor="recipe-calories">🔥 Calories par portion (kcal)</label>
-        <input id="recipe-calories" className="input focus:border-rose" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={calories} onChange={(e) => setCalories(e.target.value.replace(/\D/g, ""))} />
+        <label className="label" htmlFor="recipe-calories">🔥 Calories {per100g ? "pour 100 g" : "par portion"} (kcal)</label>
+        <input id="recipe-calories" className="input focus:border-rose" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={calories} onChange={(e) => setCalories(e.target.value.replace(/\D/g, ""))} required={food} />
+        {food && (
+          <div className="mt-2 flex gap-1.5">
+            {[false, true].map((v) => (
+              <button key={String(v)} type="button" onClick={() => setPer100g(v)} className={`rounded-full px-3 py-1.5 text-sm font-bold shadow-soft ${per100g === v ? "bg-peach" : "bg-white text-ink-soft"}`}>
+                {v ? "Pour 100 g" : "Par portion"}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
+      {!food && (<>
       <div>
         <label className="label" htmlFor="recipe-ingredients">Ingrédients <span className="font-semibold">· un par ligne</span></label>
         <textarea
@@ -126,6 +147,8 @@ export function RecipeForm({
           onChange={(e) => setSteps(e.target.value)}
         />
       </div>
+
+      </>)}
 
       <div>
         <span className="label">Photo</span>
@@ -151,6 +174,7 @@ export function RecipeForm({
         </label>
       </div>
 
+      {!food && (<>
       <div>
         <label className="label" htmlFor="recipe-url">Lien (facultatif)</label>
         <input
@@ -169,10 +193,11 @@ export function RecipeForm({
         <label className="label" htmlFor="recipe-note">Note (facultatif)</label>
         <textarea id="recipe-note" className="input focus:border-rose" rows={2} placeholder="Moins de sucre, marche aussi au four…" value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
+      </>)}
 
       {save.error && <p className="text-center text-sm font-semibold text-rose-deep">{save.error.message}</p>}
-      <button className="btn w-full bg-rose-deep text-white shadow-soft" disabled={!name.trim() || save.isPending}>
-        {save.isPending ? "Enregistrement…" : recipe ? "Enregistrer" : "Créer la recette"}
+      <button className="btn w-full bg-rose-deep text-white shadow-soft" disabled={!name.trim() || save.isPending || (food && !(Number(calories) > 0))}>
+        {save.isPending ? "Enregistrement…" : recipe ? "Enregistrer" : food ? "Créer l'aliment" : "Créer la recette"}
       </button>
 
       {recipe && (
@@ -188,7 +213,7 @@ export function RecipeForm({
             </div>
           ) : (
             <button type="button" className="text-sm font-bold text-ink-soft" onClick={() => setConfirmDelete(true)}>
-              Supprimer la recette
+              {food ? "Supprimer l'aliment" : "Supprimer la recette"}
             </button>
           )}
         </div>

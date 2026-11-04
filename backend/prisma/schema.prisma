@@ -289,7 +289,8 @@ model Recipe {
   name        String
   category    String // PLAT | ENTREE | DESSERT | APERO | PETIT_DEJ | AUTRE
   servings    Int?
-  calories    Int? // kcal par portion
+  calories    Int? // kcal par portion (ou pour 100 g si per100g)
+  per100g     Boolean   @default(false) // calories données pour 100 g (produit scanné) et non par portion
   minutes     Int? // temps total
   ingredients String    @default("")
   steps       String    @default("")

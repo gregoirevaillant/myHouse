@@ -99,7 +99,9 @@ export type Recipe = {
   name: string;
   category: RecipeCategory;
   servings: number | null;
-  calories: number | null; // kcal par portion
+  calories: number | null; // kcal par portion (ou pour 100 g si per100g)
+  per100g?: boolean; // absent des anciennes données gardées hors ligne
+  private?: boolean; // aliment privé (suivi des calories), visible de son auteur seulement
   minutes: number | null;
   ingredients: string;
   steps: string;
