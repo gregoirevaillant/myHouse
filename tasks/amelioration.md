@@ -21,9 +21,9 @@ Tailles : S = moins d'une heure, M = une demi-journée, L = plus.
 - [ ] **A2 : Mettre à jour `@fastify/jwt` (critique)** (S à M)
   - Description : passer à la version corrigée (10.x). Vérifier le changement d'API (`jwtVerify({ onlyCookie: true })`, `jwtSign`, option `cookie`).
   - Critères :
-    - [ ] `npm audit --omit=dev` ne signale plus `@fastify/jwt` ni `fast-jwt`
-    - [ ] Connexion, déconnexion, `/auth/me` et une route protégée fonctionnent
-    - [ ] Une session existante (cookie de 30 jours) reste valable, sinon le dire avant de déployer
+    - [x] `npm audit --omit=dev` ne signale plus `@fastify/jwt` ni `fast-jwt`
+    - [ ] Connexion réussie (émission du cookie par `jwtSign`) à vérifier à la main ; `/auth/me`, route protégée, cookie falsifié (401) et mauvais mot de passe (401) vérifiés
+    - [x] Une session existante (cookie de 30 jours) reste valable, sinon le dire avant de déployer
   - Vérification : build backend, test manuel de connexion en local avec le `.env`.
   - Dépendances : aucune
   - Fichiers : `backend/package.json`, `backend/package-lock.json`, `backend/src/server.ts`, `backend/src/auth.ts` si l'API change
