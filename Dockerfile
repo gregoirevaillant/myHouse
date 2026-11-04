@@ -14,7 +14,7 @@ COPY backend/ ./
 RUN npx prisma generate && npm run build && npm prune --omit=dev
 
 FROM node:24-slim
-RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends openssl sqlite3 && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production PORT=1000 DATA_DIR=/data DATABASE_URL=file:/data/app.db PUBLIC_DIR=/app/public
 WORKDIR /app
 COPY --from=backend /app/backend/node_modules ./node_modules

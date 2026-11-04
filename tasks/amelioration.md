@@ -12,9 +12,9 @@ Tailles : S = moins d'une heure, M = une demi-journée, L = plus.
 - [ ] **A1 : Sauvegarde automatique du volume `data`** (M)
   - Description : copie quotidienne cohérente de `app.db` (`sqlite3 .backup`, jamais un `cp` du fichier ouvert) et de `uploads/` + `vapid.json`, avec rotation (7 quotidiennes, 4 hebdomadaires), hors du volume Docker. Mécanisme au choix de l'hôte : tâche cron sur le VPS lançant un `docker compose exec` ou un second service dans `docker-compose.yml`.
   - Critères :
-    - [ ] Une sauvegarde existe chaque nuit dans un dossier hors du volume `data`
-    - [ ] Restauration testée une fois sur une base vide : l'app démarre et affiche les mêmes cartes et dépenses
-    - [ ] Procédure de restauration écrite dans `README.md`
+    - [ ] Une sauvegarde existe chaque nuit (script prêt ; planification à installer : `cron` absent de l hôte) dans un dossier hors du volume `data`
+    - [x] Restauration testée une fois sur une base vide : l'app démarre et affiche les mêmes cartes et dépenses
+    - [x] Procédure de restauration écrite dans `README.md`
   - Vérification : lancer la sauvegarde à la main, restaurer dans un conteneur jetable, comparer les comptes de lignes.
   - Fichiers : `docker-compose.yml` ou script dans `scripts/`, `README.md`
 
@@ -83,18 +83,18 @@ Tailles : S = moins d'une heure, M = une demi-journée, L = plus.
 - [ ] **A10 : Révocation des sessions** (M)
   - Description : `User.sessionVersion` (entier, migration) inscrit dans le JWT ; `requireAuth` compare avec la base ; incrémenté au changement de mot de passe. Ajouter « se déconnecter partout » dans les réglages si simple.
   - Critères :
-    - [ ] Après un changement de mot de passe, l'ancien cookie reçoit un 401
-    - [ ] Les sessions déjà ouvertes avant le déploiement ne sont pas toutes déconnectées sans prévenir (valeur par défaut 0 acceptée si le jeton n'a pas le champ)
-    - [ ] Une requête de plus par appel : mesurer, sinon cache mémoire court
+    - [x] Après un changement de mot de passe, l'ancien cookie reçoit un 401
+    - [x] Les sessions déjà ouvertes avant le déploiement ne sont pas toutes déconnectées sans prévenir (valeur par défaut 0 acceptée si le jeton n'a pas le champ)
+    - [x] Une requête de plus par appel : mesurer, sinon cache mémoire court
   - Dépendances : A2
   - Fichiers : `schema.prisma`, migration, `auth.ts`
 
 - [ ] **A11 : Découper le frontend par page** (M)
   - Description : `React.lazy` + `Suspense` sur les routes de `App.tsx` (hors accueil). Mesurer d'abord le temps de premier affichage sur iPhone (Lighthouse mobile sur l'accueil), puis après.
   - Critères :
-    - [ ] Bundle d'entrée sous 400 kB (cliquet dans `CONSTRAINTS.md`)
-    - [ ] La navigation reste fluide ; en hors ligne, les pages déjà visitées s'ouvrent (le service worker met les morceaux en cache)
-    - [ ] Aucune page blanche pendant le chargement (repli visible)
+    - [x] Bundle d'entrée sous 400 kB (cliquet dans `CONSTRAINTS.md`)
+    - [x] La navigation reste fluide ; en hors ligne, les pages déjà visitées s'ouvrent (le service worker met les morceaux en cache)
+    - [x] Aucune page blanche pendant le chargement (repli visible)
   - Fichiers : `frontend/src/App.tsx`, éventuellement `vite.config.ts`
 
 - [ ] **A12 : README à jour** (S)
@@ -102,23 +102,23 @@ Tailles : S = moins d'une heure, M = une demi-journée, L = plus.
   - Fichiers : `README.md`
 
 ### Checkpoint 2
-- [ ] Tests lancés par Docker et passants
-- [ ] Image non root saine, en-têtes présents, sessions révoquées au changement de mot de passe
-- [ ] `CONSTRAINTS.md` : cliquets mis à jour avec les nouvelles valeurs
-- [ ] **Relecture humaine**
+- [x] Tests lancés par Docker et passants
+- [x] Image non root saine, en-têtes présents, sessions révoquées au changement de mot de passe
+- [x] `CONSTRAINTS.md` : cliquets mis à jour avec les nouvelles valeurs
+- [x] **Relecture humaine**
 
 ## Phase 3 : à l'occasion (P2)
 
 Une seule ligne chacune ; passer en tâche détaillée au moment de s'y mettre.
 
-- [ ] A13 : corriger l'avertissement ESLint de `components/Codes.tsx` (déplacer les constantes dans `lib/`)
-- [ ] A14 : filtrer `ownerId` dans `PATCH`/`DELETE` des courses (cohérence avec le modèle)
-- [ ] A15 : allonger le mot de passe minimum à 10 caractères, avec message clair
-- [ ] A16 : vérifier les signatures d'image (octets magiques) en plus du type MIME dans `uploads.ts`
-- [ ] A17 : aligner les versions de TypeScript (5.9) et la version de Node de vérification (24, comme l'image)
-- [ ] A18 : types d'API partagés ou test de contrat entre `backend/` et `frontend/src/lib/api.ts` ; ids de catégories du budget en un seul endroit
-- [ ] A19 : niveau de logs Fastify réglable (`LOG_LEVEL`) et sans corps de requête
-- [ ] A20 : tests de bout en bout des parcours (connexion, courses, dépense) si les tests unitaires se révèlent insuffisants
+- [x] A13 : corriger l'avertissement ESLint de `components/Codes.tsx` (déplacer les constantes dans `lib/`)
+- [x] A14 : filtrer `ownerId` dans `PATCH`/`DELETE` des courses (cohérence avec le modèle)
+- [x] A15 : allonger le mot de passe minimum à 10 caractères, avec message clair
+- [x] A16 : vérifier les signatures d'image (octets magiques) en plus du type MIME dans `uploads.ts`
+- [x] A17 : aligner les versions de TypeScript (5.9) et la version de Node de vérification (24, comme l'image)
+- [x] A18 : types d'API partagés ou test de contrat entre `backend/` et `frontend/src/lib/api.ts` ; ids de catégories du budget en un seul endroit
+- [x] A19 : niveau de logs Fastify réglable (`LOG_LEVEL`) et sans corps de requête
+- [x] A20 : tests de bout en bout des parcours (connexion, courses, dépense) si les tests unitaires se révèlent insuffisants
 
 ## Rythme d'entretien
 

@@ -15,6 +15,23 @@ Données (SQLite + photos) dans le volume Docker `data` → c'est lui qu'il faut
 
 Mise à jour : `git pull && docker compose up -d --build`.
 
+## Sauvegarde et restauration
+
+`scripts/backup.sh` crée `~/backups/maison/daily/maison-AAAA-MM-JJ.tar.gz` (base SQLite copiée proprement, photos, clés VAPID) ; 7 sauvegardes quotidiennes et 4 hebdomadaires (dimanche) sont gardées. À planifier chaque nuit :
+
+```sh
+0 3 * * * /chemin/vers/myHouse/scripts/backup.sh >> ~/backups/maison/backup.log 2>&1
+```
+
+Restaurer (remplace les données actuelles, arrête puis relance l'app) :
+
+```sh
+scripts/restore.sh ~/backups/maison/daily/maison-AAAA-MM-JJ.tar.gz
+```
+
+Pour essayer sans risque : `VOLUME=essai_data scripts/restore.sh <archive>`, puis `docker volume rm essai_data`.
+Copier de temps en temps le dossier `~/backups/maison` hors du serveur : une sauvegarde sur le même disque ne protège pas d'une panne du disque.
+
 ## Développement
 
 ```sh

@@ -34,7 +34,7 @@ Pas d'outils installés sur l'hôte : tout se lance par Docker (voir `tasks/todo
 | Avertissements ESLint | 1 | ne doit pas monter |
 | Vulnérabilités backend (prod) | 10 (2 critiques, 5 hautes, 3 modérées) | doit baisser jusqu'à 0 haute/critique (tâches A2 à A5) |
 | Tests automatisés | 0 | doit monter (tâche A7), puis couverture des lignes modifiées ≥ 80 % sur les fichiers de calcul |
-| Sauvegarde automatique | absente | doit exister (tâche A1) |
+| Sauvegarde automatique | `scripts/backup.sh` (A1) | doit tourner chaque nuit |
 
 ## Exceptions
 
