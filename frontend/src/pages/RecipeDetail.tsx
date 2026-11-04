@@ -99,7 +99,7 @@ export function RecipeDetail() {
 
       {planning && <PlanMeal title={recipe.name} text={`${cat.emoji} ${recipe.name}`} onDone={() => setPlanning(false)} />}
 
-      {logging && recipe.calories && <RecipeToCalories recipe={recipe} kcal={recipe.calories} onDone={() => setLogging(false)} />}
+      {logging && recipe.calories && <RecipeToCalories recipe={recipe} onDone={() => setLogging(false)} />}
 
       {ingredients.length > 0 && (
         <div className="rounded-3xl bg-rose-soft p-4">

@@ -8,7 +8,7 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const entryBody = z.object({
   date: isoDate,
   meal: z.enum(MEALS),
-  label: z.string().trim().min(1).max(100),
+  label: z.string().trim().min(1).max(160),
   kcal: z.number().int().min(1).max(20000),
 });
 

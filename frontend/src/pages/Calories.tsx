@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { MealPicker } from "../components/MealPicker";
 import { Modal } from "../components/Modal";
 import { api, type CalorieEntry, type CalorieEntryInput, type CalorieMeal } from "../lib/api";
 import { useMe, useUpdatePreferences } from "../lib/auth";
@@ -150,13 +151,7 @@ function EntryForm({ entry, meal: initialMeal, date, onDone }: { entry?: Calorie
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="flex flex-wrap gap-1.5">
-        {MEALS.map((m) => (
-          <button key={m.id} type="button" onClick={() => setMeal(m.id)} className={`rounded-full px-3 py-1.5 text-sm font-bold shadow-soft transition active:scale-95 ${meal === m.id ? "bg-peach" : "bg-white text-ink-soft"}`}>
-            {m.icon} {m.label}
-          </button>
-        ))}
-      </div>
+      <MealPicker value={meal} onChange={setMeal} />
 
       {!entry && withCalories.length > 0 && (
         <div>

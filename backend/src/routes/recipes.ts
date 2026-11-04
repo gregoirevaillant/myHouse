@@ -11,6 +11,7 @@ const optionalInt = (max: number) =>
   z
     .string()
     .trim()
+    .default("") // champ absent (ancienne version de l'app encore en cache)
     .transform((v) => (v ? Number(v) : null))
     .pipe(z.number().int().min(1).max(max).nullable());
 const optionalText = (max: number) =>
