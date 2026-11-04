@@ -36,6 +36,8 @@ model User {
   // chemins des onglets masqués dans la barre de menu, séparés par des virgules
   calorieGoal  Int? // objectif quotidien en kcal
   hiddenTabs   String    @default("")
+  menuOrder    String    @default("") // ordre des pages (routes en CSV), commun à la barre et à l'accueil
+  homeWide     String    @default("/repas") // tuiles de l'accueil sur 2 colonnes
   hiddenHome   String    @default("") // pages masquées sur l'accueil (indépendant de la barre de menu)
   showNavBar   Boolean   @default(true)
   // types de notifications coupés (SHOPPING, EXPENSES), séparés par des virgules

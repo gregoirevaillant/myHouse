@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useMe } from "../lib/auth";
 import { useLiveUpdates } from "../lib/live";
@@ -11,10 +11,17 @@ import { OfflineBanner } from "./OfflineBanner";
 export function Layout() {
   const { data: me } = useMe();
   const tabs = useVisibleTabs();
-  const isHome = useLocation().pathname === "/";
+  const { pathname } = useLocation();
+  const isHome = pathname === "/";
+  const bar = useRef<HTMLDivElement>(null);
+  const scrolls = tabs.length > 7;
   const [searching, setSearching] = useState(false);
   // ?? true : une session gardée hors ligne avant l'ajout de la préférence n'a pas le champ
   const showNavBar = me?.showNavBar ?? true;
+  // barre défilante : l'onglet actif reste visible
+  useEffect(() => {
+    bar.current?.querySelector("[aria-current=page]")?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [pathname, scrolls]);
   useOfflineWarmup();
   useLiveUpdates();
   return (
@@ -61,19 +68,21 @@ export function Layout() {
       <Outlet />
 
       {showNavBar && (
-        <nav className={`fixed inset-x-0 bottom-0 z-40 pb-[calc(0.75rem+env(safe-area-inset-bottom))] ${tabs.length > 7 ? "px-2" : "px-4"}`}>
-          <div className={`mx-auto flex max-w-md justify-around rounded-3xl bg-white shadow-soft ${tabs.length > 7 ? "p-1" : "p-2"}`}>
+        <nav className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <div
+            ref={bar}
+            className={`mx-auto flex max-w-md rounded-3xl bg-white p-2 shadow-soft ${scrolls ? "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "justify-around"}`}
+          >
             {tabs.map((t) => (
               <NavLink
                 key={t.to}
                 to={t.to}
                 className={({ isActive }) =>
-                  `flex min-w-0 flex-1 flex-col items-center rounded-2xl py-2 text-xs font-bold transition ${isActive ? t.active : "text-ink-soft"}`
+                  `flex min-w-0 flex-col items-center rounded-2xl py-2 text-xs font-bold transition ${scrolls ? "w-[4.75rem] shrink-0" : "flex-1"} ${isActive ? t.active : "text-ink-soft"}`
                 }
               >
                 <span className="text-xl">{t.icon}</span>
-                {/* au-delà de 7 onglets, libellés plus petits pour tenir sur la largeur de l'iPhone */}
-                <span className={`max-w-full truncate ${tabs.length > 7 ? "text-[10px]" : ""}`}>{t.label}</span>
+                <span className="max-w-full truncate">{t.label}</span>
               </NavLink>
             ))}
           </div>

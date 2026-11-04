@@ -31,6 +31,8 @@ const publicUser = (u: {
   calorieGoal: number | null;
   hiddenTabs: string;
   hiddenHome: string;
+  menuOrder: string;
+  homeWide: string;
   showNavBar: boolean;
   mutedNotifications: string;
 }) => ({
@@ -38,6 +40,8 @@ const publicUser = (u: {
   email: u.email,
   name: u.name,
   calorieGoal: u.calorieGoal,
+  menuOrder: u.menuOrder ? u.menuOrder.split(",") : [],
+  homeWide: u.homeWide ? u.homeWide.split(",") : [],
   hiddenHome: u.hiddenHome ? u.hiddenHome.split(",") : [],
   hiddenTabs: u.hiddenTabs ? u.hiddenTabs.split(",") : [],
   showNavBar: u.showNavBar,
@@ -83,6 +87,8 @@ export async function authRoutes(app: FastifyInstance) {
       .object({
         hiddenTabs: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20),
         hiddenHome: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20),
+        menuOrder: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20),
+        homeWide: z.array(z.string().regex(/^\/[a-z-]+$/)).max(20),
         showNavBar: z.boolean(),
         mutedNotifications: z.array(z.enum(NOTIFICATION_TYPES)),
         calorieGoal: z.number().int().min(500).max(10000).nullable(),
@@ -94,6 +100,8 @@ export async function authRoutes(app: FastifyInstance) {
       data: {
         hiddenTabs: body.hiddenTabs?.join(","),
         hiddenHome: body.hiddenHome?.join(","),
+        menuOrder: body.menuOrder?.join(","),
+        homeWide: body.homeWide?.join(","),
         showNavBar: body.showNavBar,
         calorieGoal: body.calorieGoal,
         mutedNotifications: body.mutedNotifications?.join(","),

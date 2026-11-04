@@ -1,289 +1,42 @@
 import type { CSSProperties, ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { api, type JournalSummary, type Meal } from "../lib/api";
-import { budgetSummary, useBudgetItems } from "../lib/budget";
-import { totalKcal, useCalorieEntries } from "../lib/calories";
-import { useMe } from "../lib/auth";
-import { mondayOf, shortDate, toIso } from "../lib/dates";
-import { computeDebt, useExpenses } from "../lib/expenses";
-import { useMembers } from "../lib/members";
-import { formatEur } from "../lib/money";
-import { cardsQuery, infosQuery, shoppingQuery } from "../lib/offline";
-import { recipeCategory, useRecipes } from "../lib/recipes";
-import { cuisineInfo, useRestaurants } from "../lib/restaurants";
-import { useHomeTabs } from "../lib/tabs";
+import { Label, Tile } from "../components/home/Tile";
+import { BudgetTile, CaloriesTile, CardsTile, ExpensesTile, InfosTile, JournalTile, MealsTile, RecipesTile, RestosTile, ShoppingTile } from "../components/home/tiles";
+import { useHomeTabs, useWideTiles } from "../lib/tabs";
+
+const TILES: Record<string, (p: { wide: boolean }) => ReactNode> = {
+  "/repas": MealsTile,
+  "/courses": ShoppingTile,
+  "/cartes": CardsTile,
+  "/restos": RestosTile,
+  "/recettes": RecipesTile,
+  "/depenses": ExpensesTile,
+  "/journal": JournalTile,
+  "/infos": InfosTile,
+  "/calories": CaloriesTile,
+  "/budget": BudgetTile,
+};
 
 export function Home() {
-  const visible = new Set(useHomeTabs().map((t) => t.to));
-  const today = toIso(new Date());
-  const week = mondayOf(new Date());
-
-  const { data: items = [] } = useQuery({ ...shoppingQuery, enabled: visible.has("/courses") });
-  const { data: cards = [] } = useQuery({ ...cardsQuery, enabled: visible.has("/cartes") });
-  const { data: meals = [] } = useQuery({
-    queryKey: ["meals", week],
-    queryFn: () => api<Meal[]>(`/meals?week=${week}`),
-    enabled: visible.has("/repas"),
-  });
-  const { data: expenses = [] } = useExpenses(visible.has("/depenses"));
-  const { data: members = [] } = useMembers();
-  const { data: journals = [] } = useQuery({
-    queryKey: ["journals"],
-    queryFn: () => api<JournalSummary[]>("/journals"),
-    enabled: visible.has("/journal"),
-  });
-
-  const { data: restaurants = [] } = useRestaurants(visible.has("/restos"));
-  const { data: infos = [] } = useQuery({ ...infosQuery, enabled: visible.has("/infos") });
-  const { data: recipes = [] } = useRecipes(visible.has("/recettes"));
-
-  const { data: budgetItems = [] } = useBudgetItems(visible.has("/budget"));
-
-  const { data: me } = useMe();
-  const { data: todayKcal = [] } = useCalorieEntries(today, today, visible.has("/calories"));
-
-  const toBuy = items.filter((i) => !i.checked);
-  const meal = (slot: Meal["slot"]) => meals.find((m) => m.date === today && m.slot === slot)?.text;
-  const debt = computeDebt(expenses, members);
-  const wroteToday = journals.some((j) => j.lastDate === today);
-  const budget = budgetSummary(budgetItems, today);
-  const tested = restaurants.filter((r) => !r.wishlist);
-  const lastVisited = tested.filter((r) => r.visits[0]).sort((a, b) => b.visits[0].localeCompare(a.visits[0]))[0];
-  // idée du jour : change chaque jour, la même pour les deux
-  const idea = recipes.length ? recipes[Math.floor(Date.parse(today) / 86_400_000) % recipes.length] : undefined;
-
-  // l'ordre des tuiles compose la grille ; grid-flow-dense comble les trous quand une page est masquée
-  const tiles: { to: string; node: ReactNode }[] = [
-    {
-      to: "/repas",
-      node: (
-        <Tile to="/repas" icon="🍽️" className="col-span-2 bg-peach">
-          <Label>Au menu aujourd'hui</Label>
-          <p className="mt-1 text-xl font-extrabold first-letter:uppercase">
-            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <MealChip icon="☀️" label="Midi" text={meal("LUNCH")} />
-            <MealChip icon="🌙" label="Soir" text={meal("DINNER")} />
-          </div>
-        </Tile>
-      ),
-    },
-    {
-      to: "/courses",
-      node: (
-        <Tile to="/courses" icon="🛒" className="row-span-2 bg-mint">
-          <Label>Courses</Label>
-          <p className="mt-1 text-5xl font-extrabold leading-none">{toBuy.length}</p>
-          <p className="text-sm font-bold text-ink/60">à acheter</p>
-          <ul className="mt-3 space-y-1">
-            {toBuy.slice(0, 4).map((i) => (
-              <li key={i.id} className="truncate rounded-xl bg-white/60 px-2 py-1 text-sm font-semibold">
-                {i.label}
-              </li>
-            ))}
-            {toBuy.length > 4 && <li className="px-2 text-xs font-bold text-ink/50">+ {toBuy.length - 4} autres</li>}
-            {toBuy.length === 0 && <li className="text-sm font-semibold text-ink/60">Tout est pris ✓</li>}
-          </ul>
-        </Tile>
-      ),
-    },
-    {
-      to: "/cartes",
-      node: (
-        <Tile to="/cartes" icon="💳" className="bg-lavender">
-          <Label>Cartes</Label>
-          <div className="mt-3 flex h-8 items-center">
-            {cards.slice(0, 4).map((c, i) => (
-              <span
-                key={c.id}
-                style={{ backgroundColor: c.color, transform: `rotate(${(i - 1) * 8}deg)` }}
-                className="-ml-2 h-8 w-12 rounded-lg border-2 border-white shadow-soft first:ml-0"
-              />
-            ))}
-          </div>
-          <p className="mt-2 text-sm font-bold text-ink/60">
-            {cards.length} carte{cards.length > 1 ? "s" : ""}
-          </p>
-        </Tile>
-      ),
-    },
-    {
-      to: "/restos",
-      node: (
-        <Tile to="/restos" icon="🍜" className="bg-peach">
-          <Label>Restos</Label>
-          <p className="mt-1 text-2xl font-extrabold">
-            {tested.length} <span className="text-sm font-bold text-ink/60">testé{tested.length > 1 ? "s" : ""}</span>
-          </p>
-          <p className="text-sm font-bold text-ink/60">{restaurants.length - tested.length} à tester</p>
-          {lastVisited && (
-            <p className="mt-2 truncate text-xs font-bold text-ink/60">
-              Dernier : {cuisineInfo(lastVisited.cuisine).emoji} {lastVisited.name}
-            </p>
-          )}
-        </Tile>
-      ),
-    },
-    {
-      to: "/recettes",
-      node: (
-        <Tile to="/recettes" icon="📖" className="bg-rose">
-          <Label>Recettes</Label>
-          {idea ? (
-            <>
-              <p className="mt-1 text-xs font-bold text-ink/60">Idée du jour</p>
-              <p className="line-clamp-2 font-extrabold leading-snug">
-                {recipeCategory(idea.category).emoji} {idea.name}
-              </p>
-            </>
-          ) : (
-            <p className="mt-2 text-lg font-extrabold leading-tight">Nos recettes</p>
-          )}
-          <p className="mt-2 text-sm font-bold text-ink/60">
-            {recipes.length} recette{recipes.length > 1 ? "s" : ""}
-          </p>
-        </Tile>
-      ),
-    },
-    {
-      to: "/depenses",
-      node: (
-        <Tile to="/depenses" icon="💶" className="bg-sky">
-          <Label>Dépenses</Label>
-          {debt ? (
-            <p className="mt-2 text-sm font-bold leading-snug">
-              {debt.from.name} doit <span className="block text-2xl font-extrabold">{formatEur(debt.cents)}</span>à {debt.to.name}
-            </p>
-          ) : (
-            <p className="mt-2 text-lg font-extrabold leading-tight">Comptes à jour ✓</p>
-          )}
-        </Tile>
-      ),
-    },
-    {
-      to: "/journal",
-      node: (
-        <Tile to="/journal" icon="📔" className="bg-lemon">
-          <Label>Journal</Label>
-          <p className="mt-1 font-extrabold leading-snug">{wroteToday ? "Tu as écrit aujourd'hui ✓" : "Qu'as-tu vécu aujourd'hui ?"}</p>
-          <p className="text-sm font-bold text-ink/60">
-            {journals.length} journa{journals.length > 1 ? "ux" : "l"}
-          </p>
-        </Tile>
-      ),
-    },
-    {
-      to: "/infos",
-      node: (
-        <Tile to="/infos" icon="🔑" className="bg-lavender">
-          <Label>Infos</Label>
-          {infos.length ? (
-            <ul className="mt-2 space-y-1">
-              {infos
-                .filter((i) => i.category === "CODE")
-                .slice(0, 2)
-                .map((i) => (
-                  <li key={i.id} className="truncate rounded-xl bg-white/60 px-2 py-1 text-sm font-semibold">
-                    {i.label} · <span className="font-mono font-extrabold">{i.value}</span>
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-lg font-extrabold leading-tight">Codes, Wi-Fi, numéros</p>
-          )}
-          <p className="mt-2 text-sm font-bold text-ink/60">
-            {infos.length} info{infos.length > 1 ? "s" : ""}
-          </p>
-        </Tile>
-      ),
-    },
-    {
-      to: "/calories",
-      node: (
-        <Tile to="/calories" icon="🔥" className="bg-peach">
-          <Label>Calories</Label>
-          <p className="mt-1 text-2xl font-extrabold">
-            {totalKcal(todayKcal)} <span className="text-sm font-bold text-ink/60">kcal</span>
-          </p>
-          <p className="text-sm font-bold text-ink/60">
-            {me?.calorieGoal ? `sur ${me.calorieGoal} aujourd'hui` : "aujourd'hui"}
-          </p>
-        </Tile>
-      ),
-    },
-    {
-      to: "/budget",
-      node: (
-        <Tile to="/budget" icon="📊" className="bg-rose">
-          <Label>Budget</Label>
-          {budgetItems.length === 0 ? (
-            <p className="mt-2 text-lg font-extrabold leading-tight">Ajoute tes charges</p>
-          ) : (
-            <>
-              <p className="mt-1 text-2xl font-extrabold">{formatEur(budget.leftCents)}</p>
-              <p className="text-sm font-bold text-ink/60">reste par mois</p>
-              {budget.next && (
-                <p className="mt-2 truncate text-xs font-bold text-ink/60">
-                  {shortDate(budget.next.date)} · {budget.next.item.label} {formatEur(budget.next.item.amountCents)}
-                </p>
-              )}
-            </>
-          )}
-        </Tile>
-      ),
-    },
-  ];
-
-  const shown = tiles.filter((t) => visible.has(t.to));
+  // pages affichées, dans l'ordre choisi (Réglages → Menu) ; grid-flow-dense comble les trous
+  const shown = useHomeTabs();
+  const wide = useWideTiles();
 
   return (
     <section className="grid auto-rows-[minmax(8rem,auto)] grid-flow-dense grid-cols-2 gap-3 sm:grid-cols-3">
-      {shown.map((t, i) => (
-        <div key={t.to} className="contents" style={{ "--delay": `${i * 60}ms` } as CSSProperties}>
-          {t.node}
-        </div>
-      ))}
+      {shown.map((t, i) => {
+        const Component = TILES[t.to];
+        return (
+          <div key={t.to} className="contents" style={{ "--delay": `${i * 60}ms` } as CSSProperties}>
+            <Component wide={wide.has(t.to)} />
+          </div>
+        );
+      })}
       <div className="contents" style={{ "--delay": `${shown.length * 60}ms` } as CSSProperties}>
-        <Tile to="/profil" icon="⚙️" className="bg-rose">
+        <Tile to="/profil" icon="⚙️" label="Réglages" className="bg-rose">
           <Label>Réglages</Label>
           <p className="mt-2 text-sm font-bold text-ink/60">Menu, pages, mot de passe</p>
         </Tile>
       </div>
     </section>
-  );
-}
-
-function Tile({ to, icon, className, children }: { to: string; icon: string; className: string; children: ReactNode }) {
-  return (
-    <Link
-      to={to}
-      className={`bento-tile group relative flex flex-col overflow-hidden rounded-3xl p-4 shadow-soft transition hover:-translate-y-0.5 active:scale-95 ${className}`}
-    >
-      {/* grand emoji décoratif dans le coin */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -bottom-3 -right-3 rotate-12 select-none text-7xl opacity-25 transition group-hover:rotate-0 group-hover:scale-110"
-      >
-        {icon}
-      </span>
-      <div className="relative">{children}</div>
-    </Link>
-  );
-}
-
-const Label = ({ children }: { children: ReactNode }) => (
-  <p className="text-xs font-extrabold uppercase tracking-wider text-ink/50">{children}</p>
-);
-
-function MealChip({ icon, label, text }: { icon: string; label: string; text?: string }) {
-  return (
-    <div className="rounded-2xl bg-white/70 px-3 py-2">
-      <p className="text-xs font-bold text-ink-soft">
-        {icon} {label}
-      </p>
-      <p className={`truncate font-bold ${text ? "" : "text-ink/40"}`}>{text ?? "Rien de prévu"}</p>
-    </div>
   );
 }

@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { api, type NotificationType } from "../lib/api";
 import { useLogout, useMe, useUpdatePreferences } from "../lib/auth";
 import { usePushStatus } from "../lib/push";
-import { tabs } from "../lib/tabs";
+import { orderTabs, tabs } from "../lib/tabs";
 
 export function Profile() {
   const { data: me } = useMe();
@@ -73,6 +73,9 @@ function MenuSettings() {
   const { data: me } = useMe();
   const save = useUpdatePreferences();
   const showNavBar = me?.showNavBar ?? true;
+  const order = orderTabs(tabs, me?.menuOrder ?? []).map((t) => t.to);
+  const wide = me?.homeWide ?? ["/repas"];
+  const onOrder = (menuOrder: string[]) => save.mutate({ menuOrder });
 
   return (
     <div className="space-y-3 rounded-3xl bg-white p-6 shadow-soft">
@@ -96,35 +99,83 @@ function MenuSettings() {
       </label>
 
       {showNavBar && (
-        <PageList title="Pages de la barre de menu" hidden={me?.hiddenTabs ?? []} onChange={(hiddenTabs) => save.mutate({ hiddenTabs })} requireOne />
+        <PageList title="Pages de la barre de menu" hidden={me?.hiddenTabs ?? []} onChange={(hiddenTabs) => save.mutate({ hiddenTabs })} order={order} onOrder={onOrder} requireOne />
       )}
-      <PageList title="Pages de l'accueil" hidden={me?.hiddenHome ?? me?.hiddenTabs ?? []} onChange={(hiddenHome) => save.mutate({ hiddenHome })} />
+      <PageList
+        title="Pages de l'accueil"
+        hidden={me?.hiddenHome ?? me?.hiddenTabs ?? []}
+        onChange={(hiddenHome) => save.mutate({ hiddenHome })}
+        order={order}
+        onOrder={onOrder}
+        wide={wide}
+        onWide={(homeWide) => save.mutate({ homeWide })}
+      />
       {save.error && <p className="text-sm font-semibold text-rose-deep">{save.error.message}</p>}
     </div>
   );
 }
 
-// liste de pages à cocher ; requireOne : au moins une page doit rester visible
-function PageList({ title, hidden, onChange, requireOne }: { title: string; hidden: string[]; onChange: (hidden: string[]) => void; requireOne?: boolean }) {
+// liste de pages à cocher et à réordonner (ordre commun à la barre et à l'accueil) ;
+// requireOne : au moins une page doit rester visible ; wide/onWide : tuiles sur 2 colonnes (accueil)
+function PageList({
+  title,
+  hidden,
+  onChange,
+  order,
+  onOrder,
+  requireOne,
+  wide,
+  onWide,
+}: {
+  title: string;
+  hidden: string[];
+  onChange: (hidden: string[]) => void;
+  order: string[];
+  onOrder: (order: string[]) => void;
+  requireOne?: boolean;
+  wide?: string[];
+  onWide?: (wide: string[]) => void;
+}) {
+  const move = (i: number, delta: number) => {
+    const next = [...order];
+    [next[i], next[i + delta]] = [next[i + delta], next[i]];
+    onOrder(next);
+  };
+  const arrow = "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/70 text-sm disabled:opacity-30";
   return (
     <>
       <p className="pt-2 text-sm font-bold text-ink-soft">{title}</p>
       <div className="space-y-2">
-        {tabs.map((t) => {
-          const shown = !hidden.includes(t.to);
-          const last = requireOne && shown && tabs.every((o) => o.to === t.to || hidden.includes(o.to));
+        {order.map((to, i) => {
+          const t = tabs.find((x) => x.to === to)!;
+          const shown = !hidden.includes(to);
+          const last = requireOne && shown && tabs.every((o) => o.to === to || hidden.includes(o.to));
+          const isWide = wide?.includes(to);
           return (
-            <label key={t.to} className={`flex items-center gap-3 rounded-2xl px-3 py-2 font-bold ${shown ? t.active : "bg-cream text-ink-soft"}`}>
-              <input
-                type="checkbox"
-                className="h-5 w-5 accent-lavender-deep"
-                checked={shown}
-                disabled={last}
-                onChange={() => onChange(shown ? [...hidden, t.to] : hidden.filter((h) => h !== t.to))}
-              />
-              <span className="text-xl">{t.icon}</span>
-              {t.label}
-            </label>
+            <div key={to} className={`flex items-center gap-1.5 rounded-2xl pr-1.5 font-bold ${shown ? t.active : "bg-cream text-ink-soft"}`}>
+              <label className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 accent-lavender-deep"
+                  checked={shown}
+                  disabled={last}
+                  onChange={() => onChange(shown ? [...hidden, to] : hidden.filter((h) => h !== to))}
+                />
+                <span className="text-xl">{t.icon}</span>
+                <span className="truncate">{t.label}</span>
+              </label>
+              {onWide && shown && (
+                <button type="button" className={`${arrow} w-auto px-2 text-xs font-extrabold`} aria-pressed={isWide} aria-label={`${t.label} : tuile large`} onClick={() => onWide(isWide ? wide!.filter((w) => w !== to) : [...wide!, to])}>
+                  {isWide ? "Large" : "Normal"}
+                </button>
+              )}
+              <button type="button" className={arrow} disabled={i === 0} aria-label={`Monter ${t.label}`} onClick={() => move(i, -1)}>
+                ▲
+              </button>
+              <button type="button" className={arrow} disabled={i === order.length - 1} aria-label={`Descendre ${t.label}`} onClick={() => move(i, 1)}>
+                ▼
+              </button>
+            </div>
           );
         })}
       </div>
