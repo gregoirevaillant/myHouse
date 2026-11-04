@@ -1,10 +1,14 @@
+name: myhouse
+
 services:
   app:
     build: .
     restart: unless-stopped
     env_file: .env
     ports:
-      - "1000:1000"
+      # Bound to 127.0.0.1 so only the host's cloudflared service can reach it.
+      # In the Cloudflare dashboard, point maison.gregoirevaillant.fr to http://localhost:8083 (see ~/apps/README.md)
+      - "127.0.0.1:8083:1000"
     volumes:
       - data:/data
 
