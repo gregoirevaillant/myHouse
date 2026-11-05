@@ -2,7 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Recipe, type RecipeCategory } from "../lib/api";
 import { compressImage } from "../lib/image";
-import { RECIPE_CATEGORIES, recipeImage } from "../lib/recipes";
+import { RECIPE_CATEGORIES, partsKcal, partsToText, recipeImage, textToParts, useRecipes, type FoodPart } from "../lib/recipes";
+import { FoodParts } from "./FoodParts";
 
 export type RecipeDraft = Omit<Recipe, "id" | "hasImage" | "note"> & { image: File | null };
 
@@ -23,6 +24,10 @@ export function RecipeForm({
   const qc = useQueryClient();
   // aliment privé : seulement nom, calories (par portion ou pour 100 g) et photo
   const food = recipe ? !!recipe.private : !!caloriesOnly;
+  const { data: all = [] } = useRecipes(food, true);
+  // aliment composé (plusieurs produits) : les ingrédients portent la composition, les calories en sont le total
+  const [parts, setParts] = useState<FoodPart[]>(() => (food ? textToParts(init?.ingredients ?? "") : []));
+  const [composed, setComposed] = useState(parts.length > 0);
   const [per100g, setPer100g] = useState(!!init?.per100g);
   const [name, setName] = useState(init?.name ?? "");
   const [category, setCategory] = useState<RecipeCategory>(init?.category ?? "PLAT");
@@ -41,7 +46,7 @@ export function RecipeForm({
   const save = useMutation({
     mutationFn: async () => {
       const fd = new FormData();
-      Object.entries({ name, category, minutes, servings, calories, ingredients, steps, url, note, per100g: String(per100g) }).forEach(([k, v]) => fd.set(k, v));
+      Object.entries({ name, category, minutes, servings, calories: composed ? String(partsKcal(parts)) : calories, ingredients: composed ? partsToText(parts) : ingredients, steps, url, note, per100g: String(!composed && per100g) }).forEach(([k, v]) => fd.set(k, v));
       if (!recipe && food) fd.set("private", "true");
       if (image) fd.set("image", await compressImage(image));
       if (removeImage && !image) fd.set("removeImage", "true");
@@ -111,6 +116,19 @@ export function RecipeForm({
 
       )}
 
+      {food && (
+        <div className="flex gap-1.5">
+          {[false, true].map((v) => (
+            <button key={String(v)} type="button" onClick={() => setComposed(v)} className={`rounded-full px-3 py-1.5 text-sm font-bold shadow-soft ${composed === v ? "bg-peach" : "bg-white text-ink-soft"}`}>
+              {v ? "🧩 Composé" : "Un seul produit"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {food && composed && <FoodParts parts={parts} onChange={setParts} foods={all.filter((r) => r.private && r.id !== recipe?.id)} />}
+
+      {!(food && composed) && (
       <div>
         <label className="label" htmlFor="recipe-calories">🔥 Calories {per100g ? "pour 100 g" : "par portion"} (kcal)</label>
         <input id="recipe-calories" className="input focus:border-rose" inputMode="numeric" pattern="[0-9]*" placeholder="450" value={calories} onChange={(e) => setCalories(e.target.value.replace(/\D/g, ""))} required={food} />
@@ -124,6 +142,7 @@ export function RecipeForm({
           </div>
         )}
       </div>
+      )}
 
       {!food && (<>
       <div>
@@ -196,7 +215,7 @@ export function RecipeForm({
       </>)}
 
       {save.error && <p className="text-center text-sm font-semibold text-rose-deep">{save.error.message}</p>}
-      <button className="btn w-full bg-rose-deep text-white shadow-soft" disabled={!name.trim() || save.isPending || (food && !(Number(calories) > 0))}>
+      <button className="btn w-full bg-rose-deep text-white shadow-soft" disabled={!name.trim() || save.isPending || (food && !(composed ? partsKcal(parts) > 0 : Number(calories) > 0))}>
         {save.isPending ? "Enregistrement…" : recipe ? "Enregistrer" : food ? "Créer l'aliment" : "Créer la recette"}
       </button>
 

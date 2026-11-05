@@ -43,3 +43,15 @@ export function formatMinutes(minutes: number) {
 // « ⏱ 45 min · 👥 4 »
 export const recipeMeta = (r: Recipe) =>
   [r.minutes && `⏱ ${formatMinutes(r.minutes)}`, r.servings && `👥 ${r.servings}`, r.calories && `🔥 ${r.calories} kcal${r.per100g ? " / 100 g" : ""}`].filter(Boolean).join(" · ");
+
+// aliment composé (ex. petit-déjeuner) : une ligne d'ingrédients = « 40 g Pain · 250 kcal/100 g »
+export type FoodPart = { name: string; grams: number; per100: number };
+export const partKcal = (p: FoodPart) => Math.round((p.per100 * p.grams) / 100);
+export const partsKcal = (parts: FoodPart[]) => parts.reduce((s, p) => s + partKcal(p), 0);
+export const partsToText = (parts: FoodPart[]) => parts.map((p) => `${p.grams} g ${p.name} · ${p.per100} kcal/100 g`).join("\n");
+export function textToParts(text: string): FoodPart[] {
+  return text.split("\n").flatMap((l) => {
+    const m = l.match(/^(\d+(?:\.\d+)?) g (.+) · (\d+) kcal\/100 g$/);
+    return m ? [{ grams: Number(m[1]), name: m[2], per100: Number(m[3]) }] : [];
+  });
+}
