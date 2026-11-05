@@ -50,8 +50,8 @@ export const partKcal = (p: FoodPart) => Math.round((p.per100 * p.grams) / 100);
 export const partsKcal = (parts: FoodPart[]) => parts.reduce((s, p) => s + partKcal(p), 0);
 export const partsToText = (parts: FoodPart[]) => parts.map((p) => `${p.grams} g ${p.name} · ${p.per100} kcal/100 g`).join("\n");
 export function textToParts(text: string): FoodPart[] {
-  return text.split("\n").flatMap((l) => {
-    const m = l.match(/^(\d+(?:\.\d+)?) g (.+) · (\d+) kcal\/100 g$/);
+  return text.split(/\r?\n/).flatMap((l) => {
+    const m = l.trim().match(/^(\d+(?:\.\d+)?) g (.+) · (\d+) kcal\/100 g$/);
     return m ? [{ grams: Number(m[1]), name: m[2], per100: Number(m[3]) }] : [];
   });
 }
