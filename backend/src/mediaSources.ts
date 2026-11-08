@@ -87,11 +87,12 @@ const entityId = /^Q\d+$/;
 const labelOf = (e: { labels?: Record<string, { value: string }> }) => e.labels?.fr?.value ?? e.labels?.en?.value ?? e.labels?.mul?.value ?? null;
 const entities = z.object({
   entities: z.record(
+    z.string(),
     z.object({
-      labels: z.record(z.object({ value: z.string() })).optional(),
-      descriptions: z.record(z.object({ value: z.string() })).optional(),
-      claims: z.record(z.array(z.object({ mainsnak: z.object({ datavalue: z.object({ value: z.unknown() }).optional() }) }))).optional(),
-      sitelinks: z.record(z.object({ title: z.string() })).optional(),
+      labels: z.record(z.string(), z.object({ value: z.string() })).optional(),
+      descriptions: z.record(z.string(), z.object({ value: z.string() })).optional(),
+      claims: z.record(z.string(), z.array(z.object({ mainsnak: z.object({ datavalue: z.object({ value: z.unknown() }).optional() }) }))).optional(),
+      sitelinks: z.record(z.string(), z.object({ title: z.string() })).optional(),
     }),
   ),
 });
