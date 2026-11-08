@@ -140,3 +140,26 @@ export type BudgetItemInput = Omit<BudgetItem, "id">;
 export type CalorieMeal = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
 export type CalorieEntry = { id: string; date: string; meal: CalorieMeal; label: string; kcal: number };
 export type CalorieEntryInput = Omit<CalorieEntry, "id">;
+
+export type MediaKind = "MOVIE" | "SERIES" | "GAME" | "BOOK";
+export type MediaStatus = "WISHLIST" | "IN_PROGRESS" | "DONE";
+export type MediaItem = {
+  id: string;
+  kind: MediaKind;
+  title: string;
+  year: number | null;
+  creator: string | null;
+  overview: string | null;
+  status: MediaStatus;
+  progress: string | null;
+  rating: number | null;
+  doneAt: string | null;
+  note: string | null;
+  source: string | null;
+  sourceId: string | null;
+  private: boolean;
+  hasImage: boolean;
+};
+export type MediaInput = Omit<MediaItem, "id" | "hasImage">;
+// résultat d'une recherche dans une base ouverte
+export type MediaHit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null };

@@ -13,6 +13,7 @@ import { invalidateOnWrite, liveRoutes } from "./live.js";
 import { requireModule, type Access } from "./modules.js";
 import { adminRoutes } from "./routes/admin.js";
 import { budgetRoutes } from "./routes/budget.js";
+import { mediaRoutes } from "./routes/media.js";
 import { calorieRoutes } from "./routes/calories.js";
 import { cardRoutes } from "./routes/cards.js";
 import { expenseRoutes } from "./routes/expenses.js";
@@ -106,6 +107,7 @@ await app.register(
       await priv.register(recipeRoutes, { prefix: "/recipes" });
       await priv.register(userRoutes, { prefix: "/users" });
       await priv.register(budgetRoutes, { prefix: "/budget" });
+      await priv.register(mediaRoutes, { prefix: "/media" });
       await priv.register(calorieRoutes, { prefix: "/calories" });
       await priv.register(pushRoutes, { prefix: "/push" });
       await priv.register(liveRoutes, { prefix: "/events" });

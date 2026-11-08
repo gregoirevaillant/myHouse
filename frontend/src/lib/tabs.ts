@@ -11,6 +11,7 @@ export const tabs = [
   { to: "/infos", label: "Infos", icon: "🔑", active: "bg-lavender" },
   { to: "/calories", label: "Calories", icon: "🔥", active: "bg-peach" },
   { to: "/budget", label: "Budget", icon: "📊", active: "bg-rose" },
+  { to: "/media", label: "Médias", icon: "🎬", active: "bg-lavender" },
 ];
 
 // pages activées pour la famille par l'administrateur ; features absent (session gardée hors ligne avant les familles) = toutes

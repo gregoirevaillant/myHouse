@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Label, Tile } from "../components/home/Tile";
-import { BudgetTile, CaloriesTile, CardsTile, ExpensesTile, InfosTile, JournalTile, MealsTile, RecipesTile, RestosTile, ShoppingTile } from "../components/home/tiles";
+import { BudgetTile, CaloriesTile, CardsTile, ExpensesTile, InfosTile, JournalTile, MealsTile, MediaTile, RecipesTile, RestosTile, ShoppingTile } from "../components/home/tiles";
 import { useHomeTabs, useWideTiles } from "../lib/tabs";
 
 const TILES: Record<string, (p: { wide: boolean }) => ReactNode> = {
@@ -14,6 +14,7 @@ const TILES: Record<string, (p: { wide: boolean }) => ReactNode> = {
   "/infos": InfosTile,
   "/calories": CaloriesTile,
   "/budget": BudgetTile,
+  "/media": MediaTile,
 };
 
 export function Home() {

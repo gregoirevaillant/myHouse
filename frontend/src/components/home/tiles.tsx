@@ -8,6 +8,7 @@ import { mondayOf, shortDate, toIso } from "../../lib/dates";
 import { computeDebt, useExpenses } from "../../lib/expenses";
 import { useMembers } from "../../lib/members";
 import { formatEur } from "../../lib/money";
+import { useMedia } from "../../lib/media";
 import { cardsQuery, infosQuery, shoppingQuery } from "../../lib/offline";
 import { recipeCategory, useRecipes } from "../../lib/recipes";
 import { cuisineInfo, useRestaurants } from "../../lib/restaurants";
@@ -255,6 +256,31 @@ export function BudgetTile({ wide }: Props) {
               {shortDate(budget.next.date)} · {budget.next.item.label} {formatEur(budget.next.item.amountCents)}
             </p>
           )}
+        </>
+      )}
+    </Tile>
+  );
+}
+
+export function MediaTile({ wide }: Props) {
+  const { data: items = [] } = useMedia();
+  const doing = items.filter((i) => i.status === "IN_PROGRESS");
+  const toWatch = items.filter((i) => i.status === "WISHLIST").length;
+  return (
+    <Tile to="/media" icon="🎬" label="Médias" className={`${span(wide)}bg-lavender`}>
+      <Label>Médias</Label>
+      {items.length === 0 ? (
+        <p className="mt-2 text-lg font-extrabold leading-tight">Films, séries, jeux, livres</p>
+      ) : (
+        <>
+          <p className="mt-1 text-5xl font-extrabold leading-none">{toWatch}</p>
+          <p className="text-sm font-bold text-ink/60">à voir, jouer ou lire</p>
+          {doing.slice(0, 2).map((i) => (
+            <p key={i.id} className="mt-2 truncate rounded-xl bg-white/60 px-2 py-1 text-sm font-semibold">
+              {i.title}
+              {i.progress ? ` · ${i.progress}` : ""}
+            </p>
+          ))}
         </>
       )}
     </Tile>

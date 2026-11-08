@@ -1,7 +1,7 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 // Pages que l'administrateur active ou non pour chaque famille (Household.features). Mêmes noms que les routes du front, sans « / ».
-export const MODULES = ["cartes", "repas", "recettes", "courses", "restos", "depenses", "journal", "infos", "calories", "budget"] as const;
+export const MODULES = ["cartes", "repas", "recettes", "courses", "restos", "depenses", "journal", "infos", "calories", "budget", "media"] as const;
 export type Module = (typeof MODULES)[number];
 
 export const parseFeatures = (csv: string) => MODULES.filter((m) => csv.split(",").includes(m));
@@ -20,6 +20,7 @@ const ROUTE_MODULES: Record<string, Module[]> = {
   infos: ["infos"],
   calories: ["calories"],
   budget: ["budget"],
+  media: ["media"],
 };
 
 // toujours accessibles à une personne connectée (limitées à son foyer)

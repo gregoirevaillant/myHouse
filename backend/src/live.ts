@@ -31,6 +31,7 @@ const INVALIDATIONS: { prefix: string; keys: string[][]; private?: boolean }[] =
   { prefix: "/api/infos", keys: [["infos"]] },
   { prefix: "/api/recipes", keys: [["recipes"]] },
   { prefix: "/api/journals", keys: [["journals"], ["journal"]], private: true },
+  { prefix: "/api/media", keys: [["media"]] }, // les fiches privées ne sont renvoyées qu'à leur auteur par GET
   { prefix: "/api/budget", keys: [["budget"]], private: true },
   { prefix: "/api/calories", keys: [["calories"]], private: true },
   { prefix: "/api/auth/preferences", keys: [["me"]], private: true },

@@ -26,6 +26,7 @@ model Household {
   infos           HouseInfo[]
   recipes         Recipe[]
   calorieEntries  CalorieEntry[]
+  mediaItems      MediaItem[]
 }
 
 model User {
@@ -305,4 +306,27 @@ model Recipe {
   createdAt   DateTime  @default(now())
 
   @@index([householdId])
+}
+
+// Suivi de ce qu'on regarde, joue ou lit (films, séries ; jeux et livres à venir). Visibilité comme HouseInfo : ownerId null = partagé.
+model MediaItem {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String?
+  kind        String // MOVIE | SERIES | GAME | BOOK
+  title       String
+  year        Int?
+  creator     String? // réalisateur, studio, auteur… (texte libre)
+  overview    String?
+  status      String // WISHLIST | IN_PROGRESS | DONE
+  progress    String? // « S2 E5 », « p. 120 »… texte libre
+  rating      Int? // 1 à 5
+  doneAt      String? // YYYY-MM-DD, fin du visionnage / de la partie / de la lecture
+  note        String?
+  source      String? // base ouverte d'où vient la fiche : tvmaze | wikidata
+  sourceId    String?
+  imagePath   String?
+  createdAt   DateTime  @default(now())
 }
