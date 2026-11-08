@@ -12,6 +12,9 @@ export const env = {
   // notifications push : clés VAPID générées dans DATA_DIR si absentes
   vapidPublicKey: process.env.VAPID_PUBLIC_KEY ?? "",
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
+  // page Médias : bases de données interrogées par le serveur (facultatives)
+  tmdbKey: process.env.TMDB_API_KEY ?? "",
+  rawgKey: process.env.RAWG_API_KEY ?? "",
   vapidSubject: process.env.VAPID_SUBJECT ?? `mailto:${process.env.ADMIN_EMAIL ?? process.env.USER1_EMAIL ?? "maison@example.com"}`,
 };
 

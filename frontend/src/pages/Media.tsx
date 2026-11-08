@@ -125,9 +125,7 @@ function AddPicker({ onPick }: { onPick: (draft: Partial<MediaInput> & { kind: M
             OK
           </button>
         </form>
-      ) : (
-        <p className="rounded-2xl bg-lavender-soft p-3 text-sm font-semibold text-ink-soft">Pas encore de base de données pour ce type : saisis la fiche à la main.</p>
-      )}
+      ) : null}
       {search.isFetching && <p className="text-center text-ink-soft">Recherche…</p>}
       {search.error && <p className="text-sm font-bold text-rose-deep">{search.error.message}</p>}
       {search.data?.length === 0 && <p className="text-center font-semibold text-ink-soft">Aucun résultat</p>}
@@ -136,7 +134,7 @@ function AddPicker({ onPick }: { onPick: (draft: Partial<MediaInput> & { kind: M
           <li key={h.source + h.sourceId}>
             <button
               className="w-full rounded-2xl bg-white px-4 py-3 text-left shadow-soft transition active:scale-95"
-              onClick={() => onPick({ kind, title: h.title, year: h.year, source: h.source, sourceId: h.sourceId })}
+              onClick={() => onPick({ kind, title: h.title, year: h.year, creator: h.creator, source: h.source, sourceId: h.sourceId })}
             >
               <span className="font-extrabold">{h.title}</span> <span className="text-sm font-semibold text-ink-soft">{h.year}</span>
               {h.subtitle && <span className="block truncate text-xs font-semibold text-ink-soft">{h.subtitle}</span>}
@@ -147,7 +145,10 @@ function AddPicker({ onPick }: { onPick: (draft: Partial<MediaInput> & { kind: M
       <button className="btn-ghost w-full" onClick={() => onPick({ kind })}>
         ✏️ Saisir à la main
       </button>
-      {info.searchable && <p className="text-center text-xs font-semibold text-ink-soft">Données ouvertes : {info.source}</p>}
+      <p className="text-center text-xs font-semibold text-ink-soft">
+        Données : {info.source}
+        {info.source === "TMDB" && " — ce produit utilise l'API TMDB mais n'est ni approuvé ni certifié par TMDB"}
+      </p>
     </div>
   );
 }
@@ -158,7 +159,7 @@ function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Partial<
   const info = KINDS[kind];
   const [title, setTitle] = useState(item?.title ?? draft?.title ?? "");
   const [year, setYear] = useState(String(item?.year ?? draft?.year ?? ""));
-  const [creator, setCreator] = useState(item?.creator ?? "");
+  const [creator, setCreator] = useState(item?.creator ?? draft?.creator ?? "");
   const [status, setStatus] = useState<MediaStatus>(item?.status ?? "WISHLIST");
   const [progress, setProgress] = useState(item?.progress ?? "");
   const [rating, setRating] = useState<number | null>(item?.rating ?? null);

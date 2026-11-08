@@ -162,4 +162,4 @@ export type MediaItem = {
 };
 export type MediaInput = Omit<MediaItem, "id" | "hasImage">;
 // résultat d'une recherche dans une base ouverte
-export type MediaHit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null };
+export type MediaHit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null; creator: string | null };

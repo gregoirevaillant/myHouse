@@ -4,7 +4,7 @@ import { prisma } from "../db.js";
 import { detailsFor, downloadImage, SOURCES } from "../mediaSources.js";
 import { removeImage, saveImage, sendImage } from "../uploads.js";
 
-// types de médias ; GAME et BOOK sont prévus (schéma et écrans) mais sans base interrogeable pour l'instant
+// types de médias, chacun avec sa base de données dans mediaSources.ts
 const KINDS = ["MOVIE", "SERIES", "GAME", "BOOK"] as const;
 const STATUSES = ["WISHLIST", "IN_PROGRESS", "DONE"] as const;
 
