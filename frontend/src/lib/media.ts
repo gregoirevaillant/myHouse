@@ -5,7 +5,7 @@ import { api, type MediaItem, type MediaKind, type MediaStatus } from "./api";
 export const KINDS: Record<MediaKind, { icon: string; label: string; plural: string; wish: string; doing: string; done: string; creator: string; searchable: boolean; source: string }> = {
   MOVIE: { icon: "🎬", label: "Film", plural: "Films", wish: "À voir", doing: "En cours", done: "Vu", creator: "Réalisateur", searchable: true, source: "TMDB" },
   SERIES: { icon: "📺", label: "Série", plural: "Séries", wish: "À voir", doing: "En cours", done: "Vue", creator: "Créateur / chaîne", searchable: true, source: "TMDB" },
-  GAME: { icon: "🎮", label: "Jeu", plural: "Jeux", wish: "À jouer", doing: "En cours", done: "Terminé", creator: "Studio", searchable: true, source: "RAWG" },
+  GAME: { icon: "🎮", label: "Jeu", plural: "Jeux", wish: "À jouer", doing: "En cours", done: "Terminé", creator: "Studio", searchable: true, source: "IGDB" },
   BOOK: { icon: "📚", label: "Livre", plural: "Livres", wish: "À lire", doing: "En cours", done: "Lu", creator: "Auteur", searchable: true, source: "Open Library" },
 };
 export const KIND_IDS = Object.keys(KINDS) as MediaKind[];

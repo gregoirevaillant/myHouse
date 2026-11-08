@@ -2,14 +2,14 @@ import { z } from "zod";
 import { env } from "./env.js";
 
 // Bases de données interrogées côté serveur (le navigateur ne contacte rien d'externe) :
-// TMDB (films, séries), Open Library (livres, sans clé), RAWG (jeux). Un type par entrée de SOURCES.
+// TMDB (films, séries), Open Library (livres, sans clé), IGDB (jeux). Un type par entrée de SOURCES.
 
 export type Hit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null; creator: string | null };
 export type Details = { overview: string | null; creator: string | null; imageUrl: string | null };
 
 const UA = "Maison/1.0 (application familiale privee)";
 // seuls hébergeurs d'images que le serveur télécharge
-const IMAGE_HOSTS = new Set(["image.tmdb.org", "covers.openlibrary.org", "media.rawg.io"]);
+const IMAGE_HOSTS = new Set(["image.tmdb.org", "covers.openlibrary.org", "images.igdb.com"]);
 
 const unavailable = () => Object.assign(new Error("La base de données ne répond pas (panne de leur côté), réessaie plus tard"), { statusCode: 502, expose: true });
 const missingKey = (name: string) => Object.assign(new Error(`${name} n'est pas configuré sur le serveur (clé d'API manquante)`), { statusCode: 503, expose: true });
@@ -123,35 +123,62 @@ async function bookDetails(id: string): Promise<Details> {
   };
 }
 
-// ---------- RAWG (jeux vidéo) ----------
+// ---------- IGDB (jeux vidéo, via un compte développeur Twitch) ----------
 
-function rawg(path: string, params: Record<string, string> = {}) {
-  if (!env.rawgKey) throw missingKey("RAWG");
-  return getJson(`https://api.rawg.io/api${path}?${new URLSearchParams({ key: env.rawgKey, ...params })}`);
+let igdbToken: { value: string; expires: number } | null = null;
+
+async function igdbAuth() {
+  if (!env.igdbId || !env.igdbSecret) throw missingKey("IGDB");
+  if (igdbToken && igdbToken.expires > Date.now() + 60_000) return igdbToken.value;
+  const url = `https://id.twitch.tv/oauth2/token?${new URLSearchParams({ client_id: env.igdbId, client_secret: env.igdbSecret, grant_type: "client_credentials" })}`;
+  const res = await fetch(url, { method: "POST", headers: { "user-agent": UA }, signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw Object.assign(new Error("IGDB refuse l'identifiant ou le secret Twitch configurés"), { statusCode: 502, expose: true });
+  const t = z.object({ access_token: z.string(), expires_in: z.number() }).parse(await res.json());
+  igdbToken = { value: t.access_token, expires: Date.now() + t.expires_in * 1000 };
+  return igdbToken.value;
 }
 
+async function igdb(endpoint: string, body: string): Promise<unknown> {
+  const res = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
+    method: "POST",
+    headers: { "user-agent": UA, "client-id": env.igdbId, authorization: `Bearer ${await igdbAuth()}`, accept: "application/json" },
+    body,
+    signal: AbortSignal.timeout(8000),
+  });
+  if (res.status === 401) igdbToken = null; // jeton révoqué : le prochain appel en demande un autre
+  if (!res.ok) throw unavailable();
+  return res.json();
+}
+
+const igdbCover = (imageId?: string) => (imageId && /^\w+$/.test(imageId) ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg` : null);
+
 async function searchGames(q: string): Promise<Hit[]> {
-  const res = z
-    .object({
-      results: z.array(z.object({ id: z.number(), name: z.string(), released: z.string().nullish(), platforms: z.array(z.object({ platform: z.object({ name: z.string() }) })).nullish() })),
-    })
-    .parse(await rawg("/games", { search: q, page_size: "10" }));
-  return res.results.map((g) => ({
-    source: "rawg",
+  const list = z
+    .array(z.object({ id: z.number(), name: z.string(), first_release_date: z.number().optional(), platforms: z.array(z.object({ abbreviation: z.string().optional() })).optional() }))
+    .parse(await igdb("games", `search "${q.replace(/["\\]/g, " ")}"; fields name,first_release_date,platforms.abbreviation; limit 10;`));
+  return list.map((g) => ({
+    source: "igdb",
     sourceId: String(g.id),
     title: g.name,
-    year: yearOf(g.released),
-    subtitle: g.platforms?.slice(0, 3).map((p) => p.platform.name).join(", ") || null,
+    year: g.first_release_date ? new Date(g.first_release_date * 1000).getUTCFullYear() : null,
+    subtitle: g.platforms?.flatMap((p) => (p.abbreviation ? [p.abbreviation] : [])).slice(0, 4).join(", ") || null,
     creator: null,
   }));
 }
 
 async function gameDetails(id: string): Promise<Details> {
   if (!/^\d+$/.test(id)) return { overview: null, creator: null, imageUrl: null };
-  const g = z
-    .object({ description_raw: z.string().nullish(), background_image: z.string().nullish(), developers: z.array(z.object({ name: z.string() })).optional() })
-    .parse(await rawg(`/games/${id}`));
-  return { overview: clip(g.description_raw), creator: g.developers?.slice(0, 2).map((d) => d.name).join(", ") || null, imageUrl: g.background_image ?? null };
+  const [g] = z
+    .array(
+      z.object({
+        summary: z.string().optional(),
+        cover: z.object({ image_id: z.string() }).optional(),
+        involved_companies: z.array(z.object({ developer: z.boolean().optional(), company: z.object({ name: z.string() }).optional() })).optional(),
+      }),
+    )
+    .parse(await igdb("games", `fields summary,cover.image_id,involved_companies.developer,involved_companies.company.name; where id = ${id};`));
+  const devs = g?.involved_companies?.flatMap((c) => (c.developer && c.company ? [c.company.name] : [])).slice(0, 2).join(", ");
+  return { overview: clip(g?.summary), creator: devs || null, imageUrl: igdbCover(g?.cover?.image_id) };
 }
 
 // ---------- registre ----------
@@ -162,7 +189,7 @@ export const SOURCES: Record<string, Source> = {
   MOVIE: { id: "tmdb", search: tmdbSearch("movie"), details: tmdbDetails("movie") },
   SERIES: { id: "tmdb", search: tmdbSearch("tv"), details: tmdbDetails("tv") },
   BOOK: { id: "openlibrary", search: searchBooks, details: bookDetails },
-  GAME: { id: "rawg", search: searchGames, details: gameDetails },
+  GAME: { id: "igdb", search: searchGames, details: gameDetails },
 };
 // détails d'une fiche déjà choisie ; null si la base enregistrée n'est pas celle du type
 export const detailsFor = (kind: string, source: string, sourceId: string) => (SOURCES[kind]?.id === source ? SOURCES[kind].details(sourceId) : Promise.resolve(null));

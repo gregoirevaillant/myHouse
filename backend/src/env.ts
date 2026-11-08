@@ -14,7 +14,8 @@ export const env = {
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY ?? "",
   // page Médias : bases de données interrogées par le serveur (facultatives)
   tmdbKey: process.env.TMDB_API_KEY ?? "",
-  rawgKey: process.env.RAWG_API_KEY ?? "",
+  igdbId: process.env.IGDB_CLIENT_ID ?? "",
+  igdbSecret: process.env.IGDB_CLIENT_SECRET ?? "",
   vapidSubject: process.env.VAPID_SUBJECT ?? `mailto:${process.env.ADMIN_EMAIL ?? process.env.USER1_EMAIL ?? "maison@example.com"}`,
 };
 
