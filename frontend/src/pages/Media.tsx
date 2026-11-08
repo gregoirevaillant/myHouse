@@ -7,13 +7,14 @@ import { toIso } from "../lib/dates";
 import { hitImage, KIND_IDS, KINDS, mediaImage, STATUS_IDS, statusLabel, useMedia } from "../lib/media";
 
 type Draft = Partial<MediaInput> & { kind: MediaKind; imageUrl?: string | null }; // imageUrl : affiche du résultat de recherche, pour l'aperçu
-type Opened = { item?: MediaItem; draft?: Draft } | { adding: true } | null;
+type Opened = { item?: MediaItem; draft?: Draft } | { adding: true; kind?: MediaKind } | null;
 
 export function Media() {
   const { data: items = [], isLoading } = useMedia();
   const [kind, setKind] = useState<MediaKind | "ALL">("ALL");
   const [status, setStatus] = useState<MediaStatus>("WISHLIST");
   const [opened, setOpened] = useState<Opened>(null);
+  const [view, setView] = useState<"DASH" | "LIST">("DASH");
   const ofKind = items.filter((i) => kind === "ALL" || i.kind === kind);
   const shown = ofKind.filter((i) => i.status === status);
   const count = (s: MediaStatus) => ofKind.filter((i) => i.status === s).length;
@@ -30,7 +31,29 @@ export function Media() {
         </button>
       </div>
 
-      <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1">
+      <div className="mb-4 flex gap-1.5">
+        <button className={`flex-1 ${pill(view === "DASH")}`} onClick={() => setView("DASH")}>
+          📊 Résumé
+        </button>
+        <button className={`flex-1 ${pill(view === "LIST")}`} onClick={() => setView("LIST")}>
+          🗂️ Listes
+        </button>
+      </div>
+
+      {view === "DASH" && !isLoading && (
+        <Dashboard
+          items={items}
+          onOpen={(item) => setOpened({ item })}
+          onAdd={(k) => setOpened({ adding: true, kind: k })}
+          onList={(k, s) => {
+            setKind(k);
+            if (s) setStatus(s);
+            setView("LIST");
+          }}
+        />
+      )}
+
+      {view === "LIST" && <div className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1">
         <button className={pill(kind === "ALL")} onClick={() => setKind("ALL")}>
           Tout
         </button>
@@ -39,18 +62,18 @@ export function Media() {
             {KINDS[k].icon} {KINDS[k].plural}
           </button>
         ))}
-      </div>
-      <div className="mb-4 flex gap-1.5">
+      </div>}
+      {view === "LIST" && <div className="mb-4 flex gap-1.5">
         {STATUS_IDS.map((s) => (
           <button key={s} className={`flex-1 ${pill(status === s)}`} onClick={() => setStatus(s)}>
             {kind === "ALL" || kind === "MOVIE" ? statusLabel("MOVIE", s) : statusLabel(kind, s)} · {count(s)}
           </button>
         ))}
-      </div>
+      </div>}
 
       {isLoading ? (
         <p className="text-center text-ink-soft">Chargement…</p>
-      ) : shown.length === 0 ? (
+      ) : view === "DASH" ? null : shown.length === 0 ? (
         <div className="rounded-3xl bg-lavender-soft p-8 text-center text-ink-soft">
           <p className="text-3xl">🍿</p>
           <p className="mt-2 font-semibold">{items.length === 0 ? "Films, séries, jeux, livres… ajoute ce que tu veux suivre" : "Rien dans cette liste"}</p>
@@ -80,7 +103,7 @@ export function Media() {
 
       {opened && "adding" in opened && (
         <Modal title="Ajouter" onClose={() => setOpened(null)}>
-          <AddPicker onPick={(draft) => setOpened({ draft })} />
+          <AddPicker initialKind={opened.kind} onPick={(draft) => setOpened({ draft })} />
         </Modal>
       )}
       {opened && !("adding" in opened) && (
@@ -92,9 +115,110 @@ export function Media() {
   );
 }
 
+function Poster({ m, onOpen }: { m: MediaItem; onOpen: (m: MediaItem) => void }) {
+  return (
+    <button className="w-24 shrink-0 text-left transition active:scale-95" onClick={() => onOpen(m)}>
+      <span className="flex aspect-[2/3] items-center justify-center overflow-hidden rounded-xl bg-lavender-soft text-3xl shadow-soft">
+        {m.hasImage ? <img src={mediaImage(m)} alt="" loading="lazy" className="h-full w-full object-cover" /> : KINDS[m.kind].icon}
+      </span>
+      <span className="mt-1 line-clamp-2 block text-xs font-extrabold leading-tight">{m.title}</span>
+      <span className="block truncate text-[11px] font-semibold text-ink-soft">{m.status === "IN_PROGRESS" && m.progress ? m.progress : (m.year ?? "")}</span>
+      <Stars value={m.rating} />
+    </button>
+  );
+}
+
+function Shelf({ title, items, onOpen, onAll }: { title: string; items: MediaItem[]; onOpen: (m: MediaItem) => void; onAll?: () => void }) {
+  if (!items.length) return null;
+  return (
+    <div className="mb-5">
+      <div className="mb-2 flex items-baseline justify-between">
+        <h3 className="font-extrabold">{title}</h3>
+        {onAll && (
+          <button className="text-sm font-bold text-ink-soft" onClick={onAll}>
+            Tout voir
+          </button>
+        )}
+      </div>
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1">
+        {items.map((m) => (
+          <Poster key={m.id} m={m} onOpen={onOpen} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// résumé : chiffres clés, par type, puis ce qui est en cours, à venir et terminé récemment
+function Dashboard({ items, onOpen, onAdd, onList }: { items: MediaItem[]; onOpen: (m: MediaItem) => void; onAdd: (k: MediaKind) => void; onList: (k: MediaKind | "ALL", s?: MediaStatus) => void }) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-3xl bg-lavender-soft p-6 text-center">
+        <p className="text-3xl">🍿</p>
+        <p className="mt-2 font-semibold text-ink-soft">Rien de suivi pour l'instant. Qu'est-ce que tu ajoutes en premier ?</p>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {KIND_IDS.map((k) => (
+            <button key={k} className="rounded-2xl bg-white px-3 py-3 font-extrabold shadow-soft transition active:scale-95" onClick={() => onAdd(k)}>
+              {KINDS[k].icon} {KINDS[k].label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const year = String(new Date().getFullYear());
+  const doing = items.filter((i) => i.status === "IN_PROGRESS");
+  const done = items.filter((i) => i.status === "DONE").sort((a, b) => (b.doneAt ?? "").localeCompare(a.doneAt ?? ""));
+  const doneThisYear = done.filter((i) => i.doneAt?.startsWith(year)).length;
+  const rated = items.filter((i) => i.rating);
+  const average = rated.length ? rated.reduce((n, i) => n + (i.rating ?? 0), 0) / rated.length : null;
+  const next = items.filter((i) => i.status === "WISHLIST").slice(0, 10); // déjà du plus récent au plus ancien
+  const stat = (label: string, value: string, on?: () => void) => (
+    <button className="rounded-2xl bg-white px-3 py-2.5 text-left shadow-soft transition active:scale-95" onClick={on} disabled={!on}>
+      <span className="block text-2xl font-extrabold leading-none">{value}</span>
+      <span className="text-xs font-bold text-ink-soft">{label}</span>
+    </button>
+  );
+
+  return (
+    <div>
+      <div className="mb-5 grid grid-cols-2 gap-2 rounded-3xl bg-lavender-soft p-3 sm:grid-cols-4">
+        {stat("en cours", String(doing.length), () => onList("ALL", "IN_PROGRESS"))}
+        {stat("à voir, jouer, lire", String(items.length - doing.length - done.length), () => onList("ALL", "WISHLIST"))}
+        {stat(`terminés en ${year}`, String(doneThisYear), () => onList("ALL", "DONE"))}
+        {stat("note moyenne", average ? `${average.toFixed(1).replace(".", ",")} ★` : "—")}
+      </div>
+
+      <Shelf title="▶️ En cours" items={doing} onOpen={onOpen} onAll={() => onList("ALL", "IN_PROGRESS")} />
+      <Shelf title="⏭️ À voir ensuite" items={next} onOpen={onOpen} onAll={() => onList("ALL", "WISHLIST")} />
+      <Shelf title="✅ Terminés récemment" items={done.slice(0, 10)} onOpen={onOpen} onAll={() => onList("ALL", "DONE")} />
+
+      <h3 className="mb-2 font-extrabold">Par type</h3>
+      <ul className="grid grid-cols-2 gap-2">
+        {KIND_IDS.map((k) => {
+          const of = items.filter((i) => i.kind === k);
+          const n = (s: MediaStatus) => of.filter((i) => i.status === s).length;
+          return (
+            <li key={k}>
+              <button className="w-full rounded-2xl bg-white p-3 text-left shadow-soft transition active:scale-95" onClick={() => onList(k, n("IN_PROGRESS") ? "IN_PROGRESS" : n("WISHLIST") ? "WISHLIST" : "DONE")}>
+                <span className="block font-extrabold">
+                  {KINDS[k].icon} {KINDS[k].plural} <span className="text-ink-soft">{of.length}</span>
+                </span>
+                <span className="text-xs font-semibold text-ink-soft">
+                  {n("WISHLIST")} {KINDS[k].wish.toLowerCase()} · {n("IN_PROGRESS")} en cours · {n("DONE")} {KINDS[k].done.toLowerCase()}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 // choix du type, puis recherche dans la base ouverte (ou saisie à la main)
-function AddPicker({ onPick }: { onPick: (draft: Draft) => void }) {
-  const [kind, setKind] = useState<MediaKind>("MOVIE");
+function AddPicker({ initialKind, onPick }: { initialKind?: MediaKind; onPick: (draft: Draft) => void }) {
+  const [kind, setKind] = useState<MediaKind>(initialKind ?? "MOVIE");
   const [text, setText] = useState("");
   const [term, setTerm] = useState("");
   const info = KINDS[kind];
