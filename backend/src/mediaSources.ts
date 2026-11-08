@@ -11,8 +11,8 @@ const UA = "Maison/1.0 (application familiale privee)";
 // seuls hébergeurs d'images que le serveur télécharge
 const IMAGE_HOSTS = new Set(["image.tmdb.org", "covers.openlibrary.org", "media.rawg.io"]);
 
-const unavailable = () => Object.assign(new Error("La base de données est indisponible, réessaie plus tard"), { statusCode: 502 });
-const missingKey = (name: string) => Object.assign(new Error(`${name} n'est pas configuré sur le serveur (clé d'API manquante)`), { statusCode: 503 });
+const unavailable = () => Object.assign(new Error("La base de données ne répond pas (panne de leur côté), réessaie plus tard"), { statusCode: 502, expose: true });
+const missingKey = (name: string) => Object.assign(new Error(`${name} n'est pas configuré sur le serveur (clé d'API manquante)`), { statusCode: 503, expose: true });
 
 async function getJson(url: string, headers: Record<string, string> = {}): Promise<unknown> {
   const res = await fetch(url, { headers: { "user-agent": UA, accept: "application/json", ...headers }, signal: AbortSignal.timeout(8000) });

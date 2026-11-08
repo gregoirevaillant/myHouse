@@ -81,7 +81,7 @@ app.setErrorHandler((err, _req, reply) => {
   }
   app.log.error(err);
   const status = (err as { statusCode?: number }).statusCode ?? 500;
-  return reply.code(status).send({ error: status < 500 ? (err as Error).message : "Erreur serveur" });
+  return reply.code(status).send({ error: status < 500 || (err as { expose?: boolean }).expose ? (err as Error).message : "Erreur serveur" });
 });
 
 // pour le HEALTHCHECK Docker : sans authentification, ne révèle rien
