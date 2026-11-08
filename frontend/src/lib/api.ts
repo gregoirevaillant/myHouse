@@ -31,7 +31,13 @@ export type User = {
   homeWide?: string[]; // idem (absent : seulement les repas en large)
   showNavBar: boolean;
   mutedNotifications: NotificationType[];
+  isAdmin?: boolean; // absents des sessions gardées hors ligne avant les familles
+  mustChangePassword?: boolean;
+  features?: string[]; // pages activées pour la famille (« cartes », « repas »…) ; absent = toutes
 };
+
+export type AdminUser = { id: string; name: string; email: string; isAdmin: boolean; mustChangePassword: boolean };
+export type AdminHousehold = { id: string; name: string; features: string[]; users: AdminUser[] };
 
 export type CardType = "BARCODE" | "QR" | "NUMBER";
 export type LoyaltyCard = {

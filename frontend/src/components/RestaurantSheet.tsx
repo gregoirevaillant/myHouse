@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type Restaurant } from "../lib/api";
 import { shortDate, toIso } from "../lib/dates";
+import { useHasPage } from "../lib/tabs";
 import { appleMapsUrl, cuisineInfo, directionsUrl, districtLabel, priceLabel, restaurantMealText, shareText, useAddVisit } from "../lib/restaurants";
 import { PlanMeal } from "./PlanMeal";
 import { Stars } from "./Stars";
@@ -9,6 +10,7 @@ import { Stars } from "./Stars";
 const ACTION = "btn-ghost min-w-0 flex-1 flex-col gap-0.5 whitespace-nowrap px-2 py-2 text-xs";
 
 export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaurant; onEdit: () => void }) {
+  const hasMeals = useHasPage("repas");
   const qc = useQueryClient();
   const today = toIso(new Date());
   const [visitDate, setVisitDate] = useState(today);
@@ -108,7 +110,7 @@ export function RestaurantSheet({ restaurant: r, onEdit }: { restaurant: Restaur
         )}
       </div>
 
-      {planning ? (
+      {!hasMeals ? null : planning ? (
         <PlanMeal title={r.name} text={restaurantMealText(r)} restaurantId={r.id} onDone={() => setPlanning(false)} />
       ) : (
         <button className="btn-ghost w-full" onClick={() => setPlanning(true)}>

@@ -25,6 +25,6 @@ export function useExpenses(enabled = true) {
   return useQuery({ ...expensesQuery, enabled });
 }
 
-export function useTrackers() {
-  return useQuery(trackersQuery);
+export function useTrackers(enabled = true) {
+  return useQuery({ ...trackersQuery, enabled });
 }

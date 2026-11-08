@@ -28,11 +28,11 @@ Tailles : S = moins d'une heure, M = une demi-journée, L = plus.
   - Dépendances : aucune
   - Fichiers : `backend/package.json`, `backend/package-lock.json`, `backend/src/server.ts`, `backend/src/auth.ts` si l'API change
 
-- [ ] **A3 : Mettre à jour `@fastify/static`** (S)
+- [x] **A3 : Mettre à jour `@fastify/static`** (S) — fait le 2026-11-08 (10.1.10)
   - Critères : `npm audit` ne le signale plus ; l'app est servie, le repli SPA vers `index.html` marche, `/api/inconnu` renvoie toujours 404 JSON.
   - Fichiers : `backend/package.json`, `backend/src/server.ts`
 
-- [ ] **A4 : Mettre à jour `zod` (3 vers 4)** (M)
+- [x] **A4 : Mettre à jour `zod` (3 vers 4)** (M) — fait le 2026-11-08 (4.6.7) ; toutes les routes d'écriture rejouées à la main (recettes, restos, budget, dépenses, import), corps invalide toujours en 400
   - Description : lire le guide de migration ; les points sensibles sont `z.string().regex`, `.nullish().transform`, `.partial()`, le format de `error.issues` renvoyé par le gestionnaire d'erreur.
   - Critères : build propre ; un corps invalide renvoie toujours un 400 « Données invalides » ; le front affiche toujours le message.
   - Vérification : appeler une route avec un corps invalide (budget avec montant négatif) avant et après.
@@ -52,7 +52,7 @@ Tailles : S = moins d'une heure, M = une demi-journée, L = plus.
 
 ## Phase 2 : durcir l'exploitation (P1)
 
-- [ ] **A6 : Image Docker durcie** (S)
+- [~] **A6 : Image Docker durcie** (S) — fait le 2026-11-08 : utilisateur `node` (démarrage en root seulement pour `chown /data`), `/api/health`, healthcheck, `cap_drop ALL`, `read_only`, `no-new-privileges`. Testé sur un volume dont les fichiers appartenaient à root. Reste : voir `healthy` dans `docker compose ps` après le déploiement
   - Description : utilisateur non root (`USER node`, volume `data` accessible), `HEALTHCHECK` sur une petite route `/api/health` publique, sans donnée.
   - Critères :
     - [ ] `docker compose ps` affiche `healthy`
@@ -75,12 +75,12 @@ Tailles : S = moins d'une heure, M = une demi-journée, L = plus.
   - Dépendances : A1
   - Fichiers : `Dockerfile` (commande), éventuellement `scripts/entrypoint.sh`
 
-- [ ] **A9 : En-têtes de sécurité** (S)
+- [x] **A9 : En-têtes de sécurité** (S) — fait le 2026-11-08 sans dépendance (hook `onSend` dans `server.ts`). CSP testée dans Chromium sur toutes les pages (aucune violation, polices, carte et service worker OK). Non vérifié sur iPhone
   - Description : `@fastify/helmet` avec une CSP adaptée (images `data:` et `blob:`, tuiles de carte Leaflet, polices Google, flux SSE, `worker-src` pour le service worker). Tester avant de durcir : une CSP trop stricte casse la carte, le scanner de codes-barres ou les notifications.
   - Critères : `curl -I` montre les en-têtes ; toutes les pages et le mode hors ligne fonctionnent ; pas d'erreur CSP dans la console sur iPhone ni sur ordinateur.
   - Fichiers : `backend/package.json`, `backend/src/server.ts`
 
-- [ ] **A10 : Révocation des sessions** (M)
+- [x] **A10 : Révocation des sessions** (M) — fait le 2026-11-08
   - Description : `User.sessionVersion` (entier, migration) inscrit dans le JWT ; `requireAuth` compare avec la base ; incrémenté au changement de mot de passe. Ajouter « se déconnecter partout » dans les réglages si simple.
   - Critères :
     - [x] Après un changement de mot de passe, l'ancien cookie reçoit un 401
@@ -127,3 +127,14 @@ Une seule ligne chacune ; passer en tâche détaillée au moment de s'y mettre.
 - Chaque mois : `npm audit --omit=dev` des deux paquets ; mise à jour des dépendances mineures ; lancer le build complet.
 - Chaque trimestre : vérifier qu'une sauvegarde se restaure ; relire `CONSTRAINTS.md` et les exceptions arrivées à échéance.
 - À chaque nouvelle fonctionnalité : mettre à jour `CLAUDE.md` (architecture) et `INVALIDATIONS` dans `live.ts` si d'autres appareils affichent la donnée.
+
+## Familles et audit de sécurité (2026-11-08)
+
+- [x] **F1 : plusieurs familles** : `Household.features` (pages activées), `User.isAdmin`, page Admin (`/admin`, réservée à l'administrateur), mot de passe provisoire avec changement imposé (`User.mustChangePassword`). Contrôle côté serveur par `requireModule` (`modules.ts`), le front masque seulement.
+- [x] **S9 : SSRF par les notifications push** : l'adresse d'abonnement n'est acceptée que pour les services push des navigateurs (`routes/push.ts`).
+- [x] **S10 : mot de passe 10 caractères minimum, 200 maximum** ; limitation de débit sur le changement de mot de passe ; blocage 15 min après 10 échecs de connexion (adresse + email) ; hash factice pour que le délai ne révèle pas si un email existe.
+- [x] **S11 : `JWT_SECRET` d'au moins 32 caractères en production** (refus de démarrer sinon).
+- [x] **S12 : écritures venant d'un autre site refusées** (`Sec-Fetch-Site: cross-site`) en plus de `SameSite=lax` ; `Cache-Control: no-store` sur l'API ; limitation de débit sur les routes qui appellent un service externe (adresses, import de recette, code-barres).
+- [ ] **S13 : rebond DNS dans l'import de recette** (`recipeImport.ts` vérifie l'adresse puis `fetch` la résout à nouveau). Risque faible tant que seuls des proches ont un compte ; à traiter en épinglant l'IP vérifiée (paquet `undici`) si des comptes moins sûrs apparaissent.
+- [ ] **S14 : retirer une personne ou une famille** : impossible aujourd'hui (les dépenses référencent les personnes). Contournement : désactiver toutes les pages de la famille et réinitialiser les mots de passe.
+- [ ] **S15 : vulnérabilités restantes du backend** : 3 hautes dans la chaîne de l'outil `prisma` (`deepmerge-ts`, `glob`, `minimatch`), corrigées seulement par Prisma 7 (A5). Elles touchent l'outil de migration, pas les requêtes servies aux utilisateurs.

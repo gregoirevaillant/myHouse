@@ -24,4 +24,5 @@ COPY --from=backend /app/backend/package.json ./
 COPY --from=frontend /app/frontend/dist ./public
 VOLUME /data
 EXPOSE 1000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/seed.js && node dist/server.js"]
+# Démarre en root uniquement pour donner le volume (créé par root avant) à l'utilisateur node, puis l'app tourne sans droits
+CMD ["sh", "-c", "chown -R node:node /data && exec setpriv --reuid=node --regid=node --init-groups sh -c 'npx prisma migrate deploy && node dist/seed.js && node dist/server.js'"]

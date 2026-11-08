@@ -1,10 +1,13 @@
+import type { ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useMe } from "./lib/auth";
+import { Admin } from "./pages/Admin";
 import { Budget } from "./pages/Budget";
 import { Calories } from "./pages/Calories";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
+import { FirstLogin } from "./pages/FirstLogin";
 import { ExpenseTracker } from "./pages/ExpenseTracker";
 import { Expenses } from "./pages/Expenses";
 import { Home } from "./pages/Home";
@@ -20,6 +23,12 @@ import { Recipes } from "./pages/Recipes";
 import { Restaurants } from "./pages/Restaurants";
 import { Shopping } from "./pages/Shopping";
 
+// page désactivée pour la famille : retour à l'accueil (le serveur refuse de toute façon ses données)
+function Gate({ page, children }: { page: string; children: ReactElement }) {
+  const features = useMe().data?.features;
+  return !features || features.includes(page) ? children : <Navigate to="/" replace />;
+}
+
 export default function App() {
   // isPending (et non isLoading) : on attend aussi la restauration des données gardées hors ligne
   const { data: me, isPending } = useMe();
@@ -30,28 +39,30 @@ export default function App() {
       </div>;
   }
   if (!me) return <Login />;
+  if (me.mustChangePassword) return <FirstLogin />;
 
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/cartes" element={<Cards />} />
-        <Route path="/repas" element={<Meals />} />
-        <Route path="/recettes" element={<Recipes />} />
-        <Route path="/recettes/:id" element={<RecipeDetail />} />
-        <Route path="/courses" element={<Shopping />} />
-        <Route path="/courses/produits" element={<Products />} />
-        <Route path="/restos" element={<Restaurants />} />
-        <Route path="/depenses" element={<Expenses />} />
-        <Route path="/depenses/:id" element={<ExpenseTracker />} />
-        <Route path="/journal" element={<Journals />} />
-        <Route path="/journal/:id" element={<JournalDetail />} />
-        <Route path="/infos" element={<Infos />} />
-        <Route path="/budget" element={<Budget />} />
-        <Route path="/calories" element={<Calories />} />
+        <Route path="/cartes" element={<Gate page="cartes"><Cards /></Gate>} />
+        <Route path="/repas" element={<Gate page="repas"><Meals /></Gate>} />
+        <Route path="/recettes" element={<Gate page="recettes"><Recipes /></Gate>} />
+        <Route path="/recettes/:id" element={<Gate page="recettes"><RecipeDetail /></Gate>} />
+        <Route path="/courses" element={<Gate page="courses"><Shopping /></Gate>} />
+        <Route path="/courses/produits" element={<Gate page="courses"><Products /></Gate>} />
+        <Route path="/restos" element={<Gate page="restos"><Restaurants /></Gate>} />
+        <Route path="/depenses" element={<Gate page="depenses"><Expenses /></Gate>} />
+        <Route path="/depenses/:id" element={<Gate page="depenses"><ExpenseTracker /></Gate>} />
+        <Route path="/journal" element={<Gate page="journal"><Journals /></Gate>} />
+        <Route path="/journal/:id" element={<Gate page="journal"><JournalDetail /></Gate>} />
+        <Route path="/infos" element={<Gate page="infos"><Infos /></Gate>} />
+        <Route path="/budget" element={<Gate page="budget"><Budget /></Gate>} />
+        <Route path="/calories" element={<Gate page="calories"><Calories /></Gate>} />
         <Route path="/profil" element={<Profile />} />
+        <Route path="/admin" element={<Admin />} />
       </Route>
-      <Route path="/cartes/:id" element={<CardDetail />} />
+      <Route path="/cartes/:id" element={<Gate page="cartes"><CardDetail /></Gate>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

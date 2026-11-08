@@ -22,12 +22,12 @@ export function GlobalSearch({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
 
   const { data: items = [] } = useQuery({ ...shoppingQuery, enabled: visible.has("/courses") });
-  const { data: products = [] } = useProducts();
+  const { data: products = [] } = useProducts(visible.has("/courses"));
   const { data: cards = [] } = useQuery({ ...cardsQuery, enabled: visible.has("/cartes") });
   const { data: restaurants = [] } = useRestaurants(visible.has("/restos"));
   const { data: infos = [] } = useQuery({ ...infosQuery, enabled: visible.has("/infos") });
   const { data: expenses = [] } = useExpenses(visible.has("/depenses"));
-  const { data: trackers = [] } = useTrackers();
+  const { data: trackers = [] } = useTrackers(visible.has("/depenses"));
   const { data: recipes = [] } = useRecipes(visible.has("/recettes"));
 
   const q = normalize(query);

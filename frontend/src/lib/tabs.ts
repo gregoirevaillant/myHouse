@@ -13,6 +13,14 @@ export const tabs = [
   { to: "/budget", label: "Budget", icon: "📊", active: "bg-rose" },
 ];
 
+// pages activées pour la famille par l'administrateur ; features absent (session gardée hors ligne avant les familles) = toutes
+export const allowedTabs = (features?: string[]) => (features ? tabs.filter((t) => features.includes(t.to.slice(1))) : tabs);
+export const useEnabledTabs = () => allowedTabs(useMe().data?.features);
+export const useHasPage = (page: string) => {
+  const features = useMe().data?.features;
+  return !features || features.includes(page);
+};
+
 // pages dans l'ordre choisi ; celles que l'ordre ne connaît pas (nouvelle page) restent à la fin, dans l'ordre par défaut
 export function orderTabs(list: typeof tabs, order: string[]) {
   const rank = (to: string) => {
@@ -26,7 +34,7 @@ export function orderTabs(list: typeof tabs, order: string[]) {
 export function useHomeTabs() {
   const { data: me } = useMe();
   const hidden = me?.hiddenHome ?? me?.hiddenTabs ?? [];
-  return orderTabs(tabs.filter((t) => !hidden.includes(t.to)), me?.menuOrder ?? []);
+  return orderTabs(allowedTabs(me?.features).filter((t) => !hidden.includes(t.to)), me?.menuOrder ?? []);
 }
 
 // tuiles de l'accueil sur 2 colonnes ; ?? : sans réglage, seulement les repas
@@ -37,6 +45,7 @@ export function useVisibleTabs() {
   const { data: me } = useMe();
   // ?? [] : une session gardée hors ligne avant l'ajout des préférences n'a pas le champ
   const hidden = me?.hiddenTabs ?? [];
-  const visible = tabs.filter((t) => !hidden.includes(t.to));
-  return orderTabs(visible.length ? visible : tabs, me?.menuOrder ?? []);
+  const enabled = allowedTabs(me?.features);
+  const visible = enabled.filter((t) => !hidden.includes(t.to));
+  return orderTabs(visible.length ? visible : enabled, me?.menuOrder ?? []);
 }

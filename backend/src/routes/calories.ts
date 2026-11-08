@@ -31,7 +31,7 @@ export async function lookupProduct(barcode: string) {
 }
 
 export async function calorieRoutes(app: FastifyInstance) {
-  app.get<{ Params: { barcode: string } }>("/product/:barcode", async (req, reply) => {
+  app.get<{ Params: { barcode: string } }>("/product/:barcode", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
     const { barcode } = z.object({ barcode: z.string().regex(/^\d{8,14}$/, "Code-barres invalide") }).parse(req.params);
     return (await lookupProduct(barcode)) ?? reply.code(404).send({ error: "Produit introuvable (ou Open Food Facts injoignable)" });
   });

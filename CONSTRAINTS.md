@@ -13,6 +13,8 @@ Pas d'outils installés sur l'hôte : tout se lance par Docker (voir `tasks/todo
 - Aucun test supprimé ou ignoré sans raison dans le message de commit
 - Aucun secret dans le code ou dans git (`.env` reste ignoré ; `.env.example` ne contient que des variables vides ou des e-mails)
 - Toute requête Prisma sur une donnée du foyer filtre par `req.user.householdId`, et par `ownerId` pour les données privées
+- Toute nouvelle route d'API est rangée dans `ROUTE_MODULES` (ou `OPEN_ROUTES`) de `backend/src/modules.ts` : un segment absent de cette table est refusé (403), jamais ouvert par défaut
+- Aucune adresse fournie par une personne n'est contactée par le serveur sans être vérifiée (liste blanche pour le push, adresses publiques pour l'import de recette)
 - Textes visibles, commentaires, messages d'erreur d'API et commits en français
 
 ## Appliqué avec des chiffres
@@ -32,7 +34,7 @@ Pas d'outils installés sur l'hôte : tout se lance par Docker (voir `tasks/todo
 |--------|-------------|------|
 | Bundle JS principal frontend | 724 kB (220 kB gzip) | ne doit pas grandir (tolérance 0,5 %) ; à réduire (tâche A11) |
 | Avertissements ESLint | 1 | ne doit pas monter |
-| Vulnérabilités backend (prod) | 8 (0 critique, 5 hautes, 3 modérées) | doit baisser jusqu'à 0 haute/critique (tâches A2 à A5) |
+| Vulnérabilités backend (prod) | 3 (0 critique, 3 hautes : chaîne de l'outil `prisma`) au 2026-11-08 | doit baisser jusqu'à 0 haute/critique (tâche A5) |
 | Tests automatisés | 0 | doit monter (tâche A7), puis couverture des lignes modifiées ≥ 80 % sur les fichiers de calcul |
 | Sauvegarde automatique | `scripts/backup.sh` (A1) | doit tourner chaque nuit |
 
@@ -40,7 +42,7 @@ Pas d'outils installés sur l'hôte : tout se lance par Docker (voir `tasks/todo
 
 | ID | Règle | Périmètre | Raison | Responsable | Expire |
 |----|-------|-----------|--------|-------------|--------|
-| E1 | Dépendances sans vulnérabilité haute/critique | `backend/package.json` : `@fastify/jwt`, `@fastify/static`, `prisma`, `zod` | Correctifs en versions majeures, à traiter un par un (A2 à A5) | Grégoire | 2027-01-31 |
+| E1 | Dépendances sans vulnérabilité haute/critique | `backend/package.json` : `prisma` | Correctif en version majeure (Prisma 7, tâche A5) ; les autres paquets ont été mis à jour le 2026-11-08 | Grégoire | 2027-01-31 |
 | E2 | `catch` vide | `backend/src/uploads.ts` `removeImage` | Supprimer un fichier déjà absent ne doit pas échouer | Grégoire | permanente |
 
 ## Garde-fous du seuil lui-même

@@ -39,4 +39,4 @@ cd backend && npm i && npx prisma migrate dev && npm run seed && npm run dev   #
 cd frontend && npm i && npm run dev                                           # http://localhost:5173
 ```
 
-Le backend lit `backend/.env` (DATABASE_URL, JWT_SECRET, USER1_*, USER2_*).
+Le backend lit `backend/.env` (DATABASE_URL, JWT_SECRET, ADMIN_* pour le premier démarrage).

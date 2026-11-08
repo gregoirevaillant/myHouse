@@ -6,6 +6,7 @@ import { PlanMeal } from "../components/PlanMeal";
 import { RecipeToCalories } from "../components/RecipeToCalories";
 import { RecipeForm } from "../components/RecipeForm";
 import { api } from "../lib/api";
+import { useHasPage } from "../lib/tabs";
 import { lines, recipeCategory, recipeImage, recipeMeta, useRecipes } from "../lib/recipes";
 
 const ACTION = "btn-ghost min-w-0 flex-1 flex-col gap-0.5 whitespace-nowrap px-2 py-2 text-xs";
@@ -19,6 +20,9 @@ export function RecipeDetail() {
   const [planning, setPlanning] = useState(false);
   const [logging, setLogging] = useState(false);
   const [awake, setAwake] = useState(false);
+  // « Prévoir » et « Calories » écrivent dans d'autres pages : seulement si la famille les a
+  const hasMeals = useHasPage("repas");
+  const hasCalories = useHasPage("calories");
   // ingrédients cochés (à acheter) et étapes faites : juste sur cet écran
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [done, setDone] = useState<Set<number>>(new Set());
@@ -74,14 +78,16 @@ export function RecipeDetail() {
       </div>
 
       <div className="flex gap-2">
-        {!recipe.private && (
+        {!recipe.private && hasMeals && (
           <button className={ACTION} onClick={() => setPlanning((p) => !p)}>
             <span className="text-lg">📅</span> Prévoir
           </button>
         )}
-        <button className={ACTION} onClick={() => setLogging((l) => !l)}>
-          <span className="text-lg">🔥</span> Calories
-        </button>
+        {hasCalories && (
+          <button className={ACTION} onClick={() => setLogging((l) => !l)}>
+            <span className="text-lg">🔥</span> Calories
+          </button>
+        )}
         {!recipe.private && "wakeLock" in navigator && (
           <button className={`${ACTION} ${awake ? "!bg-lemon" : ""}`} onClick={() => setAwake((a) => !a)} aria-pressed={awake}>
             <span className="text-lg">🔆</span> {awake ? "Écran allumé" : "Garder allumé"}

@@ -1,27 +1,14 @@
-import { useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { PasswordForm } from "../components/PasswordForm";
 import { api, type NotificationType } from "../lib/api";
 import { useLogout, useMe, useUpdatePreferences } from "../lib/auth";
 import { usePushStatus } from "../lib/push";
-import { orderTabs, tabs } from "../lib/tabs";
+import { orderTabs, tabs, useEnabledTabs } from "../lib/tabs";
 
 export function Profile() {
   const { data: me } = useMe();
   const logout = useLogout();
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const change = useMutation({
-    mutationFn: () => api("/auth/password", { method: "POST", json: { current, next } }),
-    onSuccess: () => {
-      setCurrent("");
-      setNext("");
-    },
-  });
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    change.mutate();
-  };
 
   return (
     <section className="space-y-6">
@@ -30,37 +17,17 @@ export function Profile() {
         <p className="text-sm text-ink-soft">{me?.email}</p>
       </div>
 
+      {me?.isAdmin && (
+        <Link to="/admin" className="btn-ghost flex w-full items-center justify-center gap-2">
+          👑 Gérer les familles
+        </Link>
+      )}
+
       <MenuSettings />
 
       <NotificationSettings />
 
-      <form onSubmit={submit} className="space-y-3 rounded-3xl bg-white p-6 shadow-soft">
-        <h2 className="font-extrabold">Changer mon mot de passe</h2>
-        <input
-          className="input"
-          type="password"
-          placeholder="Mot de passe actuel"
-          autoComplete="current-password"
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          required
-        />
-        <input
-          className="input"
-          type="password"
-          placeholder="Nouveau mot de passe (6 caractères min.)"
-          autoComplete="new-password"
-          minLength={6}
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          required
-        />
-        {change.error && <p className="text-sm font-semibold text-rose-deep">{change.error.message}</p>}
-        {change.isSuccess && <p className="text-sm font-semibold text-mint-deep">Mot de passe modifié ✓</p>}
-        <button className="btn-primary w-full" disabled={change.isPending}>
-          Enregistrer
-        </button>
-      </form>
+      <PasswordForm />
 
       <button className="btn-ghost w-full text-rose-deep" onClick={() => logout.mutate()}>
         Se déconnecter
@@ -73,7 +40,8 @@ function MenuSettings() {
   const { data: me } = useMe();
   const save = useUpdatePreferences();
   const showNavBar = me?.showNavBar ?? true;
-  const order = orderTabs(tabs, me?.menuOrder ?? []).map((t) => t.to);
+  const enabled = useEnabledTabs();
+  const order = orderTabs(enabled, me?.menuOrder ?? []).map((t) => t.to);
   const wide = me?.homeWide ?? ["/repas"];
   const onOrder = (menuOrder: string[]) => save.mutate({ menuOrder });
 
@@ -136,6 +104,7 @@ function PageList({
   wide?: string[];
   onWide?: (wide: string[]) => void;
 }) {
+  const enabled = useEnabledTabs();
   const move = (i: number, delta: number) => {
     const next = [...order];
     [next[i], next[i + delta]] = [next[i + delta], next[i]];
@@ -149,7 +118,7 @@ function PageList({
         {order.map((to, i) => {
           const t = tabs.find((x) => x.to === to)!;
           const shown = !hidden.includes(to);
-          const last = requireOne && shown && tabs.every((o) => o.to === to || hidden.includes(o.to));
+          const last = requireOne && shown && enabled.every((o) => o.to === to || hidden.includes(o.to));
           const isWide = wide?.includes(to);
           return (
             <div key={to} className={`flex items-center gap-1.5 rounded-2xl pr-1.5 font-bold ${shown ? t.active : "bg-cream text-ink-soft"}`}>

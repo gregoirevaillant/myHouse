@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Restaurant } from "../lib/api";
+import { useHasPage } from "../lib/tabs";
 import { compareDistricts, cuisineInfo, distanceLabel, distanceTo, districtLabel, priceLabel, restaurantMealText, useMyPosition } from "../lib/restaurants";
 import { PlanMeal } from "./PlanMeal";
 import { Stars } from "./Stars";
@@ -7,6 +8,7 @@ import { Stars } from "./Stars";
 type Status = "ALL" | "DONE" | "TODO";
 
 export function RandomPick({ restaurants, onOpen }: { restaurants: Restaurant[]; onOpen: (r: Restaurant) => void }) {
+  const hasMeals = useHasPage("repas");
   const [status, setStatus] = useState<Status>("ALL");
   const [cuisine, setCuisine] = useState("");
   const [district, setDistrict] = useState("");
@@ -113,7 +115,7 @@ export function RandomPick({ restaurants, onOpen }: { restaurants: Restaurant[];
           <button className="btn flex-1 bg-peach-deep text-white shadow-soft" disabled={!pool.length} onClick={draw}>
             🎲 {pick ? "Encore !" : "Tirer au sort"}
           </button>
-          {pick && pool.some((r) => r.id === pick.id) && (
+          {pick && hasMeals && pool.some((r) => r.id === pick.id) && (
             <button className="btn-ghost flex-1" onClick={() => setPlanning(true)}>
               📅 Prévoir
             </button>

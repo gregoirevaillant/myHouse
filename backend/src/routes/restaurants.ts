@@ -60,7 +60,7 @@ export async function restaurantRoutes(app: FastifyInstance) {
   });
 
   // recherche d'adresse via OpenStreetMap (Nominatim exige un User-Agent identifiable, d'où le passage par le serveur)
-  app.get("/geocode", async (req, reply) => {
+  app.get("/geocode", { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } }, async (req, reply) => {
     const { q } = z.object({ q: z.string().trim().min(2).max(200) }).parse(req.query);
     const params = new URLSearchParams({
       q,

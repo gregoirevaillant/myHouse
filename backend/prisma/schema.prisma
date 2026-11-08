@@ -11,6 +11,8 @@ datasource db {
 model Household {
   id            String         @id @default(cuid())
   name          String
+  // pages activées pour cette famille (modules séparés par des virgules, voir src/modules.ts) ; réglé par l'administrateur
+  features      String         @default("")
   users         User[]
   cards         LoyaltyCard[]
   meals         Meal[]
@@ -31,6 +33,9 @@ model User {
   email        String    @unique
   name         String
   passwordHash String
+  isAdmin      Boolean   @default(false) // peut créer des familles et régler leurs pages (page Admin)
+  sessionVersion Int     @default(0) // incrémenté au changement de mot de passe : coupe les anciennes sessions
+  mustChangePassword Boolean @default(false) // compte créé ou réinitialisé par l'administrateur
   householdId  String
   household    Household @relation(fields: [householdId], references: [id])
   // chemins des onglets masqués dans la barre de menu, séparés par des virgules

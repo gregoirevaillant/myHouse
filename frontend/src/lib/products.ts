@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, type Product } from "./api";
 
-export function useProducts() {
-  return useQuery({ queryKey: ["products"], queryFn: () => api<Product[]>("/products") });
+export function useProducts(enabled = true) {
+  return useQuery({ queryKey: ["products"], queryFn: () => api<Product[]>("/products"), enabled });
 }
 
 export const productImage = (p: Pick<Product, "id">) => `/api/products/${p.id}/image`;

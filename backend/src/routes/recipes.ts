@@ -79,7 +79,7 @@ export async function recipeRoutes(app: FastifyInstance) {
   });
 
   // lit une page de recette (JSON-LD schema.org) et renvoie les champs pré-remplis, sans rien enregistrer
-  app.post("/import", async (req) => {
+  app.post("/import", { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } }, async (req) => {
     const { url } = z.object({ url: z.string().trim().min(1).max(1000) }).parse(req.body);
     return importRecipe(/^https?:\/\//i.test(url) ? url : `https://${url}`);
   });
