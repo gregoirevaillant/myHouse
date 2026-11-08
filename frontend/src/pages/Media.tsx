@@ -4,9 +4,10 @@ import { Modal } from "../components/Modal";
 import { Stars } from "../components/Stars";
 import { api, type MediaHit, type MediaInput, type MediaItem, type MediaKind, type MediaStatus } from "../lib/api";
 import { toIso } from "../lib/dates";
-import { KIND_IDS, KINDS, mediaImage, STATUS_IDS, statusLabel, useMedia } from "../lib/media";
+import { hitImage, KIND_IDS, KINDS, mediaImage, STATUS_IDS, statusLabel, useMedia } from "../lib/media";
 
-type Opened = { item?: MediaItem; draft?: Partial<MediaInput> & { kind: MediaKind } } | { adding: true } | null;
+type Draft = Partial<MediaInput> & { kind: MediaKind; imageUrl?: string | null }; // imageUrl : affiche du résultat de recherche, pour l'aperçu
+type Opened = { item?: MediaItem; draft?: Draft } | { adding: true } | null;
 
 export function Media() {
   const { data: items = [], isLoading } = useMedia();
@@ -92,7 +93,7 @@ export function Media() {
 }
 
 // choix du type, puis recherche dans la base ouverte (ou saisie à la main)
-function AddPicker({ onPick }: { onPick: (draft: Partial<MediaInput> & { kind: MediaKind }) => void }) {
+function AddPicker({ onPick }: { onPick: (draft: Draft) => void }) {
   const [kind, setKind] = useState<MediaKind>("MOVIE");
   const [text, setText] = useState("");
   const [term, setTerm] = useState("");
@@ -133,11 +134,16 @@ function AddPicker({ onPick }: { onPick: (draft: Partial<MediaInput> & { kind: M
         {search.data?.map((h) => (
           <li key={h.source + h.sourceId}>
             <button
-              className="w-full rounded-2xl bg-white px-4 py-3 text-left shadow-soft transition active:scale-95"
-              onClick={() => onPick({ kind, title: h.title, year: h.year, creator: h.creator, source: h.source, sourceId: h.sourceId })}
+              className="flex w-full items-center gap-3 rounded-2xl bg-white p-2 text-left shadow-soft transition active:scale-95"
+              onClick={() => onPick({ kind, title: h.title, year: h.year, creator: h.creator, source: h.source, sourceId: h.sourceId, imageUrl: h.imageUrl })}
             >
-              <span className="font-extrabold">{h.title}</span> <span className="text-sm font-semibold text-ink-soft">{h.year}</span>
-              {h.subtitle && <span className="block truncate text-xs font-semibold text-ink-soft">{h.subtitle}</span>}
+              <span className="flex h-20 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-lavender-soft text-2xl">
+                {h.imageUrl ? <img src={hitImage(h.imageUrl)} alt="" loading="lazy" className="h-full w-full object-cover" /> : info.icon}
+              </span>
+              <span className="min-w-0">
+                <span className="font-extrabold">{h.title}</span> <span className="text-sm font-semibold text-ink-soft">{h.year}</span>
+                {h.subtitle && <span className="line-clamp-2 text-xs font-semibold text-ink-soft">{h.subtitle}</span>}
+              </span>
             </button>
           </li>
         ))}
@@ -153,7 +159,7 @@ function AddPicker({ onPick }: { onPick: (draft: Partial<MediaInput> & { kind: M
   );
 }
 
-function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Partial<MediaInput> & { kind: MediaKind }; onDone: () => void }) {
+function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Draft; onDone: () => void }) {
   const qc = useQueryClient();
   const kind = item?.kind ?? draft?.kind ?? "MOVIE";
   const info = KINDS[kind];
@@ -165,7 +171,7 @@ function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Partial<
   const [rating, setRating] = useState<number | null>(item?.rating ?? null);
   const [doneAt, setDoneAt] = useState(item?.doneAt ?? "");
   const [note, setNote] = useState(item?.note ?? "");
-  const [isPrivate, setIsPrivate] = useState(item?.private ?? false);
+  const [isPrivate, setIsPrivate] = useState(item?.private ?? true);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const done = () => {
@@ -202,7 +208,10 @@ function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Partial<
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      {item?.overview && <p className="line-clamp-6 rounded-2xl bg-white p-3 text-sm font-semibold text-ink-soft shadow-soft">{item.overview}</p>}
+      {(item?.hasImage || draft?.imageUrl) && (
+        <img src={item?.hasImage ? mediaImage(item) : hitImage(draft!.imageUrl!)} alt={title} className="mx-auto max-h-72 rounded-2xl object-contain shadow-soft" />
+      )}
+      {item?.overview && <p className="max-h-40 overflow-y-auto rounded-2xl bg-white p-3 text-sm font-semibold text-ink-soft shadow-soft">{item.overview}</p>}
       <div className="flex gap-1.5">
         {STATUS_IDS.map((s) => (
           <button key={s} type="button" className={pill(status === s)} onClick={() => setStatus(s)}>
@@ -248,10 +257,10 @@ function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Partial<
         <textarea id="media-note" className="input focus:border-lavender" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
       <label className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 font-bold shadow-soft">
-        <input type="checkbox" className="h-5 w-5 accent-rose-deep" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
+        <input type="checkbox" className="h-5 w-5 accent-rose-deep" checked={!isPrivate} onChange={(e) => setIsPrivate(!e.target.checked)} />
         <span>
-          🔒 Rien que pour moi
-          <span className="block text-xs font-semibold text-ink-soft">Décoche pour la partager avec le foyer</span>
+          🏠 Pour la maison
+          <span className="block text-xs font-semibold text-ink-soft">{isPrivate ? "🔒 Rien que pour moi tant que tu ne coches pas" : "Visible par tout le foyer"}</span>
         </span>
       </label>
 

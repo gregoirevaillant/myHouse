@@ -18,3 +18,4 @@ export const statusLabel = (kind: MediaKind, status: MediaStatus) => {
 
 export const useMedia = (enabled = true) => useQuery({ queryKey: ["media"], queryFn: () => api<MediaItem[]>("/media"), enabled });
 export const mediaImage = (m: Pick<MediaItem, "id">) => `/api/media/${m.id}/image`;
+export const hitImage = (url: string) => `/api/media/thumb?url=${encodeURIComponent(url)}`;

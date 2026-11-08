@@ -4,7 +4,7 @@ import { env } from "./env.js";
 // Bases de données interrogées côté serveur (le navigateur ne contacte rien d'externe) :
 // TMDB (films, séries), Open Library (livres, sans clé), IGDB (jeux). Un type par entrée de SOURCES.
 
-export type Hit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null; creator: string | null };
+export type Hit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null; creator: string | null; imageUrl: string | null };
 export type Details = { overview: string | null; creator: string | null; imageUrl: string | null };
 
 const UA = "Maison/1.0 (application familiale privee)";
@@ -44,6 +44,7 @@ const clip = (s?: string | null, max = 3000) => s?.trim().slice(0, max) || null;
 
 const TMDB = "https://api.themoviedb.org/3";
 const TMDB_IMG = "https://image.tmdb.org/t/p/w500";
+const TMDB_IMG_SMALL = "https://image.tmdb.org/t/p/w154";
 
 // clé v3 (32 caractères, dans l'adresse) ou jeton d'accès v4 (long, en en-tête)
 function tmdb(path: string, params: Record<string, string> = {}) {
@@ -63,6 +64,7 @@ const tmdbPage = z.object({
       release_date: z.string().nullish(),
       first_air_date: z.string().nullish(),
       overview: z.string().nullish(),
+      poster_path: z.string().nullish(),
     }),
   ),
 });
@@ -71,7 +73,7 @@ const tmdbSearch = (type: "movie" | "tv") => async (q: string): Promise<Hit[]> =
   const page = tmdbPage.parse(await tmdb(`/search/${type}`, { query: q, include_adult: "false" }));
   return page.results.slice(0, 10).flatMap((r) => {
     const title = r.title ?? r.name;
-    return title ? [{ source: "tmdb", sourceId: String(r.id), title, year: yearOf(r.release_date ?? r.first_air_date), subtitle: clip(r.overview, 120), creator: null }] : [];
+    return title ? [{ source: "tmdb", sourceId: String(r.id), title, year: yearOf(r.release_date ?? r.first_air_date), subtitle: clip(r.overview, 120), creator: null, imageUrl: r.poster_path ? `${TMDB_IMG_SMALL}${r.poster_path}` : null }] : [];
   });
 }
 
@@ -100,13 +102,13 @@ const OL = "https://openlibrary.org";
 async function searchBooks(q: string): Promise<Hit[]> {
   const res = z
     .object({
-      docs: z.array(z.object({ key: z.string(), title: z.string(), author_name: z.array(z.string()).optional(), first_publish_year: z.number().optional() })),
+      docs: z.array(z.object({ key: z.string(), title: z.string(), author_name: z.array(z.string()).optional(), first_publish_year: z.number().optional(), cover_i: z.number().optional() })),
     })
-    .parse(await getJson(`${OL}/search.json?limit=10&fields=key,title,author_name,first_publish_year&q=${encodeURIComponent(q)}`));
+    .parse(await getJson(`${OL}/search.json?limit=10&fields=key,title,author_name,first_publish_year,cover_i&q=${encodeURIComponent(q)}`));
   return res.docs.flatMap((b) => {
     const id = b.key.replace("/works/", "");
     const author = b.author_name?.slice(0, 2).join(", ") ?? null;
-    return /^OL\d+W$/.test(id) ? [{ source: "openlibrary", sourceId: id, title: b.title, year: b.first_publish_year ?? null, subtitle: author, creator: author }] : [];
+    return /^OL\d+W$/.test(id) ? [{ source: "openlibrary", sourceId: id, title: b.title, year: b.first_publish_year ?? null, subtitle: author, creator: author, imageUrl: b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg` : null }] : [];
   });
 }
 
@@ -150,12 +152,12 @@ async function igdb(endpoint: string, body: string): Promise<unknown> {
   return res.json();
 }
 
-const igdbCover = (imageId?: string) => (imageId && /^\w+$/.test(imageId) ? `https://images.igdb.com/igdb/image/upload/t_cover_big/${imageId}.jpg` : null);
+const igdbCover = (imageId?: string, size = "t_cover_big") => (imageId && /^\w+$/.test(imageId) ? `https://images.igdb.com/igdb/image/upload/${size}/${imageId}.jpg` : null);
 
 async function searchGames(q: string): Promise<Hit[]> {
   const list = z
-    .array(z.object({ id: z.number(), name: z.string(), first_release_date: z.number().optional(), platforms: z.array(z.object({ abbreviation: z.string().optional() })).optional() }))
-    .parse(await igdb("games", `search "${q.replace(/["\\]/g, " ")}"; fields name,first_release_date,platforms.abbreviation; limit 10;`));
+    .array(z.object({ id: z.number(), name: z.string(), first_release_date: z.number().optional(), platforms: z.array(z.object({ abbreviation: z.string().optional() })).optional(), cover: z.object({ image_id: z.string() }).optional() }))
+    .parse(await igdb("games", `search "${q.replace(/["\\]/g, " ")}"; fields name,first_release_date,platforms.abbreviation,cover.image_id; limit 10;`));
   return list.map((g) => ({
     source: "igdb",
     sourceId: String(g.id),
@@ -163,6 +165,7 @@ async function searchGames(q: string): Promise<Hit[]> {
     year: g.first_release_date ? new Date(g.first_release_date * 1000).getUTCFullYear() : null,
     subtitle: g.platforms?.flatMap((p) => (p.abbreviation ? [p.abbreviation] : [])).slice(0, 4).join(", ") || null,
     creator: null,
+    imageUrl: igdbCover(g.cover?.image_id, "t_cover_small"),
   }));
 }
 

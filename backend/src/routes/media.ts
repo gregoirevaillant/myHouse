@@ -34,7 +34,7 @@ const itemBody = z.object({
   source: z.string().max(20).nullish(),
   sourceId: z.string().max(30).nullish(),
   // true = visible par moi seulement
-  private: z.boolean().default(false),
+  private: z.boolean().default(true), // une fiche est pour moi tant que je ne la partage pas
 });
 
 const patchBody = itemBody.omit({ source: true, sourceId: true }); // la fiche d'origine ne change pas
@@ -83,6 +83,14 @@ export async function mediaRoutes(app: FastifyInstance) {
     const source = SOURCES[kind];
     if (!source) return reply.code(400).send({ error: "Pas encore de base de données pour ce type" });
     return source.search(q);
+  });
+
+  // affiche d'un résultat de recherche, relayée par le serveur (le navigateur ne contacte pas les bases)
+  app.get("/thumb", async (req, reply) => {
+    const { url } = z.object({ url: z.string().url().max(500) }).parse(req.query);
+    const image = await downloadImage(url);
+    if (!image) return reply.code(404).send({ error: "Introuvable" });
+    return reply.type(image.mimetype).header("Cache-Control", "private, max-age=86400").send(image.buffer);
   });
 
   app.get<{ Params: { id: string } }>("/:id/image", async (req, reply) => {
