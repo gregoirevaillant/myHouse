@@ -21,7 +21,7 @@ export function RecipeDetail() {
   const [planning, setPlanning] = useState(false);
   const [logging, setLogging] = useState(false);
   const [awake, setAwake] = useState(false);
-  // « Prévoir » et « Calories » écrivent dans d'autres pages : seulement si la famille les a
+  // « Prévoir » et « Calories » (aliments privés seulement) écrivent dans d'autres pages : seulement si la famille les a
   const hasMeals = useHasPage("repas");
   const hasCalories = useHasPage("calories");
   // ingrédients cochés (à acheter) et étapes faites : juste sur cet écran
@@ -89,7 +89,7 @@ export function RecipeDetail() {
             <span className="text-lg">📅</span> Prévoir
           </button>
         )}
-        {hasCalories && (
+        {recipe.private && hasCalories && (
           <button className={ACTION} onClick={() => setLogging((l) => !l)}>
             <span className="text-lg">🔥</span> Calories
           </button>
