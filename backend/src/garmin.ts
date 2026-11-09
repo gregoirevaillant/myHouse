@@ -6,7 +6,7 @@ const BASE = "https://personal.connectapi.garmin.com";
 
 export const garminConfigured = () => !!env.garminKey;
 
-export type GarminWeight = { date: string; grams: number; bodyFat: number | null };
+export type GarminWeight = { date: string; grams: number; bodyFat: number | null; muscleGrams: number | null };
 
 class GarminError extends Error {
   statusCode = 502;
@@ -39,7 +39,7 @@ async function accessToken() {
   throw new GarminError("Garmin n'a pas renvoyé de jeton d'accès");
 }
 
-type Latest = { calendarDate?: string; weight?: number; bodyFat?: number };
+type Latest = { calendarDate?: string; weight?: number; bodyFat?: number; muscleMass?: number };
 type RangeResponse = { dailyWeightSummaries?: { summaryDate?: string; latestWeight?: Latest }[] };
 
 // Garmin annonce des kilos ; au-delà de 400 on suppose des grammes (aucun humain ne pèse 400 kg)
@@ -60,7 +60,13 @@ export async function fetchWeights(from: string, to: string): Promise<GarminWeig
       const w = d.latestWeight?.weight;
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || typeof w !== "number" || w <= 0) continue;
       const fat = d.latestWeight?.bodyFat;
-      out.push({ date, grams: toGrams(w), bodyFat: typeof fat === "number" && fat > 0 ? Math.round(fat * 10) / 10 : null });
+      const muscle = d.latestWeight?.muscleMass;
+      out.push({
+        date,
+        grams: toGrams(w),
+        bodyFat: typeof fat === "number" && fat > 0 ? Math.round(fat * 10) / 10 : null,
+        muscleGrams: typeof muscle === "number" && muscle > 0 ? toGrams(muscle) : null,
+      });
     }
   }
   return out;

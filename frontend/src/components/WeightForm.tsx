@@ -9,16 +9,18 @@ export function WeightForm({ entry, onDone }: { entry?: WeightEntry; onDone: () 
   const [date, setDate] = useState(entry?.date ?? toIso(new Date()));
   const [kg, setKg] = useState(entry ? formatKg(entry.grams) : "");
   const [fat, setFat] = useState(entry?.bodyFat?.toString().replace(".", ",") ?? "");
+  const [muscle, setMuscle] = useState(entry?.muscleGrams ? formatKg(entry.muscleGrams) : "");
   const grams = parseKg(kg);
+  const muscleGrams = muscle ? parseKg(muscle) : null;
   const fatValue = fat ? Number(fat.replace(",", ".")) : null;
-  const valid = grams >= 30000 && grams <= 300000 && (fatValue === null || (fatValue >= 1 && fatValue <= 70));
+  const valid = grams >= 30000 && grams <= 300000 && (fatValue === null || (fatValue >= 1 && fatValue <= 70)) && (muscleGrams === null || (muscleGrams >= 10000 && muscleGrams <= 150000));
   const done = () => {
     qc.invalidateQueries({ queryKey: ["weight"] });
     onDone();
   };
 
   const save = useMutation({
-    mutationFn: () => api<WeightEntry>("/weight", { method: "POST", json: { date, grams, bodyFat: fatValue } }),
+    mutationFn: () => api<WeightEntry>("/weight", { method: "POST", json: { date, grams, bodyFat: fatValue, muscleGrams } }),
     onSuccess: done,
   });
   const remove = useMutation({ mutationFn: () => api(`/weight/${entry!.id}`, { method: "DELETE" }), onSuccess: done });
@@ -42,6 +44,10 @@ export function WeightForm({ entry, onDone }: { entry?: WeightEntry; onDone: () 
       <div>
         <label className="label" htmlFor="w-fat">Masse grasse (%, facultatif)</label>
         <input id="w-fat" className="input focus:border-sky" inputMode="decimal" placeholder="18,5" value={fat} onChange={(e) => setFat(e.target.value.replace(/[^\d.,]/g, ""))} />
+      </div>
+      <div>
+        <label className="label" htmlFor="w-muscle">Masse musculaire (kg, facultatif)</label>
+        <input id="w-muscle" className="input focus:border-sky" inputMode="decimal" placeholder="35,5" value={muscle} onChange={(e) => setMuscle(e.target.value.replace(/[^\d.,]/g, ""))} />
       </div>
       {entry?.source === "GARMIN" && <p className="text-sm font-semibold text-ink-soft">⌚ Pesée de la balance Garmin : la modifier la garde telle que tu l'as saisie.</p>}
       {(save.error || remove.error) && <p className="text-sm font-bold text-rose-deep">{(save.error ?? remove.error)?.message}</p>}

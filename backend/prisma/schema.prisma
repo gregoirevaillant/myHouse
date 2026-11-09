@@ -273,6 +273,7 @@ model WeightEntry {
   date        String // YYYY-MM-DD
   grams       Int
   bodyFat     Float? // % de masse grasse (balance connectée)
+  muscleGrams Int? // masse musculaire en grammes (balance connectée ou saisie)
   source      String    @default("MANUAL") // MANUAL | GARMIN (la saisie manuelle n'est jamais écrasée par la synchronisation)
   createdAt   DateTime  @default(now())
 

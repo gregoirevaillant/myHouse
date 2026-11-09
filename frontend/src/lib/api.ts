@@ -144,7 +144,7 @@ export type CalorieMeal = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
 export type CalorieEntry = { id: string; date: string; meal: CalorieMeal; label: string; kcal: number };
 export type CalorieEntryInput = Omit<CalorieEntry, "id">;
 
-export type WeightEntry = { id: string; date: string; grams: number; bodyFat: number | null; source: "MANUAL" | "GARMIN" };
+export type WeightEntry = { id: string; date: string; grams: number; bodyFat: number | null; muscleGrams: number | null; source: "MANUAL" | "GARMIN" };
 
 export type MediaKind = "MOVIE" | "SERIES" | "GAME" | "BOOK";
 export type MediaStatus = "WISHLIST" | "IN_PROGRESS" | "DONE";

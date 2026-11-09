@@ -9,9 +9,10 @@ const entryBody = z.object({
   date: isoDate,
   grams: z.number().int().min(30000).max(300000),
   bodyFat: z.number().min(1).max(70).nullish(),
+  muscleGrams: z.number().int().min(10000).max(150000).nullish(),
 });
 
-const select = { id: true, date: true, grams: true, bodyFat: true, source: true } as const;
+const select = { id: true, date: true, grams: true, bodyFat: true, muscleGrams: true, source: true } as const;
 
 // suivi strictement personnel : jamais visible de l'autre personne du foyer
 const mine = (req: { user: { id: string; householdId: string } }) => ({ householdId: req.user.householdId, ownerId: req.user.id });
@@ -31,7 +32,7 @@ export async function weightRoutes(app: FastifyInstance) {
   // une pesée par jour : saisir une date déjà pesée la remplace
   app.post("/", async (req) => {
     const body = entryBody.parse(req.body);
-    const data = { grams: body.grams, bodyFat: body.bodyFat ?? null, source: "MANUAL" };
+    const data = { grams: body.grams, bodyFat: body.bodyFat ?? null, muscleGrams: body.muscleGrams ?? null, source: "MANUAL" };
     return prisma.weightEntry.upsert({
       where: { ownerId_date: { ownerId: req.user.id, date: body.date } },
       update: data,
@@ -51,8 +52,10 @@ export async function weightRoutes(app: FastifyInstance) {
   app.post("/sync", { config: { rateLimit: { max: 6, timeWindow: "1 minute" } } }, async (req, reply) => {
     if (!garminConfigured()) return reply.code(503).send({ error: "Garmin n'est pas configuré (GARMIN_API_KEY)" });
     const last = await prisma.weightEntry.findFirst({ where: { ...mine(req), source: "GARMIN" }, orderBy: { date: "desc" }, select: { date: true } });
+    // pesées Garmin gardées avant l'ajout du muscle : on repart d'un an pour les compléter
+    const incomplete = await prisma.weightEntry.findFirst({ where: { ...mine(req), source: "GARMIN", muscleGrams: null }, select: { id: true } });
     const to = todayIso();
-    const from = last ? daysAgo(last.date, 7) : daysAgo(to, 365);
+    const from = last && !incomplete ? daysAgo(last.date, 7) : daysAgo(to, 365);
     const weights = await fetchWeights(from, to);
 
     // la saisie manuelle prime : on n'écrase que les pesées venues de Garmin
@@ -64,7 +67,7 @@ export async function weightRoutes(app: FastifyInstance) {
       kept.map((w) =>
         prisma.weightEntry.upsert({
           where: { ownerId_date: { ownerId: req.user.id, date: w.date } },
-          update: { grams: w.grams, bodyFat: w.bodyFat, source: "GARMIN" },
+          update: { grams: w.grams, bodyFat: w.bodyFat, muscleGrams: w.muscleGrams, source: "GARMIN" },
           create: { ...w, source: "GARMIN", ...mine(req), createdById: req.user.id },
         }),
       ),

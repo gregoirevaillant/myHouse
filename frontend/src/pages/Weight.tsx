@@ -4,7 +4,7 @@ import { WeightForm } from "../components/WeightForm";
 import type { WeightEntry } from "../lib/api";
 import { useMe, useUpdatePreferences } from "../lib/auth";
 import { addDays, fromIso, shortDate, toIso } from "../lib/dates";
-import { formatKg, parseKg, useGarminSync, useWeights, useWeightStatus } from "../lib/weight";
+import { analyse, formatKg, parseKg, useGarminSync, useWeights, useWeightStatus } from "../lib/weight";
 
 const RANGES = [
   { days: 30, label: "30 j" },
@@ -21,7 +21,7 @@ function niceStep(range: number) {
 }
 
 // courbe des pesées : lignes grises de repère (kg à l'horizontale, semaines et mois à la verticale), poids visé en pointillés
-function Chart({ entries, from, to, goal }: { entries: WeightEntry[]; from: string; to: string; goal: number | null }) {
+function Chart({ entries, from, to, goal }: { entries: { id: string; date: string; grams: number }[]; from: string; to: string; goal: number | null }) {
   const W = 320;
   const H = 190;
   const left = 30;
@@ -96,6 +96,7 @@ export function Weight() {
   const [days, setDays] = useState(90);
   const [opened, setOpened] = useState<{ entry?: WeightEntry } | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
+  const [metric, setMetric] = useState<"weight" | "muscle">("weight");
   const from = addDays(today, -days);
   const { data: entries = [], isLoading } = useWeights(from, today);
   const { data: status } = useWeightStatus();
@@ -103,6 +104,9 @@ export function Weight() {
   const goal = me?.weightGoal ?? null;
   const last = entries[entries.length - 1];
   const first = entries[0];
+  const analysis = analyse(entries);
+  const muscleSeries = entries.filter((e) => e.muscleGrams !== null).map((e) => ({ id: e.id, date: e.date, grams: e.muscleGrams! }));
+  const lastMuscle = muscleSeries[muscleSeries.length - 1];
   const bodyFat = [...entries].reverse().find((e) => e.bodyFat !== null)?.bodyFat;
 
   return (
@@ -138,7 +142,8 @@ export function Weight() {
           <p className="mt-1 text-sm font-bold text-ink-soft">
             {first && first.id !== last.id && `${signed(last.grams - first.grams)} kg depuis le ${shortDate(first.date)}`}
             {goal && ` · ${last.grams === goal ? "objectif atteint" : `${formatKg(Math.abs(last.grams - goal))} kg ${last.grams > goal ? "à perdre" : "à prendre"}`}`}
-            {bodyFat != null && ` · ${bodyFat.toString().replace(".", ",")} % de masse grasse`}
+            {lastMuscle && ` · ${formatKg(lastMuscle.grams)} kg de muscle`}
+            {bodyFat != null && ` · ${bodyFat.toString().replace(".", ",")} % de gras`}
           </p>
         )}
         <div className="mt-3 flex gap-1.5">
@@ -148,12 +153,25 @@ export function Weight() {
             </button>
           ))}
         </div>
+        {muscleSeries.length > 1 && (
+          <div className="mt-3 flex gap-1.5">
+            {([["weight", "Poids"], ["muscle", "Muscle"]] as const).map(([id, label]) => (
+              <button key={id} onClick={() => setMetric(id)} className={`rounded-full px-3 py-1 text-sm font-bold shadow-soft ${metric === id ? "bg-lavender" : "bg-white text-ink-soft"}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         {entries.length > 0 ? (
-          <div className="mt-3"><Chart entries={entries} from={from} to={today} goal={goal} /></div>
+          <div className="mt-3">
+            <Chart entries={metric === "muscle" && muscleSeries.length > 1 ? muscleSeries : entries} from={from} to={today} goal={metric === "weight" ? goal : null} />
+          </div>
         ) : (
           !isLoading && <p className="mt-4 text-center text-sm font-bold text-ink-soft">Aucune pesée sur cette période</p>
         )}
       </div>
+
+      {analysis && <AnalysisCard analysis={analysis} days={days} />}
 
       {isLoading ? (
         <p className="text-center text-ink-soft">Chargement…</p>
@@ -189,6 +207,38 @@ export function Weight() {
         </Modal>
       )}
     </section>
+  );
+}
+
+const TONES = { good: "bg-mint-soft", neutral: "bg-lemon-soft", bad: "bg-rose-soft" } as const;
+
+const delta = (g: number | null) => (g === null ? "—" : `${signed(g)} kg`);
+
+// ce que la variation de poids est réellement faite : muscle, gras, reste (eau, os…)
+function AnalysisCard({ analysis, days }: { analysis: NonNullable<ReturnType<typeof analyse>>; days: number }) {
+  const { verdict } = analysis;
+  const period = days === 30 ? "30 derniers jours" : days === 90 ? "3 derniers mois" : "12 derniers mois";
+  return (
+    <div className={`mb-4 rounded-3xl p-4 ${verdict ? TONES[verdict.tone] : "bg-white shadow-soft"}`}>
+      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Analyse · {period}</p>
+      {verdict ? (
+        <>
+          <p className="mt-1 text-lg font-extrabold">{verdict.icon} {verdict.title}</p>
+          <p className="mt-1 text-sm font-semibold">{verdict.text}</p>
+        </>
+      ) : (
+        <p className="mt-1 text-sm font-semibold">Ajoute la masse musculaire (ou synchronise ta balance Garmin) pour savoir si tu prends ou perds du muscle.</p>
+      )}
+      <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+        {([["Poids", analysis.weight], ["Muscle", analysis.muscle], ["Gras", analysis.fat], ["Eau, os…", analysis.other]] as const).map(([label, value]) => (
+          <div key={label} className="rounded-2xl bg-white/70 px-1 py-2 dark:bg-white/10">
+            <p className="text-[11px] font-bold text-ink-soft">{label}</p>
+            <p className="text-sm font-extrabold">{delta(value)}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] font-semibold text-ink-soft">Début et fin = moyenne de 3 pesées. La balance estime le muscle et le gras par impédance : l'hydratation les fait varier, juge sur plusieurs semaines.</p>
+    </div>
   );
 }
 
