@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Modal } from "../components/Modal";
 import { PlanMeal } from "../components/PlanMeal";
 import { RecipeToCalories } from "../components/RecipeToCalories";
@@ -16,6 +16,7 @@ export function RecipeDetail() {
   const navigate = useNavigate();
   const { data: recipes = [], isLoading } = useRecipes(true, true);
   const recipe = recipes.find((r) => r.id === id);
+  const food = useLocation().pathname.startsWith("/calories");
   const [editing, setEditing] = useState(false);
   const [planning, setPlanning] = useState(false);
   const [logging, setLogging] = useState(false);
@@ -36,17 +37,22 @@ export function RecipeDetail() {
     onSuccess: () => setPicked(new Set()),
   });
 
+  // une recette calories seulement vit dans l'espace privé (/calories/recettes), pas dans la liste de la famille
+  const back = food ? "/calories/recettes" : "/recettes";
+
   if (isLoading) return <p className="text-center text-ink-soft">Chargement…</p>;
   if (!recipe) {
     return (
       <div className="rounded-3xl bg-rose-soft p-8 text-center">
         <p className="font-semibold text-ink-soft">Cette recette n'existe plus</p>
-        <Link to="/recettes" className="btn-ghost mt-4">
-          Voir les recettes
+        <Link to={food ? "/calories/recettes" : "/recettes"} className="btn-ghost mt-4">
+          {food ? "Voir mes recettes" : "Voir les recettes"}
         </Link>
       </div>
     );
   }
+
+  if (recipe.private && !food) return <Navigate to={`/calories/recettes/${recipe.id}`} replace />;
 
   const cat = recipeCategory(recipe.category);
   const meta = recipeMeta(recipe);
@@ -59,8 +65,8 @@ export function RecipeDetail() {
 
   return (
     <section className="space-y-4">
-      <Link to="/recettes" className="inline-block text-sm font-bold text-ink-soft">
-        ◀ Recettes
+      <Link to={back} className="inline-block text-sm font-bold text-ink-soft">
+        ◀ {food ? "Mes recettes" : "Recettes"}
       </Link>
 
       {recipe.hasImage ? (
@@ -174,7 +180,7 @@ export function RecipeDetail() {
           <RecipeForm
             recipe={recipe}
             onDone={() => setEditing(false)}
-            onDeleted={() => navigate("/recettes", { replace: true })}
+            onDeleted={() => navigate(back, { replace: true })}
           />
         </Modal>
       )}

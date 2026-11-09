@@ -49,7 +49,7 @@ export function CalorieEntryForm({ entry, meal: initialMeal, date, onDone }: { e
     },
     onSuccess: done,
   });
-  // garde l'aliment (produit scanné ou saisie) dans « Mes calories » pour le re-choisir en un geste
+  // garde l'aliment (produit scanné ou saisie) dans « Mes recettes » (Calories) pour le re-choisir en un geste
   const keep = useMutation({
     mutationFn: () => {
       const perGram = base?.unit === "g";
@@ -147,7 +147,7 @@ export function CalorieEntryForm({ entry, meal: initialMeal, date, onDone }: { e
           ⭐ Garder dans mes aliments
         </button>
       )}
-      {keep.isSuccess && <p className="text-center text-sm font-bold">⭐ Gardé dans mes aliments (Recettes › Mes calories)</p>}
+      {keep.isSuccess && <p className="text-center text-sm font-bold">⭐ Gardé dans mes aliments (Calories › Mes recettes)</p>}
       {keep.error && <p className="text-sm font-bold text-rose-deep">{keep.error.message}</p>}
       {save.error && <p className="text-sm font-bold text-rose-deep">{save.error.message}</p>}
       <button className="btn-primary w-full" disabled={save.isPending || !label.trim() || !(value > 0)}>

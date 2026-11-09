@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { CalorieEntryForm } from "../components/CalorieEntryForm";
 import { Modal } from "../components/Modal";
 import type { CalorieEntry, CalorieMeal } from "../lib/api";
@@ -33,9 +34,14 @@ export function Calories() {
         <h2 className="flex items-center gap-2 text-lg font-extrabold">
           <span className="rounded-xl bg-peach px-2 py-1">🔥</span> Calories
         </h2>
-        <button className="btn bg-peach px-4 py-2 shadow-soft" onClick={() => setOpened({ meal: mealNow() })}>
-          + Ajouter
-        </button>
+        <div className="flex gap-2">
+          <Link to="/calories/recettes" className="btn bg-white px-4 py-2 shadow-soft">
+            🍲 Mes recettes
+          </Link>
+          <button className="btn bg-peach px-4 py-2 shadow-soft" onClick={() => setOpened({ meal: mealNow() })}>
+            + Ajouter
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 flex items-center justify-between rounded-2xl bg-white px-2 py-1.5 shadow-soft">
