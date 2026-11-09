@@ -234,6 +234,10 @@ model BudgetItem {
   category    String
   dueDay      Int // 1-31 (ramené à la fin du mois si besoin)
   dueMonth    Int? // 1-12, seulement pour YEARLY
+  // charge commune (ownerId null) : qui paie ; chaque échéance devient une dépense du carnet « Vie quotidienne »
+  paidById    String?
+  // dernière date déjà reportée dans le carnet (YYYY-MM-DD) ; null = pas de report
+  lastBilledOn String?
   active      Boolean   @default(true)
   note        String?
   createdAt   DateTime  @default(now())

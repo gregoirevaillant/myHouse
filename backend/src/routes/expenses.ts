@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { syncBudgetExpenses } from "../budgetSync.js";
 import { eur, notifyOthers } from "../push.js";
 
 const expenseBody = z.object({
@@ -39,13 +40,14 @@ async function validate(req: FastifyRequest, body: ExpenseBody) {
 }
 
 export async function expenseRoutes(app: FastifyInstance) {
-  app.get("/", async (req) =>
-    prisma.expense.findMany({
+  app.get("/", async (req) => {
+    await syncBudgetExpenses(req.user.householdId); // charges communes du budget échues
+    return prisma.expense.findMany({
       where: { householdId: req.user.householdId, ownerId: null },
       include,
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-    }),
-  );
+    });
+  });
 
   app.post("/", async (req) => {
     const body = expenseBody.parse(req.body);

@@ -135,6 +135,7 @@ export type BudgetItem = {
   active: boolean;
   note: string | null;
   private: boolean;
+  paidById?: string | null; // charge commune : qui paie (reportée dans le carnet « Vie quotidienne »)
 };
 export type BudgetItemInput = Omit<BudgetItem, "id">;
 
@@ -158,7 +159,6 @@ export type MediaItem = {
   note: string | null;
   source: string | null;
   sourceId: string | null;
-  private: boolean;
   hasImage: boolean;
 };
 export type MediaInput = Omit<MediaItem, "id" | "hasImage">;

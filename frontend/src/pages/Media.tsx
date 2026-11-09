@@ -91,7 +91,6 @@ export function Media() {
                   <p className="text-xs font-semibold text-ink-soft">
                     {KINDS[m.kind].icon} {m.year ?? KINDS[m.kind].label}
                     {m.status === "IN_PROGRESS" && m.progress ? ` · ${m.progress}` : ""}
-                    {m.private ? " · 🔒" : ""}
                   </p>
                   <Stars value={m.rating} />
                 </div>
@@ -295,7 +294,6 @@ function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Draft; o
   const [rating, setRating] = useState<number | null>(item?.rating ?? null);
   const [doneAt, setDoneAt] = useState(item?.doneAt ?? "");
   const [note, setNote] = useState(item?.note ?? "");
-  const [isPrivate, setIsPrivate] = useState(item?.private ?? true);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const done = () => {
@@ -317,7 +315,6 @@ function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Draft; o
         note: note.trim() || null,
         source: item?.source ?? draft?.source ?? null,
         sourceId: item?.sourceId ?? draft?.sourceId ?? null,
-        private: isPrivate,
       };
       return api<MediaItem>(item ? `/media/${item.id}` : "/media", { method: item ? "PATCH" : "POST", json: body });
     },
@@ -380,13 +377,6 @@ function MediaForm({ item, draft, onDone }: { item?: MediaItem; draft?: Draft; o
         <label className="label" htmlFor="media-note">Note (facultatif)</label>
         <textarea id="media-note" className="input focus:border-lavender" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
-      <label className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 font-bold shadow-soft">
-        <input type="checkbox" className="h-5 w-5 accent-rose-deep" checked={!isPrivate} onChange={(e) => setIsPrivate(!e.target.checked)} />
-        <span>
-          🏠 Pour la maison
-          <span className="block text-xs font-semibold text-ink-soft">{isPrivate ? "🔒 Rien que pour moi tant que tu ne coches pas" : "Visible par tout le foyer"}</span>
-        </span>
-      </label>
 
       {save.error && <p className="text-sm font-bold text-rose-deep">{save.error.message}</p>}
       <button className="btn-primary w-full" disabled={save.isPending || !title.trim()}>

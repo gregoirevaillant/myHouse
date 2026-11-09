@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db.js";
+import { syncBudgetExpenses } from "../budgetSync.js";
 
 const CATEGORIES = [
   "LOGEMENT",
@@ -34,6 +35,8 @@ const itemBody = z
       .transform((n) => n || null),
     // true = visible par moi seulement
     private: z.boolean().default(true),
+    // charge commune : qui paie (elle est reportée dans le carnet « Vie quotidienne »)
+    paidById: z.string().nullish(),
   })
   .transform((b) => ({ ...b, dueMonth: b.period === "YEARLY" ? (b.dueMonth ?? 1) : null }));
 
@@ -49,8 +52,20 @@ const select = {
   active: true,
   note: true,
   ownerId: true,
+  paidById: true,
 } as const;
 const publicItem = <T extends { ownerId: string | null }>({ ownerId, ...i }: T) => ({ ...i, private: ownerId !== null });
+
+const yesterday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(Date.now() - 864e5));
+
+// Champs du report automatique : seule une charge commune avec payeur est reportée. Le report démarre à l'enregistrement
+// (échéance du jour et suivantes, sans rattraper le passé) ; une charge déjà suivie garde sa date de dernier report.
+async function billing(req: FastifyRequest, b: { private: boolean; kind: string; paidById?: string | null }, previous: string | null) {
+  if (b.private || b.kind !== "EXPENSE") return { paidById: null, lastBilledOn: null };
+  const payer = await prisma.user.findFirst({ where: { id: b.paidById ?? "", householdId: req.user.householdId }, select: { id: true } });
+  if (!payer) throw Object.assign(new Error("Choisis qui paie"), { statusCode: 400 });
+  return { paidById: payer.id, lastBilledOn: previous ?? yesterday() };
+}
 
 // les lignes partagées du foyer et mes lignes privées
 const visibleTo = (req: FastifyRequest) => ({
@@ -62,25 +77,31 @@ export async function budgetRoutes(app: FastifyInstance) {
   const find = (req: FastifyRequest<{ Params: { id: string } }>) => prisma.budgetItem.findFirst({ where: { id: req.params.id, ...visibleTo(req) } });
 
   app.get("/", async (req) => {
+    await syncBudgetExpenses(req.user.householdId);
     const list = await prisma.budgetItem.findMany({ where: visibleTo(req), select, orderBy: [{ dueDay: "asc" }, { label: "asc" }] });
     return list.map(publicItem);
   });
 
   app.post("/", async (req) => {
-    const { private: isPrivate, ...data } = itemBody.parse(req.body);
+    const body = itemBody.parse(req.body);
+    const { private: isPrivate, paidById: _payer, ...data } = body;
+    const bill = await billing(req, body, null);
     const item = await prisma.budgetItem.create({
-      data: { ...data, householdId: req.user.householdId, createdById: req.user.id, ownerId: isPrivate ? req.user.id : null },
+      data: { ...data, ...bill, householdId: req.user.householdId, createdById: req.user.id, ownerId: isPrivate ? req.user.id : null },
       select,
     });
     return publicItem(item);
   });
 
   app.patch<{ Params: { id: string } }>("/:id", async (req, reply) => {
-    if (!(await find(req))) return reply.code(404).send({ error: "Introuvable" });
-    const { private: isPrivate, ...data } = itemBody.parse(req.body);
+    const existing = await find(req);
+    if (!existing) return reply.code(404).send({ error: "Introuvable" });
+    const body = itemBody.parse(req.body);
+    const { private: isPrivate, paidById: _payer, ...data } = body;
+    const bill = await billing(req, body, existing.ownerId === null ? existing.lastBilledOn : null);
     const item = await prisma.budgetItem.update({
       where: { id: req.params.id },
-      data: { ...data, ownerId: isPrivate ? req.user.id : null },
+      data: { ...data, ...bill, ownerId: isPrivate ? req.user.id : null },
       select,
     });
     return publicItem(item);

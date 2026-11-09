@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BarChart } from "../components/BarChart";
 import { Modal } from "../components/Modal";
+import { useMe } from "../lib/auth";
+import { useMembers } from "../lib/members";
 import { api, type BudgetItem, type BudgetItemInput, type BudgetKind, type BudgetPeriod } from "../lib/api";
 import { budgetSummary, category, categoriesOf, monthlyCents, monthlyOutflows, nextDue, useBudgetItems } from "../lib/budget";
 import { monthLabel, shortDate, toIso } from "../lib/dates";
@@ -186,6 +188,9 @@ function ItemForm({ item, defaultPeriod, onDone }: { item?: BudgetItem; defaultP
   const [active, setActive] = useState(item?.active ?? true);
   const [note, setNote] = useState(item?.note ?? "");
   const [isPrivate, setIsPrivate] = useState(item?.private ?? true);
+  const { data: members = [] } = useMembers();
+  const { data: me } = useMe();
+  const [paidById, setPaidById] = useState(item?.paidById ?? me?.id ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const cents = parseEur(amount);
 
@@ -212,6 +217,7 @@ function ItemForm({ item, defaultPeriod, onDone }: { item?: BudgetItem; defaultP
         active,
         note: note.trim() || null,
         private: isPrivate,
+        paidById: !isPrivate && kind === "EXPENSE" ? paidById : null,
       };
       return api<BudgetItem>(item ? `/budget/${item.id}` : "/budget", { method: item ? "PATCH" : "POST", json: body });
     },
@@ -302,9 +308,21 @@ function ItemForm({ item, defaultPeriod, onDone }: { item?: BudgetItem; defaultP
         <input type="checkbox" className="h-5 w-5 accent-rose-deep" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
         <span>
           🔒 Rien que pour moi
-          <span className="block text-xs font-semibold text-ink-soft">Décoche pour la partager avec le foyer</span>
+          <span className="block text-xs font-semibold text-ink-soft">Décoche pour en faire une charge commune</span>
         </span>
       </label>
+
+      {!isPrivate && kind === "EXPENSE" && (
+        <div>
+          <label className="label" htmlFor="budget-payer">Qui paie ?</label>
+          <select id="budget-payer" className="input focus:border-rose" value={paidById} onChange={(e) => setPaidById(e.target.value)}>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs font-semibold text-ink-soft">À chaque échéance, la dépense s'ajoute toute seule au carnet « Vie quotidienne », partagée à parts égales.</p>
+        </div>
+      )}
 
       {save.error && <p className="text-sm font-bold text-rose-deep">{save.error.message}</p>}
       <button className="btn-primary w-full" disabled={save.isPending || !cents}>

@@ -33,8 +33,6 @@ const itemBody = z.object({
   // fiche choisie dans une base ouverte : le serveur va chercher l'affiche et le résumé lui-même
   source: z.string().max(20).nullish(),
   sourceId: z.string().max(30).nullish(),
-  // true = visible par moi seulement
-  private: z.boolean().default(true), // une fiche est pour moi tant que je ne la partage pas
 });
 
 const patchBody = itemBody.omit({ source: true, sourceId: true }); // la fiche d'origine ne change pas
@@ -100,7 +98,7 @@ export async function mediaRoutes(app: FastifyInstance) {
   });
 
   app.post("/", async (req) => {
-    const { private: isPrivate, ...data } = itemBody.parse(req.body);
+    const data = itemBody.parse(req.body);
     const details =
       data.source && data.sourceId
         ? await detailsFor(data.kind, data.source, data.sourceId).catch((err) => {
@@ -117,7 +115,7 @@ export async function mediaRoutes(app: FastifyInstance) {
         imagePath: image ? await saveImage(image) : null,
         householdId: req.user.householdId,
         createdById: req.user.id,
-        ownerId: isPrivate ? req.user.id : null,
+        ownerId: req.user.id,
       },
       select,
     });
@@ -126,10 +124,10 @@ export async function mediaRoutes(app: FastifyInstance) {
 
   app.patch<{ Params: { id: string } }>("/:id", async (req, reply) => {
     if (!(await find(req))) return reply.code(404).send({ error: "Introuvable" });
-    const { private: isPrivate, ...data } = patchBody.parse(req.body);
+    const data = patchBody.parse(req.body);
     const item = await prisma.mediaItem.update({
       where: { id: req.params.id },
-      data: { ...data, ownerId: isPrivate ? req.user.id : null },
+      data: { ...data, ownerId: req.user.id },
       select,
     });
     return publicItem(item);
