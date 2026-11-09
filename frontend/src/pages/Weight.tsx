@@ -12,6 +12,26 @@ const RANGES = [
   { days: 365, label: "1 an" },
 ];
 
+// ce que la courbe peut montrer ; les % sont multipliés par 1000 pour partager l'échelle et le format des kilos
+type Metric = "weight" | "muscle" | "fatKg" | "fatPct";
+const METRICS: { id: Metric; label: string; unit: string }[] = [
+  { id: "weight", label: "Poids", unit: "kg" },
+  { id: "muscle", label: "Muscle", unit: "kg" },
+  { id: "fatKg", label: "Gras (kg)", unit: "kg" },
+  { id: "fatPct", label: "Gras (%)", unit: "%" },
+];
+const metricValue = (e: WeightEntry, m: Metric) =>
+  m === "weight" ? e.grams : m === "muscle" ? e.muscleGrams : e.bodyFat === null ? null : m === "fatKg" ? Math.round((e.grams * e.bodyFat) / 100) : Math.round(e.bodyFat * 1000);
+
+const loadMetric = (): Metric => {
+  try {
+    const saved = localStorage.getItem("weight-metric");
+    return METRICS.some((m) => m.id === saved) ? (saved as Metric) : "weight";
+  } catch {
+    return "weight"; // stockage indisponible (navigation privée) : réglage non retenu
+  }
+};
+
 const signed = (grams: number) => `${grams > 0 ? "+" : grams < 0 ? "−" : ""}${formatKg(Math.abs(grams))}`;
 
 // graduation « ronde » (0,5 / 1 / 2 / 5 kg…) qui donne 3 à 6 lignes horizontales
@@ -21,7 +41,7 @@ function niceStep(range: number) {
 }
 
 // courbe des pesées : lignes grises de repère (kg à l'horizontale, semaines et mois à la verticale), poids visé en pointillés
-function Chart({ entries, from, to, goal }: { entries: { id: string; date: string; grams: number }[]; from: string; to: string; goal: number | null }) {
+function Chart({ entries, from, to, goal, unit }: { entries: { id: string; date: string; grams: number }[]; from: string; to: string; goal: number | null; unit: string }) {
   const W = 320;
   const H = 190;
   const left = 30;
@@ -59,6 +79,7 @@ function Chart({ entries, from, to, goal }: { entries: { id: string; date: strin
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Courbe du poids">
+      <text x={0} y={7} className="fill-ink-soft text-[8px] font-extrabold">{unit}</text>
       {hLines.map((g) => (
         <g key={g}>
           <line x1={left} x2={W - right} y1={y(g)} y2={y(g)} className="stroke-ink-soft/25" strokeWidth={0.6} />
@@ -96,7 +117,15 @@ export function Weight() {
   const [days, setDays] = useState(90);
   const [opened, setOpened] = useState<{ entry?: WeightEntry } | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
-  const [metric, setMetric] = useState<"weight" | "muscle">("weight");
+  const [metric, setMetricState] = useState<Metric>(loadMetric);
+  const setMetric = (m: Metric) => {
+    setMetricState(m);
+    try {
+      localStorage.setItem("weight-metric", m);
+    } catch {
+      // stockage indisponible : le choix vaut pour cette visite seulement
+    }
+  };
   const from = addDays(today, -days);
   const { data: entries = [], isLoading } = useWeights(from, today);
   const { data: status } = useWeightStatus();
@@ -105,8 +134,14 @@ export function Weight() {
   const last = entries[entries.length - 1];
   const first = entries[0];
   const analysis = analyse(entries);
-  const muscleSeries = entries.filter((e) => e.muscleGrams !== null).map((e) => ({ id: e.id, date: e.date, grams: e.muscleGrams! }));
-  const lastMuscle = muscleSeries[muscleSeries.length - 1];
+  const seriesOf = (m: Metric) => entries.flatMap((e) => {
+    const grams = metricValue(e, m);
+    return grams === null ? [] : [{ id: e.id, date: e.date, grams }];
+  });
+  // seules les courbes qui ont au moins 2 points sont proposées ; le poids est toujours là
+  const available = METRICS.filter((m) => m.id === "weight" || seriesOf(m.id).length > 1);
+  const shown = available.find((m) => m.id === metric) ?? available[0];
+  const lastMuscle = seriesOf("muscle").pop();
   const bodyFat = [...entries].reverse().find((e) => e.bodyFat !== null)?.bodyFat;
 
   return (
@@ -153,18 +188,18 @@ export function Weight() {
             </button>
           ))}
         </div>
-        {muscleSeries.length > 1 && (
-          <div className="mt-3 flex gap-1.5">
-            {([["weight", "Poids"], ["muscle", "Muscle"]] as const).map(([id, label]) => (
-              <button key={id} onClick={() => setMetric(id)} className={`rounded-full px-3 py-1 text-sm font-bold shadow-soft ${metric === id ? "bg-lavender" : "bg-white text-ink-soft"}`}>
-                {label}
+        {available.length > 1 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {available.map((m) => (
+              <button key={m.id} onClick={() => setMetric(m.id)} className={`rounded-full px-3 py-1 text-sm font-bold shadow-soft ${shown.id === m.id ? "bg-lavender" : "bg-white text-ink-soft"}`}>
+                {m.label}
               </button>
             ))}
           </div>
         )}
         {entries.length > 0 ? (
           <div className="mt-3">
-            <Chart entries={metric === "muscle" && muscleSeries.length > 1 ? muscleSeries : entries} from={from} to={today} goal={metric === "weight" ? goal : null} />
+            <Chart entries={seriesOf(shown.id)} from={from} to={today} goal={shown.id === "weight" ? goal : null} unit={shown.unit} />
           </div>
         ) : (
           !isLoading && <p className="mt-4 text-center text-sm font-bold text-ink-soft">Aucune pesée sur cette période</p>
