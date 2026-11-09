@@ -14,6 +14,7 @@ export const tabs = [
   { to: "/media", label: "Médias", icon: "🎬", active: "bg-lavender" },
   { to: "/poids", label: "Poids", icon: "⚖️", active: "bg-sky" },
   { to: "/sante", label: "Santé", icon: "❤️", active: "bg-mint" },
+  { to: "/entrainement", label: "Entraînement", icon: "🏃", active: "bg-lemon" },
 ];
 
 // pages activées pour la famille par l'administrateur ; features absent (session gardée hors ligne avant les familles) = toutes
@@ -25,7 +26,7 @@ export const useHasPage = (page: string) => {
 };
 
 // Espace privé (administrateur seulement) : pages hors des familles, rangées sous /prive sur l'accueil
-export const PRIVATE_PAGES = ["/journal", "/media", "/calories", "/poids", "/sante"];
+export const PRIVATE_PAGES = ["/journal", "/media", "/calories", "/poids", "/sante", "/entrainement"];
 export const isPrivatePath = (pathname: string) => pathname === "/prive" || PRIVATE_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 export const usePrivateTabs = () => {
   const priv = useMe().data?.privateFeatures ?? [];

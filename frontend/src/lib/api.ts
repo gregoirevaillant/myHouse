@@ -221,3 +221,32 @@ export type MediaItem = {
 export type MediaInput = Omit<MediaItem, "id" | "hasImage">;
 // résultat d'une recherche dans une base ouverte
 export type MediaHit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null; creator: string | null; imageUrl: string | null };
+
+// ── Page Entraînement (résumé Garmin préparé par scripts/garmin, voir GET /api/training) ──
+export type TrainingSport = "run" | "bike" | "swim" | "strength" | "other";
+export type TrainingBucket = { km: number; sec: number; n: number; load: number; elev: number };
+export type TrainingWeek = TrainingBucket & { start: string; by: Record<TrainingSport, TrainingBucket>; zones: number[] };
+export type TrainingDay = {
+  date: string; steps: number | null; rhr: number | null; stress: number | null; bbMax: number | null; bbMin: number | null; intensity: number;
+  sleepH: number | null; sleepScore: number | null; deepH: number | null; remH: number | null; hrv: number | null; hrvWeekly: number | null; hrvStatus: string | null;
+};
+export type TrainingRecord = { date: string; name: string; km: number; sec: number; elev: number; type: string; paceSecPerKm?: number | null };
+export type TrainingSummary = {
+  empty?: false;
+  generatedAt: string; today: string; units: "km";
+  goal: { label: string; runsPerWeek: number; raceDate: string | null; raceName: string | null };
+  range: { from: string; to: string };
+  counts: { activities: number; days: number; nights: number; hrv: number; weighIns: number };
+  weeks: TrainingWeek[];
+  days: TrainingDay[];
+  weights: { date: string; kg: number; fat: number | null; muscle: number | null }[];
+  records: {
+    longestRun: TrainingRecord | null; fastest5k: TrainingRecord | null; fastest10k: TrainingRecord | null; longestRide: TrainingRecord | null;
+    longestSwim: TrainingRecord | null; mostElevation: TrainingRecord | null; longestSession: TrainingRecord | null;
+    biggestWeek: { start: string; km: number; sec: number; n: number } | null;
+  };
+  biggestDays: { date: string; km: number; sec: number; load: number; n: number }[];
+  recent: { date: string; name: string; sport: TrainingSport; type: string; km: number; sec: number; elev: number; hr: number | null; load: number | null }[];
+  strength: { total: number; last: string | null };
+};
+export type TrainingResponse = TrainingSummary | { empty: true };

@@ -6,3 +6,7 @@ dist
 uploads
 .DS_Store
 *.pem
+
+# Données Garmin personnelles (jamais versionnées)
+garmin-data/
+.env.local

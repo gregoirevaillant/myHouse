@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type JournalSummary, type Meal, type ShoppingItem } from "../../lib/api";
+import { api, type JournalSummary, type Meal, type ShoppingItem, type TrainingSummary } from "../../lib/api";
 import { useMe } from "../../lib/auth";
 import { budgetSummary, useBudgetItems } from "../../lib/budget";
 import { totalKcal, useCalorieEntries } from "../../lib/calories";
@@ -11,6 +11,7 @@ import { formatEur } from "../../lib/money";
 import { useMedia } from "../../lib/media";
 import { distance, duration, relativeDay, sportOf, useGarminActivities } from "../../lib/garmin";
 import { formatKg, useWeights } from "../../lib/weight";
+import { useTraining } from "../../lib/training";
 import { cardsQuery, infosQuery, shoppingQuery } from "../../lib/offline";
 import { recipeCategory, useRecipes } from "../../lib/recipes";
 import { cuisineInfo, useRestaurants } from "../../lib/restaurants";
@@ -343,6 +344,25 @@ export function MediaTile({ wide }: Props) {
             </p>
           ))}
         </>
+      )}
+    </Tile>
+  );
+}
+
+export function TrainingTile({ wide }: Props) {
+  const { data } = useTraining();
+  const week = data && !("empty" in data && data.empty) ? (data as TrainingSummary).weeks[(data as TrainingSummary).weeks.length - 1] : undefined;
+  const goal = data && !("empty" in data && data.empty) ? (data as TrainingSummary).goal.runsPerWeek : 3;
+  return (
+    <Tile to="/entrainement" icon="🏃" label="Entraînement" className={`${span(wide)}bg-lemon`}>
+      <Label>Entraînement</Label>
+      {week ? (
+        <>
+          <p className="mt-1 text-2xl font-extrabold">{week.km.toFixed(1).replace(".", ",")} <span className="text-sm font-bold text-ink/60">km</span></p>
+          <p className="text-sm font-bold text-ink/60">{week.by.run.n}/{goal} courses cette semaine</p>
+        </>
+      ) : (
+        <p className="mt-2 text-sm font-bold text-ink/60">{data ? "Pas encore de données" : "…"}</p>
       )}
     </Tile>
   );

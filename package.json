@@ -1,0 +1,8 @@
+{
+  "name": "maison-garmin",
+  "private": true,
+  "description": "Outils Garmin (page Entraînement) : lancés sur l'ordinateur, jamais dans l'image Docker",
+  "scripts": {
+    "garmin:refresh": "docker run --rm --user $(id -u):$(id -g) -v \"$PWD\":/app -w /app node:24-slim node scripts/garmin/pull.mjs"
+  }
+}

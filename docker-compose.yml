@@ -11,6 +11,8 @@ services:
       - "127.0.0.1:8083:1000"
     volumes:
       - data:/data
+      # résumé Garmin préparé par « npm run garmin:refresh » (page Entraînement), en lecture seule
+      - ./garmin-data:/garmin-data:ro
     # durcissement : pas de nouveaux privilèges, seulement les droits nécessaires pour confier /data à l'utilisateur node
     security_opt:
       - no-new-privileges:true
@@ -21,6 +23,7 @@ services:
       - /tmp
     environment:
       HOME: /tmp
+      GARMIN_DATA_DIR: /garmin-data
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:1000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
