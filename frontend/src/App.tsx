@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { lazy, Suspense, type ReactElement } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { useMe } from "./lib/auth";
@@ -25,6 +25,9 @@ import { RecipeDetail } from "./pages/RecipeDetail";
 import { Recipes } from "./pages/Recipes";
 import { Restaurants } from "./pages/Restaurants";
 import { Shopping } from "./pages/Shopping";
+
+// page Santé chargée à la demande : elle n'alourdit pas le premier chargement de l'application
+const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.Health })));
 
 // page désactivée pour la famille : retour à l'accueil (le serveur refuse de toute façon ses données)
 function Gate({ page, children }: { page: string; children: ReactElement }) {
@@ -64,6 +67,7 @@ export default function App() {
         <Route path="/infos" element={<Gate page="infos"><Infos /></Gate>} />
         <Route path="/budget" element={<Gate page="budget"><Budget /></Gate>} />
         <Route path="/media" element={<Gate page="media"><Media /></Gate>} />
+        <Route path="/sante" element={<Gate page="sante"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Health /></Suspense></Gate>} />
         <Route path="/poids" element={<Gate page="poids"><Weight /></Gate>} />
         <Route path="/calories" element={<Gate page="calories"><Calories /></Gate>} />
         <Route path="/calories/recettes" element={<Gate page="calories"><CalorieFoods /></Gate>} />

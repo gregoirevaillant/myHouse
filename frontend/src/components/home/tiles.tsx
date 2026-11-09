@@ -9,6 +9,7 @@ import { computeDebt, useExpenses } from "../../lib/expenses";
 import { useMembers } from "../../lib/members";
 import { formatEur } from "../../lib/money";
 import { useMedia } from "../../lib/media";
+import { distance, duration, relativeDay, sportOf, useGarminActivities } from "../../lib/garmin";
 import { formatKg, useWeights } from "../../lib/weight";
 import { cardsQuery, infosQuery, shoppingQuery } from "../../lib/offline";
 import { recipeCategory, useRecipes } from "../../lib/recipes";
@@ -272,6 +273,30 @@ export function WeightTile({ wide }: Props) {
       </Modal>
     )}
     </>
+  );
+}
+
+export function HealthTile({ wide }: Props) {
+  const today = toIso(new Date());
+  const { data: activities, error } = useGarminActivities();
+  const last = activities?.[0];
+  const week = activities?.filter((a) => a.date >= addDays(today, -6)).length ?? 0;
+  return (
+    <Tile to="/sante" icon="❤️" label="Santé" className={`${span(wide)}bg-mint`}>
+      <Label>Santé</Label>
+      {last ? (
+        <>
+          <p className="mt-1 text-2xl font-extrabold">
+            {sportOf(last.type).icon} {distance(last.type, last.distanceM) ?? duration(last.durationS)}
+          </p>
+          <p className="text-sm font-bold text-ink/60">
+            {relativeDay(last.date, today)} · {week} sortie{week > 1 ? "s" : ""} en 7 j
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 text-sm font-bold text-ink/60">{error ? "Garmin indisponible" : activities ? "Aucune sortie" : "…"}</p>
+      )}
+    </Tile>
   );
 }
 

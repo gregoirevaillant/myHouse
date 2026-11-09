@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Modal } from "../components/Modal";
 import { WeightForm } from "../components/WeightForm";
-import type { WeightEntry } from "../lib/api";
+import { api, type WeightEntry } from "../lib/api";
 import { useMe, useUpdatePreferences } from "../lib/auth";
 import { addDays, fromIso, shortDate, toIso } from "../lib/dates";
 import { analyse, formatKg, parseKg, useGarminSync, useWeights, useWeightStatus } from "../lib/weight";
@@ -238,7 +239,7 @@ export function Weight() {
       )}
       {goalOpen && (
         <Modal title="Poids visé" onClose={() => setGoalOpen(false)}>
-          <GoalForm goal={goal} onDone={() => setGoalOpen(false)} />
+          <GoalForm goal={goal} garmin={!!status?.garmin} onDone={() => setGoalOpen(false)} />
         </Modal>
       )}
     </section>
@@ -277,8 +278,10 @@ function AnalysisCard({ analysis, days }: { analysis: NonNullable<ReturnType<typ
   );
 }
 
-function GoalForm({ goal, onDone }: { goal: number | null; onDone: () => void }) {
+function GoalForm({ goal, garmin, onDone }: { goal: number | null; garmin: boolean; onDone: () => void }) {
   const update = useUpdatePreferences();
+  // objectif enregistré dans Garmin Connect, proposé en un geste
+  const { data: fromGarmin } = useQuery({ queryKey: ["garmin", "weight-goal"], queryFn: () => api<{ grams: number | null }>("/garmin/weight-goal"), enabled: garmin, retry: false });
   const [value, setValue] = useState(goal ? formatKg(goal) : "");
   const grams = parseKg(value);
   const valid = grams >= 30000 && grams <= 300000;
@@ -295,6 +298,11 @@ function GoalForm({ goal, onDone }: { goal: number | null; onDone: () => void })
         <input id="w-goal" className="input focus:border-sky" inputMode="decimal" placeholder="70" value={value} onChange={(e) => setValue(e.target.value.replace(/[^\d.,]/g, ""))} />
         {value && !valid && <p className="mt-1 text-sm font-bold text-rose-deep">Entre une valeur entre 30 et 300 kg</p>}
       </div>
+      {fromGarmin?.grams && (
+        <button type="button" className="btn-ghost w-full" onClick={() => setValue(formatKg(fromGarmin.grams!))}>
+          ⌚ Reprendre l'objectif Garmin ({formatKg(fromGarmin.grams)} kg)
+        </button>
+      )}
       <button className="btn-primary w-full" disabled={!valid || update.isPending}>Enregistrer</button>
       {goal !== null && (
         <button type="button" className="w-full text-sm font-bold text-ink-soft" onClick={() => update.mutate({ weightGoal: null }, { onSuccess: onDone })}>

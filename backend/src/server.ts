@@ -16,6 +16,7 @@ import { budgetRoutes } from "./routes/budget.js";
 import { mediaRoutes } from "./routes/media.js";
 import { calorieRoutes } from "./routes/calories.js";
 import { weightRoutes } from "./routes/weight.js";
+import { garminRoutes } from "./routes/garmin.js";
 import { cardRoutes } from "./routes/cards.js";
 import { expenseRoutes } from "./routes/expenses.js";
 import { expenseTrackerRoutes } from "./routes/expenseTrackers.js";
@@ -111,6 +112,7 @@ await app.register(
       await priv.register(mediaRoutes, { prefix: "/media" });
       await priv.register(calorieRoutes, { prefix: "/calories" });
       await priv.register(weightRoutes, { prefix: "/weight" });
+      await priv.register(garminRoutes, { prefix: "/garmin" });
       await priv.register(pushRoutes, { prefix: "/push" });
       await priv.register(liveRoutes, { prefix: "/events" });
       await priv.register(adminRoutes, { prefix: "/admin" });

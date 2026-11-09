@@ -146,6 +146,60 @@ export type CalorieEntryInput = Omit<CalorieEntry, "id">;
 
 export type WeightEntry = { id: string; date: string; grams: number; bodyFat: number | null; muscleGrams: number | null; source: "MANUAL" | "GARMIN" };
 
+// Santé : données lues sur Garmin Connect (lecture seule, rien n'est stocké côté serveur)
+export type GarminDay = {
+  date: string;
+  steps: number | null;
+  stepGoal: number | null;
+  distanceM: number | null;
+  activeKcal: number | null;
+  totalKcal: number | null;
+  moderateMin: number | null;
+  vigorousMin: number | null;
+  floors: number | null;
+  stress: number | null;
+  bodyBattery: number | null;
+};
+export type GarminFitness = {
+  age: number | null;
+  realAge: number | null;
+  bestAge: number | null;
+  previousAge: number | null;
+  bodyFat: { value: number | null; target: number | null } | null;
+  vigorousDays: { value: number | null; target: number | null } | null;
+  vigorousMinutes: number | null;
+};
+export type GarminOverview = {
+  today: string;
+  days: GarminDay[];
+  intensityGoal: number;
+  stepGoal: number | null;
+  week: { from: string; sessions: number; distanceM: number; durationS: number; intensityMin: number };
+  fitness: GarminFitness | null;
+};
+export type GarminActivity = {
+  id: number;
+  name: string;
+  type: string;
+  date: string;
+  time: string;
+  distanceM: number | null;
+  durationS: number | null;
+  speed: number | null; // m/s
+  elevationGain: number | null;
+  calories: number | null;
+  avgHr: number | null;
+  maxHr: number | null;
+  cadence: number | null;
+  power: number | null;
+  aerobic: number | null;
+  anaerobic: number | null;
+  location: string | null;
+  pr: boolean;
+};
+export type GarminSleep = { date: string; seconds: number; deep: number; light: number; rem: number; awake: number };
+export type GarminForme = { zones: { max: number; floors: number[] } | null; sleep: GarminSleep[] };
+
 export type MediaKind = "MOVIE" | "SERIES" | "GAME" | "BOOK";
 export type MediaStatus = "WISHLIST" | "IN_PROGRESS" | "DONE";
 export type MediaItem = {
