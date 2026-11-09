@@ -32,7 +32,7 @@ export function useLogout() {
   });
 }
 
-export type Preferences = Pick<User, "hiddenTabs" | "hiddenHome" | "menuOrder" | "homeWide" | "showNavBar" | "mutedNotifications" | "calorieGoal">;
+export type Preferences = Pick<User, "hiddenTabs" | "hiddenHome" | "menuOrder" | "homeWide" | "showNavBar" | "mutedNotifications" | "calorieGoal" | "weightGoal">;
 
 // appliqué tout de suite à l'écran, puis confirmé par le serveur
 export function useUpdatePreferences() {

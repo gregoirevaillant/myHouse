@@ -26,6 +26,7 @@ model Household {
   infos           HouseInfo[]
   recipes         Recipe[]
   calorieEntries  CalorieEntry[]
+  weightEntries   WeightEntry[]
   mediaItems      MediaItem[]
 }
 
@@ -41,6 +42,7 @@ model User {
   household    Household @relation(fields: [householdId], references: [id])
   // chemins des onglets masqués dans la barre de menu, séparés par des virgules
   calorieGoal  Int? // objectif quotidien en kcal
+  weightGoal   Int? // poids visé, en grammes
   hiddenTabs   String    @default("")
   menuOrder    String    @default("") // ordre des pages (routes en CSV), commun à la barre et à l'accueil
   homeWide     String    @default("/repas") // tuiles de l'accueil sur 2 colonnes
@@ -258,6 +260,23 @@ model CalorieEntry {
   kcal        Int
   createdAt   DateTime  @default(now())
 
+  @@index([householdId, ownerId, date])
+}
+
+// Pesée du suivi du poids : toujours privée (ownerId = la personne), une par jour
+model WeightEntry {
+  id          String    @id @default(cuid())
+  householdId String
+  household   Household @relation(fields: [householdId], references: [id])
+  createdById String
+  ownerId     String
+  date        String // YYYY-MM-DD
+  grams       Int
+  bodyFat     Float? // % de masse grasse (balance connectée)
+  source      String    @default("MANUAL") // MANUAL | GARMIN (la saisie manuelle n'est jamais écrasée par la synchronisation)
+  createdAt   DateTime  @default(now())
+
+  @@unique([ownerId, date])
   @@index([householdId, ownerId, date])
 }
 

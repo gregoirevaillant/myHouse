@@ -6,6 +6,7 @@ import { Admin } from "./pages/Admin";
 import { Budget } from "./pages/Budget";
 import { Media } from "./pages/Media";
 import { Calories } from "./pages/Calories";
+import { Weight } from "./pages/Weight";
 import { CalorieFoods } from "./pages/CalorieFoods";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/infos" element={<Gate page="infos"><Infos /></Gate>} />
         <Route path="/budget" element={<Gate page="budget"><Budget /></Gate>} />
         <Route path="/media" element={<Gate page="media"><Media /></Gate>} />
+        <Route path="/poids" element={<Gate page="poids"><Weight /></Gate>} />
         <Route path="/calories" element={<Gate page="calories"><Calories /></Gate>} />
         <Route path="/calories/recettes" element={<Gate page="calories"><CalorieFoods /></Gate>} />
         <Route path="/calories/recettes/:id" element={<Gate page="calories"><RecipeDetail /></Gate>} />

@@ -25,6 +25,7 @@ export type User = {
   email: string;
   name: string;
   calorieGoal?: number | null; // absent des sessions gardées hors ligne avant son ajout
+  weightGoal?: number | null; // poids visé en grammes ; idem
   hiddenTabs: string[];
   hiddenHome?: string[]; // absent des sessions gardées hors ligne avant son ajout
   menuOrder?: string[]; // idem
@@ -34,7 +35,7 @@ export type User = {
   isAdmin?: boolean; // absents des sessions gardées hors ligne avant les familles
   mustChangePassword?: boolean;
   features?: string[]; // pages activées pour la famille (« cartes », « repas »…) ; absent = toutes
-  privateFeatures?: string[]; // espace privé de l'administrateur (« journal », « media », « calories ») ; absent = aucune
+  privateFeatures?: string[]; // espace privé de l'administrateur (« journal », « media », « calories », « poids ») ; absent = aucune
 };
 
 export type AdminUser = { id: string; name: string; email: string; isAdmin: boolean; mustChangePassword: boolean };
@@ -142,6 +143,8 @@ export type BudgetItemInput = Omit<BudgetItem, "id">;
 export type CalorieMeal = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
 export type CalorieEntry = { id: string; date: string; meal: CalorieMeal; label: string; kcal: number };
 export type CalorieEntryInput = Omit<CalorieEntry, "id">;
+
+export type WeightEntry = { id: string; date: string; grams: number; bodyFat: number | null; source: "MANUAL" | "GARMIN" };
 
 export type MediaKind = "MOVIE" | "SERIES" | "GAME" | "BOOK";
 export type MediaStatus = "WISHLIST" | "IN_PROGRESS" | "DONE";

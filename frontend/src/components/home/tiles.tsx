@@ -4,15 +4,17 @@ import { api, type JournalSummary, type Meal, type ShoppingItem } from "../../li
 import { useMe } from "../../lib/auth";
 import { budgetSummary, useBudgetItems } from "../../lib/budget";
 import { totalKcal, useCalorieEntries } from "../../lib/calories";
-import { mondayOf, shortDate, toIso } from "../../lib/dates";
+import { addDays, mondayOf, shortDate, toIso } from "../../lib/dates";
 import { computeDebt, useExpenses } from "../../lib/expenses";
 import { useMembers } from "../../lib/members";
 import { formatEur } from "../../lib/money";
 import { useMedia } from "../../lib/media";
+import { formatKg, useWeights } from "../../lib/weight";
 import { cardsQuery, infosQuery, shoppingQuery } from "../../lib/offline";
 import { recipeCategory, useRecipes } from "../../lib/recipes";
 import { cuisineInfo, useRestaurants } from "../../lib/restaurants";
 import { CalorieEntryForm } from "../CalorieEntryForm";
+import { WeightForm } from "../WeightForm";
 import { Modal } from "../Modal";
 import { Action, Label, MealChip, Tile } from "./Tile";
 
@@ -233,6 +235,40 @@ export function CaloriesTile({ wide }: Props) {
     {adding && (
       <Modal title="Ajouter un repas" onClose={() => setAdding(false)}>
         <CalorieEntryForm date={today} onDone={() => setAdding(false)} />
+      </Modal>
+    )}
+    </>
+  );
+}
+
+export function WeightTile({ wide }: Props) {
+  const today = toIso(new Date());
+  const { data: entries = [] } = useWeights(addDays(today, -30), today);
+  const [adding, setAdding] = useState(false);
+  const last = entries[entries.length - 1];
+  // écart avec la pesée d'il y a une semaine environ (la plus proche en deçà)
+  const before = [...entries].reverse().find((e) => e.date <= addDays(today, -7));
+  const diff = last && before ? last.grams - before.grams : null;
+  return (
+    <>
+    <Tile to="/poids" icon="⚖️" label="Poids" className={`${span(wide)}bg-sky`}>
+      <Label>Poids</Label>
+      <p className="mt-1 text-2xl font-extrabold">
+        {last ? formatKg(last.grams) : "—"} <span className="text-sm font-bold text-ink/60">kg</span>
+      </p>
+      <p className="text-sm font-bold text-ink/60">
+        {diff !== null ? `${diff > 0 ? "+" : diff < 0 ? "−" : ""}${formatKg(Math.abs(diff))} kg en 7 jours` : last ? shortDate(last.date) : "aucune pesée"}
+      </p>
+      <Action className="mt-3">
+        <button className="h-10 rounded-xl bg-white/80 px-4 text-sm font-extrabold" onClick={() => setAdding(true)}>
+          + Pesée
+        </button>
+      </Action>
+    </Tile>
+    {/* hors de la tuile : son overflow et ses transformations casseraient le plein écran du modal */}
+    {adding && (
+      <Modal title="Ajouter une pesée" onClose={() => setAdding(false)}>
+        <WeightForm onDone={() => setAdding(false)} />
       </Modal>
     )}
     </>

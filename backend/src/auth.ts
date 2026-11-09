@@ -48,6 +48,7 @@ type UserRow = {
   isAdmin: boolean;
   mustChangePassword: boolean;
   calorieGoal: number | null;
+  weightGoal: number | null;
   hiddenTabs: string;
   hiddenHome: string;
   menuOrder: string;
@@ -68,6 +69,7 @@ const publicUser = (u: UserRow) => ({
   features: parseFeatures(u.household.features),
   privateFeatures: privateFeatures(u.isAdmin),
   calorieGoal: u.calorieGoal,
+  weightGoal: u.weightGoal,
   menuOrder: u.menuOrder ? u.menuOrder.split(",") : [],
   homeWide: u.homeWide ? u.homeWide.split(",") : [],
   hiddenHome: u.hiddenHome ? u.hiddenHome.split(",") : [],
@@ -151,6 +153,7 @@ export async function authRoutes(app: FastifyInstance) {
         showNavBar: z.boolean(),
         mutedNotifications: z.array(z.enum(NOTIFICATION_TYPES)),
         calorieGoal: z.number().int().min(500).max(10000).nullable(),
+        weightGoal: z.number().int().min(30000).max(300000).nullable(),
       })
       .partial()
       .parse(req.body);
@@ -163,6 +166,7 @@ export async function authRoutes(app: FastifyInstance) {
         homeWide: body.homeWide?.join(","),
         showNavBar: body.showNavBar,
         calorieGoal: body.calorieGoal,
+        weightGoal: body.weightGoal,
         mutedNotifications: body.mutedNotifications?.join(","),
       },
       include: withHousehold,

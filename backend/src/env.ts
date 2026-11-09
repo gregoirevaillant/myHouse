@@ -16,6 +16,8 @@ export const env = {
   tmdbKey: process.env.TMDB_API_KEY ?? "",
   igdbId: process.env.IGDB_CLIENT_ID ?? "",
   igdbSecret: process.env.IGDB_CLIENT_SECRET ?? "",
+  // page Poids : clé d'API personnelle Garmin Connect (facultative, la synchronisation est désactivée sans clé)
+  garminKey: process.env.GARMIN_API_KEY ?? "",
   vapidSubject: process.env.VAPID_SUBJECT ?? `mailto:${process.env.ADMIN_EMAIL ?? process.env.USER1_EMAIL ?? "maison@example.com"}`,
 };
 

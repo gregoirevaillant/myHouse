@@ -3,7 +3,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 // Pages que l'administrateur active ou non pour chaque famille (Household.features). Mêmes noms que les routes du front, sans « / ».
 export const MODULES = ["cartes", "repas", "recettes", "courses", "restos", "depenses", "infos", "budget"] as const;
 // Espace privé de l'administrateur : jamais activé pour une famille, réservé à `User.isAdmin`
-export const PRIVATE_MODULES = ["journal", "calories", "media"] as const;
+export const PRIVATE_MODULES = ["journal", "calories", "media", "poids"] as const;
 export type Module = (typeof MODULES)[number] | (typeof PRIVATE_MODULES)[number];
 
 // ignore les anciennes pages devenues privées (journal, calories, média) qui traîneraient dans Household.features
@@ -25,6 +25,7 @@ const ROUTE_MODULES: Record<string, Module[]> = {
   calories: ["calories"],
   budget: ["budget"],
   media: ["media"],
+  weight: ["poids"],
 };
 
 // toujours accessibles à une personne connectée (limitées à son foyer)

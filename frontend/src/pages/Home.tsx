@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Label, Tile } from "../components/home/Tile";
-import { BudgetTile, CaloriesTile, CardsTile, ExpensesTile, InfosTile, JournalTile, MealsTile, MediaTile, RecipesTile, RestosTile, ShoppingTile } from "../components/home/tiles";
+import { BudgetTile, CaloriesTile, CardsTile, ExpensesTile, InfosTile, JournalTile, MealsTile, MediaTile, RecipesTile, RestosTile, ShoppingTile, WeightTile } from "../components/home/tiles";
 import { Link } from "react-router-dom";
 import { usePrivateTabs, useHomeTabs, useWideTiles } from "../lib/tabs";
 
@@ -16,6 +16,7 @@ const TILES: Record<string, (p: { wide: boolean }) => ReactNode> = {
   "/calories": CaloriesTile,
   "/budget": BudgetTile,
   "/media": MediaTile,
+  "/poids": WeightTile,
 };
 
 // accueil de la famille ou espace privé (administrateur) : deux grosses tuiles pour choisir
@@ -30,7 +31,7 @@ function SpaceChoice() {
   );
 }
 
-// espace privé : notes (journal), médias et calories, hors de toute famille
+// espace privé : notes (journal), médias, calories et poids, hors de toute famille
 export function PrivateHome() {
   const shown = usePrivateTabs();
   return (
