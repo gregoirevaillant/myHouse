@@ -14,32 +14,78 @@ const RANGES = [
 
 const signed = (grams: number) => `${grams > 0 ? "+" : grams < 0 ? "−" : ""}${formatKg(Math.abs(grams))}`;
 
-// courbe des pesées de la période, avec le poids visé en pointillés
+// graduation « ronde » (0,5 / 1 / 2 / 5 kg…) qui donne 3 à 6 lignes horizontales
+function niceStep(range: number) {
+  const steps = [500, 1000, 2000, 5000, 10000];
+  return steps.find((st) => range / st <= 5) ?? 20000;
+}
+
+// courbe des pesées : lignes grises de repère (kg à l'horizontale, semaines et mois à la verticale), poids visé en pointillés
 function Chart({ entries, from, to, goal }: { entries: WeightEntry[]; from: string; to: string; goal: number | null }) {
   const W = 320;
-  const H = 150;
-  const left = 34;
-  const span = Math.max(1, (fromIso(to).getTime() - fromIso(from).getTime()) / 86400000);
+  const H = 190;
+  const left = 30;
+  const right = 8;
+  const top = 10;
+  const bottom = 22;
+  const dayMs = 86400000;
+  const span = Math.max(1, (fromIso(to).getTime() - fromIso(from).getTime()) / dayMs);
   const values = [...entries.map((e) => e.grams), ...(goal ? [goal] : [])];
-  const min = Math.min(...values) - 500;
-  const max = Math.max(...values) + 500;
-  const x = (date: string) => left + ((fromIso(date).getTime() - fromIso(from).getTime()) / 86400000 / span) * (W - left - 6);
-  const y = (g: number) => 8 + (1 - (g - min) / (max - min)) * (H - 24);
-  const points = entries.map((e) => `${x(e.date).toFixed(1)},${y(e.grams).toFixed(1)}`);
+  const step = niceStep(Math.max(...values) - Math.min(...values) + 1000);
+  const min = Math.floor((Math.min(...values) - 200) / step) * step;
+  const max = Math.ceil((Math.max(...values) + 200) / step) * step;
+  const x = (date: string) => left + ((fromIso(date).getTime() - fromIso(from).getTime()) / dayMs / span) * (W - left - right);
+  const y = (g: number) => top + (1 - (g - min) / (max - min)) * (H - top - bottom);
+  const hLines = Array.from({ length: Math.round((max - min) / step) + 1 }, (_, i) => min + i * step);
+
+  // repères verticaux : le 1er de chaque mois (avec son nom) et chaque lundi (trait plus discret) ; sur 30 jours, un repère par semaine daté
+  const vLines: { date: string; label?: string }[] = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) {
+    const date = fromIso(d);
+    if (span <= 35) {
+      if ((fromIso(to).getTime() - date.getTime()) / dayMs % 7 === 0) vLines.push({ date: d, label: shortDate(d) });
+    } else if (date.getDate() === 1) {
+      vLines.push({ date: d, label: date.toLocaleDateString("fr-FR", { month: "short" }).replace(".", "") });
+    } else if (span <= 100 && date.getDay() === 1) {
+      vLines.push({ date: d });
+    }
+  }
+
+  const points = entries.map((e) => ({ id: e.id, px: x(e.date), py: y(e.grams), grams: e.grams }));
+  const line = points.map((p) => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(" ");
+  const lastPoint = points[points.length - 1];
+  const baseY = H - bottom;
+  const area = points.length > 1 ? `M${points[0].px.toFixed(1)},${baseY} L${line.split(" ").join(" L")} L${lastPoint.px.toFixed(1)},${baseY} Z` : "";
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Courbe du poids">
-      <text x={0} y={y(max) + 8} className="fill-ink-soft text-[9px] font-bold">{formatKg(max)}</text>
-      <text x={0} y={y(min)} className="fill-ink-soft text-[9px] font-bold">{formatKg(min)}</text>
+      {hLines.map((g) => (
+        <g key={g}>
+          <line x1={left} x2={W - right} y1={y(g)} y2={y(g)} className="stroke-ink-soft/25" strokeWidth={0.6} />
+          <text x={left - 4} y={y(g) + 3} textAnchor="end" className="fill-ink-soft text-[8px] font-bold">{formatKg(g)}</text>
+        </g>
+      ))}
+      {vLines.map((v) => (
+        <g key={v.date}>
+          <line x1={x(v.date)} x2={x(v.date)} y1={top} y2={baseY} className={v.label ? "stroke-ink-soft/25" : "stroke-ink-soft/15"} strokeWidth={0.6} />
+          {v.label && <text x={x(v.date)} y={H - 7} textAnchor="middle" className="fill-ink-soft text-[8px] font-bold">{v.label}</text>}
+        </g>
+      ))}
       {goal && (
-        <line x1={left} x2={W - 6} y1={y(goal)} y2={y(goal)} className="stroke-mint-deep" strokeWidth={1.5} strokeDasharray="4 4" />
+        <>
+          <line x1={left} x2={W - right} y1={y(goal)} y2={y(goal)} className="stroke-mint-deep" strokeWidth={1.5} strokeDasharray="4 4" />
+          <text x={W - right} y={y(goal) - 3} textAnchor="end" className="fill-mint-deep text-[8px] font-extrabold">objectif {formatKg(goal)}</text>
+        </>
       )}
-      {points.length > 1 && <polyline points={points.join(" ")} fill="none" className="stroke-sky-deep" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />}
-      {entries.length <= 60 && entries.map((e, i) => {
-        const [cx, cy] = points[i].split(",");
-        return <circle key={e.id} cx={cx} cy={cy} r={3} className="fill-sky-deep" />;
-      })}
-      <text x={left} y={H - 2} className="fill-ink-soft text-[9px] font-bold">{shortDate(from)}</text>
-      <text x={W - 6} y={H - 2} textAnchor="end" className="fill-ink-soft text-[9px] font-bold">{shortDate(to)}</text>
+      {area && <path d={area} className="fill-sky-deep/10" />}
+      {points.length > 1 && <polyline points={line} fill="none" className="stroke-sky-deep" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />}
+      {points.length <= 60 && points.map((p) => <circle key={p.id} cx={p.px} cy={p.py} r={2.5} className="fill-sky-deep" />)}
+      {lastPoint && (
+        <>
+          <circle cx={lastPoint.px} cy={lastPoint.py} r={4.5} className="fill-sky-deep stroke-white" strokeWidth={2} />
+          <text x={Math.min(lastPoint.px, W - right - 14)} y={lastPoint.py - 9} textAnchor="middle" className="fill-ink text-[9px] font-extrabold">{formatKg(lastPoint.grams)}</text>
+        </>
+      )}
     </svg>
   );
 }
