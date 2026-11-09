@@ -1,10 +1,14 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 // Pages que l'administrateur active ou non pour chaque famille (Household.features). Mêmes noms que les routes du front, sans « / ».
-export const MODULES = ["cartes", "repas", "recettes", "courses", "restos", "depenses", "journal", "infos", "calories", "budget", "media"] as const;
-export type Module = (typeof MODULES)[number];
+export const MODULES = ["cartes", "repas", "recettes", "courses", "restos", "depenses", "infos", "budget"] as const;
+// Espace privé de l'administrateur : jamais activé pour une famille, réservé à `User.isAdmin`
+export const PRIVATE_MODULES = ["journal", "calories", "media"] as const;
+export type Module = (typeof MODULES)[number] | (typeof PRIVATE_MODULES)[number];
 
+// ignore les anciennes pages devenues privées (journal, calories, média) qui traîneraient dans Household.features
 export const parseFeatures = (csv: string) => MODULES.filter((m) => csv.split(",").includes(m));
+export const privateFeatures = (isAdmin: boolean) => (isAdmin ? [...PRIVATE_MODULES] : []);
 
 // Segment d'URL sous /api → pages dont UNE suffit pour y accéder. Un segment absent d'ici (et de OPEN_ROUTES) est refusé.
 const ROUTE_MODULES: Record<string, Module[]> = {
@@ -46,6 +50,6 @@ export async function requireModule(req: FastifyRequest, reply: FastifyReply) {
   }
   if (OPEN_ROUTES.has(segment)) return;
   if (!ROUTE_MODULES[segment]?.some((m) => req.access.features.has(m))) {
-    return reply.code(403).send({ error: "Cette page n'est pas activée pour ta famille" });
+    return reply.code(403).send({ error: "Cette page n'est pas activée pour toi" });
   }
 }

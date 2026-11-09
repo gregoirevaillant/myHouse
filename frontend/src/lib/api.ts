@@ -34,6 +34,7 @@ export type User = {
   isAdmin?: boolean; // absents des sessions gardées hors ligne avant les familles
   mustChangePassword?: boolean;
   features?: string[]; // pages activées pour la famille (« cartes », « repas »…) ; absent = toutes
+  privateFeatures?: string[]; // espace privé de l'administrateur (« journal », « media », « calories ») ; absent = aucune
 };
 
 export type AdminUser = { id: string; name: string; email: string; isAdmin: boolean; mustChangePassword: boolean };

@@ -18,8 +18,16 @@ export const tabs = [
 export const allowedTabs = (features?: string[]) => (features ? tabs.filter((t) => features.includes(t.to.slice(1))) : tabs);
 export const useEnabledTabs = () => allowedTabs(useMe().data?.features);
 export const useHasPage = (page: string) => {
-  const features = useMe().data?.features;
-  return !features || features.includes(page);
+  const me = useMe().data;
+  return !me?.features || me.features.includes(page) || !!me.privateFeatures?.includes(page);
+};
+
+// Espace privé (administrateur seulement) : pages hors des familles, rangées sous /prive sur l'accueil
+export const PRIVATE_PAGES = ["/journal", "/media", "/calories"];
+export const isPrivatePath = (pathname: string) => pathname === "/prive" || PRIVATE_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+export const usePrivateTabs = () => {
+  const priv = useMe().data?.privateFeatures ?? [];
+  return PRIVATE_PAGES.map((to) => tabs.find((t) => t.to === to)!).filter((t) => priv.includes(t.to.slice(1)));
 };
 
 // pages dans l'ordre choisi ; celles que l'ordre ne connaît pas (nouvelle page) restent à la fin, dans l'ordre par défaut

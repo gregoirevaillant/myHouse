@@ -11,7 +11,7 @@ import { Cards } from "./pages/Cards";
 import { FirstLogin } from "./pages/FirstLogin";
 import { ExpenseTracker } from "./pages/ExpenseTracker";
 import { Expenses } from "./pages/Expenses";
-import { Home } from "./pages/Home";
+import { Home, PrivateHome } from "./pages/Home";
 import { Infos } from "./pages/Infos";
 import { JournalDetail } from "./pages/JournalDetail";
 import { Journals } from "./pages/Journals";
@@ -26,8 +26,9 @@ import { Shopping } from "./pages/Shopping";
 
 // page désactivée pour la famille : retour à l'accueil (le serveur refuse de toute façon ses données)
 function Gate({ page, children }: { page: string; children: ReactElement }) {
-  const features = useMe().data?.features;
-  return !features || features.includes(page) ? children : <Navigate to="/" replace />;
+  const me = useMe().data;
+  const ok = !me?.features || me.features.includes(page) || me.privateFeatures?.includes(page);
+  return ok ? children : <Navigate to="/" replace />;
 }
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/prive" element={<PrivateHome />} />
         <Route path="/cartes" element={<Gate page="cartes"><Cards /></Gate>} />
         <Route path="/repas" element={<Gate page="repas"><Meals /></Gate>} />
         <Route path="/recettes" element={<Gate page="recettes"><Recipes /></Gate>} />

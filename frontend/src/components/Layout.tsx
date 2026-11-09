@@ -3,16 +3,21 @@ import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useMe } from "../lib/auth";
 import { useLiveUpdates } from "../lib/live";
 import { useOfflineWarmup } from "../lib/offline";
-import { useVisibleTabs } from "../lib/tabs";
+import { isPrivatePath, usePrivateTabs, useVisibleTabs } from "../lib/tabs";
 import { GlobalSearch } from "./GlobalSearch";
 import { Modal } from "./Modal";
 import { OfflineBanner } from "./OfflineBanner";
 
 export function Layout() {
   const { data: me } = useMe();
-  const tabs = useVisibleTabs();
+  const familyTabs = useVisibleTabs();
+  const privateTabs = usePrivateTabs();
   const { pathname } = useLocation();
+  // espace privé : sa propre barre de menu, son accueil (/prive) et son titre
+  const inPrivate = isPrivatePath(pathname) && privateTabs.length > 0;
+  const tabs = inPrivate ? privateTabs : familyTabs;
   const isHome = pathname === "/";
+  const home = inPrivate ? "/prive" : "/";
   const bar = useRef<HTMLDivElement>(null);
   const scrolls = tabs.length > 7;
   const [searching, setSearching] = useState(false);
@@ -31,16 +36,16 @@ export function Layout() {
       <header className="sticky top-0 z-30 -mx-4 mb-3 flex items-center gap-3 bg-cream px-4 pb-3 pt-[calc(1.25rem+env(safe-area-inset-top))]">
         {!isHome && (
           <Link
-            to="/"
+            to={pathname === "/prive" ? "/" : home}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-lg shadow-soft transition active:scale-90"
             aria-label="Accueil"
           >
             ◀
           </Link>
         )}
-        <Link to="/" className="flex-1">
+        <Link to={home} className="flex-1">
           <p className="text-sm font-semibold text-ink-soft">Bonjour {me?.name} 👋</p>
-          <h1 className="text-2xl font-extrabold">Notre maison</h1>
+          <h1 className="text-2xl font-extrabold">{inPrivate ? "Mon espace" : "Notre maison"}</h1>
         </Link>
         <button
           onClick={() => setSearching(true)}

@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { prisma } from "./db.js";
-import { parseFeatures } from "./modules.js";
+import { parseFeatures, privateFeatures } from "./modules.js";
 import { hashPassword, verifyPassword } from "./password.js";
 import { NOTIFICATION_TYPES, type NotificationType } from "./push.js";
 
@@ -37,7 +37,7 @@ export async function requireAuth(req: FastifyRequest, reply: FastifyReply) {
   req.access = {
     isAdmin: user.isAdmin,
     mustChangePassword: user.mustChangePassword,
-    features: new Set(parseFeatures(user.household.features)),
+    features: new Set([...parseFeatures(user.household.features), ...privateFeatures(user.isAdmin)]),
   };
 }
 
@@ -66,6 +66,7 @@ const publicUser = (u: UserRow) => ({
   isAdmin: u.isAdmin,
   mustChangePassword: u.mustChangePassword,
   features: parseFeatures(u.household.features),
+  privateFeatures: privateFeatures(u.isAdmin),
   calorieGoal: u.calorieGoal,
   menuOrder: u.menuOrder ? u.menuOrder.split(",") : [],
   homeWide: u.homeWide ? u.homeWide.split(",") : [],

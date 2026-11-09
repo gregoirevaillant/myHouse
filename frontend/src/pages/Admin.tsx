@@ -3,14 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Navigate } from "react-router-dom";
 import { api, type AdminHousehold } from "../lib/api";
 import { useMe } from "../lib/auth";
-import { tabs } from "../lib/tabs";
+import { PRIVATE_PAGES, tabs } from "../lib/tabs";
 
 // mot de passe provisoire lisible (sans caractères qui se confondent), tiré du générateur sécurisé du navigateur
 const ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const randomPassword = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(14)), (b) => ALPHABET[b % ALPHABET.length]).join("");
 
-const MODULES = tabs.map((t) => ({ id: t.to.slice(1), label: `${t.icon} ${t.label}` }));
+const MODULES = tabs.filter((t) => !PRIVATE_PAGES.includes(t.to)).map((t) => ({ id: t.to.slice(1), label: `${t.icon} ${t.label}` }));
 
 function useAdminMutation<T>(fn: (v: T) => Promise<unknown>) {
   const qc = useQueryClient();
