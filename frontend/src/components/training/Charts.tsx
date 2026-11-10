@@ -90,3 +90,37 @@ export function Line({ points, format, color = "stroke-sky-deep", dot = "bg-sky-
     </div>
   );
 }
+
+// mini-courbe sans axes (tendance d'un indicateur sur la période)
+export function Spark({ values, color = "stroke-ink/40" }: { values: number[]; color?: string }) {
+  if (values.length < 2) return null;
+  const lo = Math.min(...values), hi = Math.max(...values);
+  const pts = values.map((v, i) => `${(i / (values.length - 1)) * 100},${100 - ((v - lo) / (hi - lo || 1)) * 80 - 10}`).join(" ");
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-8 w-full overflow-visible" aria-hidden>
+      <polyline points={pts} fill="none" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" className={color} />
+    </svg>
+  );
+}
+
+export type Cell = { date: string; sec: number; label: string } | null;
+
+// calendrier de régularité : une colonne par semaine (lundi → dimanche), plus c'est foncé, plus la journée est longue
+export function Heatmap({ columns }: { columns: Cell[][] }) {
+  const [sel, setSel] = useState<string>("");
+  const tone = (s: number) => (s <= 0 ? "bg-ink/10" : s < 1800 ? "bg-sky-deep/35" : s < 3600 ? "bg-sky-deep/60" : s < 5400 ? "bg-sky-deep/80" : "bg-sky-deep");
+  return (
+    <div>
+      <div className="flex gap-[3px]" onPointerLeave={() => setSel("")}>
+        {columns.map((col, i) => (
+          <div key={i} className="flex flex-1 flex-col gap-[3px]">
+            {col.map((c, j) => (
+              <button key={j} type="button" disabled={!c} aria-label={c?.label} onPointerEnter={() => c && setSel(c.label)} onClick={() => c && setSel(c.label)} className={`aspect-square w-full rounded-[3px] ${c ? tone(c.sec) : "opacity-0"}`} />
+            ))}
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 h-4 text-xs font-bold text-ink-soft">{sel || "Touche une case pour le détail."}</p>
+    </div>
+  );
+}

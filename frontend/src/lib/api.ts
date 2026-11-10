@@ -222,7 +222,7 @@ export type MediaInput = Omit<MediaItem, "id" | "hasImage">;
 // résultat d'une recherche dans une base ouverte
 export type MediaHit = { source: string; sourceId: string; title: string; year: number | null; subtitle: string | null; creator: string | null; imageUrl: string | null };
 
-// ── Page Entraînement (résumé Garmin préparé par scripts/garmin, voir GET /api/training) ──
+// ── Page Sport (tableau de bord) (résumé Garmin préparé par scripts/garmin, voir GET /api/training) ──
 export type TrainingSport = "run" | "bike" | "swim" | "strength" | "other";
 export type TrainingBucket = { km: number; sec: number; n: number; load: number; elev: number };
 export type TrainingWeek = TrainingBucket & { start: string; by: Record<TrainingSport, TrainingBucket>; zones: number[] };
@@ -239,6 +239,7 @@ export type TrainingSummary = {
   counts: { activities: number; days: number; nights: number; hrv: number; weighIns: number };
   weeks: TrainingWeek[];
   days: TrainingDay[];
+  calendar: { date: string; sec: number; sport: TrainingSport }[];
   weights: { date: string; kg: number; fat: number | null; muscle: number | null }[];
   records: {
     longestRun: TrainingRecord | null; fastest5k: TrainingRecord | null; fastest10k: TrainingRecord | null; longestRide: TrainingRecord | null;

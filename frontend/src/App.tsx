@@ -27,7 +27,7 @@ import { Restaurants } from "./pages/Restaurants";
 import { Shopping } from "./pages/Shopping";
 
 // page Santé chargée à la demande : elle n'alourdit pas le premier chargement de l'application
-const Training = lazy(() => import("./pages/Training").then((m) => ({ default: m.Training })));
+const Sport = lazy(() => import("./pages/Sport").then((m) => ({ default: m.Sport })));
 const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.Health })));
 
 // page désactivée pour la famille : retour à l'accueil (le serveur refuse de toute façon ses données)
@@ -69,7 +69,7 @@ export default function App() {
         <Route path="/budget" element={<Gate page="budget"><Budget /></Gate>} />
         <Route path="/media" element={<Gate page="media"><Media /></Gate>} />
         <Route path="/sante" element={<Gate page="sante"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Health /></Suspense></Gate>} />
-        <Route path="/entrainement" element={<Gate page="entrainement"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Training /></Suspense></Gate>} />
+        <Route path="/sport" element={<Gate page="sport"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Sport /></Suspense></Gate>} />
         <Route path="/poids" element={<Gate page="poids"><Weight /></Gate>} />
         <Route path="/calories" element={<Gate page="calories"><Calories /></Gate>} />
         <Route path="/calories/recettes" element={<Gate page="calories"><CalorieFoods /></Gate>} />

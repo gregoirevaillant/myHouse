@@ -349,13 +349,13 @@ export function MediaTile({ wide }: Props) {
   );
 }
 
-export function TrainingTile({ wide }: Props) {
+export function SportTile({ wide }: Props) {
   const { data } = useTraining();
   const week = data && !("empty" in data && data.empty) ? (data as TrainingSummary).weeks[(data as TrainingSummary).weeks.length - 1] : undefined;
   const goal = data && !("empty" in data && data.empty) ? (data as TrainingSummary).goal.runsPerWeek : 3;
   return (
-    <Tile to="/entrainement" icon="🏃" label="Entraînement" className={`${span(wide)}bg-lemon`}>
-      <Label>Entraînement</Label>
+    <Tile to="/sport" icon="📈" label="Sport" className={`${span(wide)}bg-lemon`}>
+      <Label>Sport</Label>
       {week ? (
         <>
           <p className="mt-1 text-2xl font-extrabold">{week.km.toFixed(1).replace(".", ",")} <span className="text-sm font-bold text-ink/60">km</span></p>

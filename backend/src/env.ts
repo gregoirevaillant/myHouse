@@ -18,7 +18,7 @@ export const env = {
   igdbSecret: process.env.IGDB_CLIENT_SECRET ?? "",
   // page Poids : clé d'API personnelle Garmin Connect (facultative, la synchronisation est désactivée sans clé)
   garminKey: process.env.GARMIN_API_KEY ?? "",
-  // page Entraînement : dossier du résumé Garmin préparé sur l'ordinateur (monté en lecture seule)
+  // page Sport : dossier du résumé Garmin préparé sur l'ordinateur (monté en lecture seule)
   garminDataDir: process.env.GARMIN_DATA_DIR ?? "./garmin-data",
   vapidSubject: process.env.VAPID_SUBJECT ?? `mailto:${process.env.ADMIN_EMAIL ?? process.env.USER1_EMAIL ?? "maison@example.com"}`,
 };

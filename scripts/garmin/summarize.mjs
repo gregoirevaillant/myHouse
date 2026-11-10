@@ -21,7 +21,7 @@ export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
   let cfg = {};
   const cfgPath = join(DATA_DIR, "config.json");
   if (existsSync(cfgPath)) try { cfg = JSON.parse(readFileSync(cfgPath, "utf8")); } catch { /* ignoré */ }
-  const goal = { label: "Triathlon : plus de course à pied pour le moment", runsPerWeek: cfg.runsPerWeek ?? 3, raceDate: cfg.raceDate ?? null, raceName: cfg.raceName ?? null };
+  const goal = { label: "Triathlon, priorité à la course à pied", runsPerWeek: cfg.runsPerWeek ?? 3, raceDate: cfg.raceDate ?? null, raceName: cfg.raceName ?? null };
 
   const acts = activities.map((a) => ({
     id: a.activityId, date: String(a.startTimeLocal).slice(0, 10), name: a.activityName ?? "", type: a.activityType?.typeKey ?? "other",
@@ -30,10 +30,10 @@ export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
     zones: [1, 2, 3, 4, 5].map((z) => a[`hrTimeInZone_${z}`] ?? 0),
   }));
 
-  // semaines : 26 dernières, lundi → dimanche
+  // semaines : 52 dernières, lundi → dimanche
   const thisMon = monday(today);
   const weeks = [];
-  for (let i = 25; i >= 0; i--) weeks.push({ start: shift(thisMon, -7 * i), total: blank(), by: { run: blank(), bike: blank(), swim: blank(), strength: blank(), other: blank() }, zones: [0, 0, 0, 0, 0] });
+  for (let i = 51; i >= 0; i--) weeks.push({ start: shift(thisMon, -7 * i), total: blank(), by: { run: blank(), bike: blank(), swim: blank(), strength: blank(), other: blank() }, zones: [0, 0, 0, 0, 0] });
   const idx = new Map(weeks.map((w) => [w.start, w]));
   for (const a of acts) {
     const w = idx.get(monday(a.date));
@@ -44,8 +44,8 @@ export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
   const tidy = (t) => ({ km: r(t.km), sec: Math.round(t.sec), n: t.n, load: Math.round(t.load), elev: Math.round(t.elev) });
   const weeksOut = weeks.map((w) => ({ start: w.start, ...tidy(w.total), by: Object.fromEntries(Object.entries(w.by).map(([k, v]) => [k, tidy(v)])), zones: w.zones }));
 
-  // séries quotidiennes (180 derniers jours), jours vides ignorés
-  const from180 = shift(today, -180);
+  // séries quotidiennes (365 derniers jours), jours vides ignorés
+  const from180 = shift(today, -365);
   const sleepBy = new Map(sleep.map((s) => [s.calendarDate, s]));
   const hrvBy = new Map(hrv.map((h) => [h.calendarDate, h]));
   const days = daily.filter((d) => d.calendarDate >= from180).map((d) => {
@@ -90,12 +90,24 @@ export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
   };
   const biggestDays = dayList.sort((a, b) => b.sec - a.sec).slice(0, 5).map((d) => ({ date: d.date, km: r(d.km), sec: Math.round(d.sec), load: Math.round(d.load), n: d.n }));
 
+  // calendrier de régularité : temps de sport et sport principal par jour (52 semaines)
+  const calFrom = shift(thisMon, -51 * 7);
+  const cal = new Map();
+  for (const a of acts) {
+    if (a.date < calFrom) continue;
+    const c = cal.get(a.date) ?? { date: a.date, sec: 0, sport: a.sport, top: 0 };
+    c.sec += a.sec;
+    if (a.sec > c.top) { c.top = a.sec; c.sport = a.sport; }
+    cal.set(a.date, c);
+  }
+  const calendar = [...cal.values()].map((c) => ({ date: c.date, sec: Math.round(c.sec), sport: c.sport })).sort((a, b) => (a.date < b.date ? -1 : 1));
+
   const dates = acts.map((a) => a.date).sort();
   return {
     generatedAt: new Date().toISOString(), today, units: "km", goal,
     range: { from: dates[0] ?? today, to: today },
     counts: { activities: acts.length, days: daily.length, nights: sleep.length, hrv: hrv.length, weighIns: weights.length },
-    weeks: weeksOut, days, weights, records, biggestDays,
+    weeks: weeksOut, days, calendar, weights, records, biggestDays,
     recent: acts.slice(0, 10).map((a) => ({ date: a.date, name: a.name, sport: a.sport, type: a.type, km: r(a.km, 2), sec: Math.round(a.sec), elev: Math.round(a.elev), hr: a.hr, load: a.load })),
     strength: { total: acts.filter((a) => a.sport === "strength").length, last: acts.find((a) => a.sport === "strength")?.date ?? null },
   };
