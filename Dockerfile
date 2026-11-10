@@ -21,6 +21,8 @@ COPY --from=backend /app/backend/node_modules ./node_modules
 COPY --from=backend /app/backend/dist ./dist
 COPY --from=backend /app/backend/prisma ./prisma
 COPY --from=backend /app/backend/package.json ./
+# scripts de récupération Garmin (sans dépendance), lancés par le serveur pour actualiser garmin-data/
+COPY scripts/garmin ./scripts/garmin
 COPY --from=frontend /app/frontend/dist ./public
 VOLUME /data
 EXPOSE 1000

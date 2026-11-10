@@ -1,3 +1,4 @@
+import { RefreshButton } from "../components/health/RefreshButton";
 import { useState } from "react";
 import { Forme } from "../components/health/Forme";
 import { Sport } from "../components/health/Sport";
@@ -32,7 +33,7 @@ export function Health() {
         <h2 className="flex items-center gap-2 text-lg font-extrabold">
           <span className="rounded-xl bg-mint px-2 py-1">❤️</span> Santé
         </h2>
-        <span className="text-xs font-bold text-ink-soft">⌚ Garmin</span>
+        <RefreshButton />
       </div>
 
       <div className="mb-4 grid grid-cols-3 gap-1 rounded-2xl bg-white p-1 shadow-soft" role="tablist">

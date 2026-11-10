@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { useMe } from "../lib/auth";
+import { useAutoGarminSync } from "../lib/health";
 import { useLiveUpdates } from "../lib/live";
 import { useOfflineWarmup } from "../lib/offline";
 import { isPrivatePath, usePrivateTabs, useVisibleTabs } from "../lib/tabs";
@@ -29,6 +30,7 @@ export function Layout() {
   }, [pathname, scrolls]);
   useOfflineWarmup();
   useLiveUpdates();
+  useAutoGarminSync(!!me?.privateFeatures?.some((f) => f === "sante" || f === "sommeil" || f === "sport"));
   return (
     <div
       className={`mx-auto min-h-screen max-w-2xl px-4 ${showNavBar ? "pb-32" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}

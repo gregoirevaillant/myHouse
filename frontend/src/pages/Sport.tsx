@@ -1,3 +1,4 @@
+import { RefreshButton } from "../components/health/RefreshButton";
 import { useState, type ReactNode } from "react";
 import { Heatmap, Line, Spark, StackedBars, type Cell, type StackBar } from "../components/training/Charts";
 import type { TrainingBucket, TrainingRecord, TrainingSummary, TrainingWeek } from "../lib/api";
@@ -242,7 +243,7 @@ export function Sport() {
     <section className="overflow-x-clip">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-extrabold"><span className="rounded-xl bg-lemon px-2 py-1">📈</span> Sport</h2>
-        <span className="text-xs font-bold text-ink-soft">⌚ Garmin</span>
+        <RefreshButton />
       </div>
       {isLoading ? <p className="py-8 text-center text-ink-soft">Chargement…</p>
         : error ? <p className="rounded-3xl bg-rose-soft p-4 text-center text-sm font-bold">{error.message}</p>

@@ -18,6 +18,7 @@ import { calorieRoutes } from "./routes/calories.js";
 import { weightRoutes } from "./routes/weight.js";
 import { garminRoutes } from "./routes/garmin.js";
 import { healthRoutes } from "./routes/health.js";
+import { syncRoutes } from "./routes/sync.js";
 import { trainingRoutes } from "./routes/training.js";
 import { cardRoutes } from "./routes/cards.js";
 import { expenseRoutes } from "./routes/expenses.js";
@@ -117,6 +118,7 @@ await app.register(
       await priv.register(garminRoutes, { prefix: "/garmin" });
       await priv.register(trainingRoutes, { prefix: "/training" });
       await priv.register(healthRoutes, { prefix: "/wellness" });
+      await priv.register(syncRoutes, { prefix: "/sync" });
       await priv.register(pushRoutes, { prefix: "/push" });
       await priv.register(liveRoutes, { prefix: "/events" });
       await priv.register(adminRoutes, { prefix: "/admin" });

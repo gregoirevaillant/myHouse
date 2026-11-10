@@ -1,3 +1,4 @@
+import { RefreshButton } from "../components/health/RefreshButton";
 import { useState, type ReactNode } from "react";
 import { Line, Spark, StackedBars, type StackBar } from "../components/training/Charts";
 import type { HealthNight } from "../lib/api";
@@ -165,7 +166,7 @@ export function Sleep() {
     <section className="overflow-x-clip">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-extrabold"><span className="rounded-xl bg-lavender px-2 py-1">😴</span> Sommeil</h2>
-        <span className="text-xs font-bold text-ink-soft">⌚ Garmin</span>
+        <RefreshButton />
       </div>
       {isLoading ? <p className="py-8 text-center text-ink-soft">Chargement…</p>
         : error ? <p className="rounded-3xl bg-rose-soft p-4 text-center text-sm font-bold">{error.message}</p>

@@ -11,8 +11,8 @@ services:
       - "127.0.0.1:8083:1000"
     volumes:
       - data:/data
-      # résumé Garmin préparé par « npm run garmin:refresh » (page Sport), en lecture seule
-      - ./garmin-data:/garmin-data:ro
+      # historique Garmin (Sport, Santé, Sommeil) : le serveur l'actualise lui-même (bouton ou lancement de l'appli), `scripts/garmin/refresh.sh` fait pareil à la main
+      - ./garmin-data:/garmin-data
     # durcissement : pas de nouveaux privilèges, seulement les droits nécessaires pour confier /data à l'utilisateur node
     security_opt:
       - no-new-privileges:true

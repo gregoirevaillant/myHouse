@@ -27,6 +27,7 @@ const ROUTE_MODULES: Record<string, Module[]> = {
   media: ["media"],
   weight: ["poids"],
   training: ["sport"],
+  sync: ["sante", "sommeil", "sport"], // actualisation des données Garmin
   wellness: ["sante", "sommeil"], // données Garmin au jour le jour (fichier produit sur l'ordinateur)
   garmin: ["sante", "poids"], // Poids reprend l'objectif de poids de Garmin
 };
