@@ -85,52 +85,6 @@ type RawFitness = {
 
 type RawZones = { sport?: string; maxHeartRateUsed?: number; zone1Floor?: number; zone2Floor?: number; zone3Floor?: number; zone4Floor?: number; zone5Floor?: number }[];
 
-type RawSleep = {
-  calendarDate?: string | null;
-  sleepTimeSeconds?: number | null;
-  deepSleepSeconds?: number | null;
-  lightSleepSeconds?: number | null;
-  remSleepSeconds?: number | null;
-  awakeSleepSeconds?: number | null;
-  sleepStartTimestampLocal?: number | null;
-  sleepEndTimestampLocal?: number | null;
-  avgHeartRate?: number | null;
-  averageSpO2Value?: number | null;
-  averageRespirationValue?: number | null;
-  avgSleepStress?: number | null;
-  sleepScores?: { overall?: { value?: number | null } | null } | null;
-};
-
-// heure « locale » de Garmin : un horodatage dont la partie UTC est déjà l'heure du mur
-const clock = (ms: unknown) => (num(ms) === null ? null : new Date(ms as number).toISOString().slice(11, 16));
-
-// nuits mesurées sur les `days` derniers jours, par tranches de 30 jours (Garmin répond 500 au-delà d'~256 Ko)
-async function loadNights(days: number) {
-  const now = today();
-  const chunks = Array.from({ length: Math.ceil(days / 30) }, (_, i): [string, string] => [shift(now, -30 * i - 29), shift(now, -30 * i)]);
-  const parts = await Promise.all(chunks.map(([a, b]) => garminGet<RawSleep[]>(`/sleep-service/sleep/dailySleepSummariesByDate?startDate=${a}&endDate=${b}`).catch(() => null)));
-  const since = shift(now, -days + 1);
-  return parts
-    .flatMap((p) => p ?? [])
-    .filter((s) => s.calendarDate && s.calendarDate >= since && (num(s.sleepTimeSeconds) ?? 0) > 0)
-    .map((s) => ({
-      date: s.calendarDate as string,
-      seconds: round(s.sleepTimeSeconds) ?? 0,
-      deep: round(s.deepSleepSeconds) ?? 0,
-      light: round(s.lightSleepSeconds) ?? 0,
-      rem: round(s.remSleepSeconds) ?? 0,
-      awake: round(s.awakeSleepSeconds) ?? 0,
-      start: clock(s.sleepStartTimestampLocal),
-      end: clock(s.sleepEndTimestampLocal),
-      score: round(s.sleepScores?.overall?.value),
-      heartRate: round(s.avgHeartRate),
-      spo2: round(s.averageSpO2Value),
-      breath: round(s.averageRespirationValue),
-      stress: round(s.avgSleepStress),
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
 export async function garminRoutes(app: FastifyInstance) {
   // sans clé, tout répond 503 : l'écran explique comment l'ajouter
   app.addHook("preHandler", async (_req, reply) => {
@@ -215,9 +169,6 @@ export async function garminRoutes(app: FastifyInstance) {
       zones: z && floors.every((f) => f !== null) && num(z.maxHeartRateUsed) !== null ? { max: z.maxHeartRateUsed as number, floors: floors as number[] } : null,
     };
   });
-
-  // nuits mesurées (90 jours) : durée, phases, heures, score ; vide si la montre ne mesure pas le sommeil
-  app.get("/sleep", async () => ({ today: today(), nights: await loadNights(90) }));
 
   // poids visé enregistré dans Garmin Connect (grammes), pour le reprendre dans la page Poids
   app.get("/weight-goal", async () => {

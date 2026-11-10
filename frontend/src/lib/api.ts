@@ -201,7 +201,14 @@ export type GarminSleep = {
   date: string; seconds: number; deep: number; light: number; rem: number; awake: number;
   start: string | null; end: string | null; score: number | null; heartRate: number | null; spo2: number | null; breath: number | null; stress: number | null;
 };
-export type GarminSleepResponse = { today: string; nights: GarminSleep[] };
+// ── Santé et sommeil sur tout l'historique (fichier health.json préparé par scripts/garmin, voir GET /api/health) ──
+export type HealthDay = {
+  date: string; steps: number | null; goal: number | null; km: number | null; floors: number | null; kcal: number | null; kcalTotal: number | null;
+  rhr: number | null; hrMin: number | null; hrMax: number | null; stress: number | null; bb: number | null; bbLow: number | null; intense: number | null; resp: number | null;
+};
+export type HealthNight = GarminSleep & { hrv: number | null };
+export type HealthSummary = { generatedAt: string; today: string; range: { from: string; to: string }; days: HealthDay[]; nights: HealthNight[] };
+export type HealthResponse = HealthSummary | { empty: true };
 export type GarminForme = { zones: { max: number; floors: number[] } | null };
 
 export type MediaKind = "MOVIE" | "SERIES" | "GAME" | "BOOK";

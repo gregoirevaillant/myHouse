@@ -1,13 +1,15 @@
 import { useState, type ReactNode } from "react";
 import { Line, Spark, StackedBars, type StackBar } from "../components/training/Charts";
-import type { GarminSleep } from "../lib/api";
+import type { HealthNight } from "../lib/api";
 import { fromIso, shortDate } from "../lib/dates";
-import { duration, longDay, relativeDay, useGarminSleep } from "../lib/garmin";
+import { duration, longDay, relativeDay } from "../lib/garmin";
+import { hasHealth, useHealth } from "../lib/health";
 
 const PERIODS = [
-  { id: 14, label: "14 j" },
   { id: 30, label: "30 j" },
   { id: 90, label: "3 mois" },
+  { id: 365, label: "1 an" },
+  { id: 0, label: "Tout" }, // tout l'historique
 ] as const;
 
 const GOAL_H = 8; // objectif de nuit, en heures
@@ -43,7 +45,7 @@ function Kpi({ label, value, sub, series, bg }: { label: string; value: string; 
   );
 }
 
-function StageBar({ n }: { n: GarminSleep }) {
+function StageBar({ n }: { n: HealthNight }) {
   const total = n.deep + n.light + n.rem + n.awake || 1;
   return (
     <>
@@ -55,12 +57,12 @@ function StageBar({ n }: { n: GarminSleep }) {
   );
 }
 
-function Content({ nights, today }: { nights: GarminSleep[]; today: string }) {
-  const [days, setDays] = useState<(typeof PERIODS)[number]["id"]>(30);
+function Content({ nights, today }: { nights: HealthNight[]; today: string }) {
+  const [days, setDays] = useState<(typeof PERIODS)[number]["id"]>(0);
   const last = nights[nights.length - 1];
   const from = fromIso(today);
   from.setDate(from.getDate() - days + 1);
-  const ns = nights.filter((n) => fromIso(n.date) >= from);
+  const ns = days === 0 ? nights : nights.filter((n) => fromIso(n.date) >= from);
 
   const mean = avg(ns.map((n) => n.seconds)) / 60;
   const scores = ns.flatMap((n) => (n.score === null ? [] : [n.score]));
@@ -81,6 +83,7 @@ function Content({ nights, today }: { nights: GarminSleep[]; today: string }) {
     parts: STAGES.map((s) => ({ value: Math.round(n[s.key] / 60), color: s.bar })),
   }));
   const scorePts = ns.flatMap((n) => (n.score === null ? [] : [{ label: shortDate(n.date), value: n.score }]));
+  const hrvPts = ns.flatMap((n) => (n.hrv === null ? [] : [{ label: shortDate(n.date), value: n.hrv }]));
   const hrPts = ns.flatMap((n) => (n.heartRate === null ? [] : [{ label: shortDate(n.date), value: n.heartRate }]));
 
   return (
@@ -99,8 +102,8 @@ function Content({ nights, today }: { nights: GarminSleep[]; today: string }) {
         {PERIODS.map((p) => (
           <button key={p.id} role="tab" aria-selected={days === p.id} onClick={() => setDays(p.id)} className={`rounded-xl py-2 text-sm font-extrabold transition ${days === p.id ? "bg-lavender" : "text-ink-soft"}`}>{p.label}</button>
         ))}
-        <span className="flex items-center justify-center text-[11px] font-bold text-ink-soft">{ns.length} nuit{ns.length > 1 ? "s" : ""}</span>
       </div>
+      <p className="-mt-2 mb-4 text-center text-xs font-semibold text-ink-soft">{ns.length} nuit{ns.length > 1 ? "s" : ""} mesurée{ns.length > 1 ? "s" : ""}{days === 0 ? ` depuis le ${shortDate(nights[0].date)}` : ""}</p>
 
       {ns.length === 0 ? (
         <p className="rounded-3xl bg-white p-4 text-center text-sm font-bold text-ink-soft shadow-soft">Aucune nuit mesurée sur cette période. La montre n'enregistre le sommeil que si tu la portes la nuit.</p>
@@ -134,7 +137,13 @@ function Content({ nights, today }: { nights: GarminSleep[]; today: string }) {
             </Card>
           )}
 
-          <Card title="Détail des nuits">
+          {hrvPts.length > 2 && (
+            <Card title="Variabilité cardiaque (VFC)" hint="Moyenne de la nuit : plus elle est haute, mieux tu récupères.">
+              <Line points={hrvPts} format={(v) => String(Math.round(v))} unit=" ms" title="VFC" color="stroke-sky-deep" dot="bg-sky-deep" />
+            </Card>
+          )}
+
+          <Card title="Détail des nuits" hint={ns.length > 30 ? "Les 30 dernières." : undefined}>
             <ul className="divide-y divide-ink/10">
               {[...ns].reverse().slice(0, 30).map((n) => (
                 <li key={n.date} className="py-2">
@@ -151,7 +160,7 @@ function Content({ nights, today }: { nights: GarminSleep[]; today: string }) {
 }
 
 export function Sleep() {
-  const { data, isLoading, error } = useGarminSleep();
+  const { data, isLoading, error } = useHealth();
   return (
     <section className="overflow-x-clip">
       <div className="mb-4 flex items-center justify-between">
@@ -160,13 +169,19 @@ export function Sleep() {
       </div>
       {isLoading ? <p className="py-8 text-center text-ink-soft">Chargement…</p>
         : error ? <p className="rounded-3xl bg-rose-soft p-4 text-center text-sm font-bold">{error.message}</p>
-        : data && data.nights.length === 0 ? (
+        : !hasHealth(data) ? (
+          <div className="rounded-3xl bg-white p-6 text-center shadow-soft">
+            <p className="text-3xl">📭</p>
+            <p className="mt-2 font-extrabold">Pas encore de données</p>
+            <p className="mt-1 text-sm font-semibold text-ink-soft">Sur l'ordinateur, lance <code className="rounded bg-cream px-1.5 py-0.5">scripts/garmin/refresh.sh --full</code> puis recharge cette page.</p>
+          </div>
+        ) : data.nights.length === 0 ? (
           <div className="rounded-3xl bg-white p-6 text-center shadow-soft">
             <p className="text-3xl">🌙</p>
             <p className="mt-2 font-extrabold">Aucune nuit mesurée</p>
-            <p className="mt-1 text-sm font-semibold text-ink-soft">Porte ta montre la nuit : le sommeil apparaîtra ici (90 derniers jours).</p>
+            <p className="mt-1 text-sm font-semibold text-ink-soft">Porte ta montre la nuit : le sommeil apparaîtra ici.</p>
           </div>
-        ) : data && <Content nights={data.nights} today={data.today} />}
+        ) : <Content nights={data.nights} today={data.today} />}
     </section>
   );
 }

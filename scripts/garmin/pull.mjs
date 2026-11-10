@@ -3,6 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DATA_DIR, garminGet, keyIsSet } from "./api.mjs";
+import { buildHealth } from "./health.mjs";
 import { buildSummary } from "./summarize.mjs";
 
 const args = process.argv.slice(2);
@@ -74,7 +75,7 @@ async function main() {
 
   // 2. jours, nuits, VFC, poids : on reprend 10 jours avant la dernière date connue (les données récentes se complètent)
   const later = (a, b) => (a > b ? a : b);
-  const since = (list, key) => (list.length ? shift(list.map((x) => x[key]).sort().at(-1), -10) : first);
+  const since = (list, key) => (!FULL && list.length ? shift(list.map((x) => x[key]).sort().at(-1), -10) : first);
   const merge = (old, fresh, key) => [...new Map([...old, ...fresh].filter((x) => x[key]).map((x) => [x[key], x])).values()].sort((a, b) => (a[key] < b[key] ? -1 : 1));
 
   say("Jours (pas, FC, stress, batterie)…");
@@ -108,6 +109,7 @@ async function main() {
 
   const summary = buildSummary({ activities: load("activities.json", []), daily, sleep: nights, hrv, weight, today });
   save("summary.json", summary);
+  save("health.json", buildHealth({ daily, sleep: nights, hrv, today }));
   const c = summary.counts;
   say(`\nTerminé : ${c.activities} sorties, ${c.days} jours, ${c.nights} nuits, ${c.hrv} mesures VFC, ${c.weighIns} pesées.`);
   say(`Période : ${summary.range.from} → ${summary.range.to}`);

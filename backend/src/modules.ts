@@ -27,7 +27,8 @@ const ROUTE_MODULES: Record<string, Module[]> = {
   media: ["media"],
   weight: ["poids"],
   training: ["sport"],
-  garmin: ["sante", "poids", "sommeil"], // Poids reprend l'objectif de poids de Garmin, Sommeil lit les nuits
+  health: ["sante", "sommeil"], // données Garmin au jour le jour (fichier produit sur l'ordinateur)
+  garmin: ["sante", "poids"], // Poids reprend l'objectif de poids de Garmin
 };
 
 // toujours accessibles à une personne connectée (limitées à son foyer)

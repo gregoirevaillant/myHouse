@@ -3,6 +3,7 @@ import { Forme } from "../components/health/Forme";
 import { Sport } from "../components/health/Sport";
 import { Summary } from "../components/health/Summary";
 import { useGarminActivities, useGarminForme, useGarminOverview } from "../lib/garmin";
+import { hasHealth, useHealth } from "../lib/health";
 
 const TABS = [
   { id: "resume", label: "Résumé" },
@@ -20,7 +21,8 @@ function Problem({ message }: { message: string }) {
 export function Health() {
   const [tab, setTab] = useState<TabId>("resume");
   // chaque onglet ne charge ses données que lorsqu'on l'ouvre
-  const overview = useGarminOverview(tab !== "sport");
+  const health = useHealth();
+  const overview = useGarminOverview(tab === "forme");
   const activities = useGarminActivities(tab === "sport");
   const forme = useGarminForme(tab === "forme");
 
@@ -48,7 +50,13 @@ export function Health() {
       </div>
 
       {tab === "resume" &&
-        (overview.isLoading ? <Loading /> : overview.error ? <Problem message={overview.error.message} /> : overview.data && <Summary data={overview.data} />)}
+        (health.isLoading ? <Loading /> : health.error ? <Problem message={health.error.message} /> : !hasHealth(health.data) ? (
+          <div className="rounded-3xl bg-white p-6 text-center shadow-soft">
+            <p className="text-3xl">📭</p>
+            <p className="mt-2 font-extrabold">Pas encore de données</p>
+            <p className="mt-1 text-sm font-semibold text-ink-soft">Sur l'ordinateur, lance <code className="rounded bg-cream px-1.5 py-0.5">scripts/garmin/refresh.sh --full</code> puis recharge cette page.</p>
+          </div>
+        ) : <Summary s={health.data} />)}
       {tab === "sport" &&
         (activities.isLoading ? <Loading /> : activities.error ? <Problem message={activities.error.message} /> : activities.data && <Sport activities={activities.data} />)}
       {tab === "forme" &&
