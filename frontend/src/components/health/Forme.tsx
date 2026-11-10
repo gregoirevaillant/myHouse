@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { GarminFitness, GarminForme } from "../../lib/api";
-import { duration, ZONES } from "../../lib/garmin";
+import { ZONES } from "../../lib/garmin";
 
 const fr = (v: number, digits = 1) => v.toFixed(digits).replace(".", ",");
 
@@ -56,45 +56,19 @@ function Zones({ zones }: { zones: NonNullable<GarminForme["zones"]> }) {
   );
 }
 
-function Sleep({ nights }: { nights: GarminForme["sleep"] }) {
-  const last = nights[nights.length - 1];
-  const max = Math.max(...nights.map((n) => n.seconds), 8 * 3600);
-  const part = (s: number) => `${(s / last.seconds) * 100}%`;
-  return (
-    <div className="rounded-3xl bg-lavender-soft p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Sommeil · dernière nuit</p>
-      <p className="mt-1 text-2xl font-extrabold">{duration(last.seconds)}</p>
-      <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-white">
-        <span className="bg-lavender-deep" style={{ width: part(last.deep) }} />
-        <span className="bg-lavender" style={{ width: part(last.light) }} />
-        <span className="bg-sky" style={{ width: part(last.rem) }} />
-        <span className="bg-rose" style={{ width: part(last.awake) }} />
-      </div>
-      <p className="mt-1.5 text-xs font-semibold text-ink-soft">Profond {duration(last.deep)} · léger {duration(last.light)} · paradoxal {duration(last.rem)} · éveillé {duration(last.awake)}</p>
-      <div className="mt-3 flex h-12 items-end gap-1">
-        {nights.map((n) => (
-          <span key={n.date} className="flex-1 rounded-t-md bg-lavender-deep/70" style={{ height: `${(n.seconds / max) * 100}%` }} title={`${n.date} : ${duration(n.seconds)}`} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function Forme({ fitness, forme }: { fitness: GarminFitness | null; forme: GarminForme }) {
   return (
     <div className="space-y-4">
       {fitness && <Fitness f={fitness} />}
       {forme.zones && <Zones zones={forme.zones} />}
-      {forme.sleep.length > 0 && <Sleep nights={forme.sleep} />}
       <Link to="/poids" className="flex items-center justify-between rounded-3xl bg-sky-soft p-4 font-extrabold shadow-soft">
         <span>⚖️ Poids, muscle et masse grasse</span>
         <span aria-hidden>→</span>
       </Link>
-      {forme.sleep.length === 0 && (
-        <p className="px-2 text-center text-xs font-semibold text-ink-soft">
-          Sommeil, stress, variabilité cardiaque et hydratation : ta montre n'en envoie pas pour l'instant. Ils apparaîtront ici dès qu'elle les mesurera.
-        </p>
-      )}
+      <Link to="/sommeil" className="flex items-center justify-between rounded-3xl bg-lavender-soft p-4 font-extrabold shadow-soft">
+        <span>😴 Sommeil</span>
+        <span aria-hidden>→</span>
+      </Link>
     </div>
   );
 }

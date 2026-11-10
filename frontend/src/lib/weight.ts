@@ -22,6 +22,27 @@ export function useGarminSync() {
   });
 }
 
+// moyenne glissante sur 7 jours (la pesée et les 6 jours qui précèdent) : gomme l'eau et les repas, montre la vraie direction
+export function smooth(points: { date: string; grams: number }[]) {
+  return points.map((p) => {
+    const t = Date.parse(p.date);
+    const win = points.filter((q) => Date.parse(q.date) <= t && t - Date.parse(q.date) < 7 * 86400000);
+    return { date: p.date, grams: win.reduce((s, q) => s + q.grams, 0) / win.length };
+  });
+}
+
+// rythme en grammes par semaine (droite des moindres carrés) ; null s'il y a trop peu de pesées ou de recul
+export function weeklyRate(points: { date: string; grams: number }[]) {
+  if (points.length < 4) return null;
+  const t0 = Date.parse(points[0].date);
+  const xs = points.map((p) => (Date.parse(p.date) - t0) / 86400000);
+  if (xs[xs.length - 1] < 14) return null;
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const my = points.reduce((a, p) => a + p.grams, 0) / points.length;
+  const den = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+  return den === 0 ? null : (xs.reduce((a, x, i) => a + (x - mx) * (points[i].grams - my), 0) / den) * 7;
+}
+
 // ── Analyse : que s'est-il passé entre le début et la fin de la période ? ──
 
 // en dessous, la variation se confond avec le bruit de la balance (eau, repas, heure de la pesée)

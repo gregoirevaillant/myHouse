@@ -5,11 +5,12 @@ import { WeightForm } from "../components/WeightForm";
 import { api, type WeightEntry } from "../lib/api";
 import { useMe, useUpdatePreferences } from "../lib/auth";
 import { addDays, fromIso, shortDate, toIso } from "../lib/dates";
-import { analyse, formatKg, parseKg, useGarminSync, useWeights, useWeightStatus } from "../lib/weight";
+import { analyse, formatKg, parseKg, smooth, useGarminSync, useWeights, useWeightStatus, weeklyRate } from "../lib/weight";
 
 const RANGES = [
   { days: 30, label: "30 j" },
   { days: 90, label: "3 mois" },
+  { days: 180, label: "6 mois" },
   { days: 365, label: "1 an" },
 ];
 
@@ -42,7 +43,7 @@ function niceStep(range: number) {
 }
 
 // courbe des pesées : lignes grises de repère (kg à l'horizontale, semaines et mois à la verticale), poids visé en pointillés
-function Chart({ entries, from, to, goal, unit }: { entries: { id: string; date: string; grams: number }[]; from: string; to: string; goal: number | null; unit: string }) {
+function Chart({ entries, from, to, goal, unit, trend }: { entries: { id: string; date: string; grams: number }[]; from: string; to: string; goal: number | null; unit: string; trend?: { date: string; grams: number }[] }) {
   const W = 320;
   const H = 190;
   const left = 30;
@@ -73,6 +74,7 @@ function Chart({ entries, from, to, goal, unit }: { entries: { id: string; date:
   }
 
   const points = entries.map((e) => ({ id: e.id, px: x(e.date), py: y(e.grams), grams: e.grams }));
+  const trendLine = trend && trend.length > 2 ? trend.map((t) => `${x(t.date).toFixed(1)},${y(t.grams).toFixed(1)}`).join(" ") : "";
   const line = points.map((p) => `${p.px.toFixed(1)},${p.py.toFixed(1)}`).join(" ");
   const lastPoint = points[points.length - 1];
   const baseY = H - bottom;
@@ -100,7 +102,8 @@ function Chart({ entries, from, to, goal, unit }: { entries: { id: string; date:
         </>
       )}
       {area && <path d={area} className="fill-sky-deep/10" />}
-      {points.length > 1 && <polyline points={line} fill="none" className="stroke-sky-deep" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />}
+      {points.length > 1 && <polyline points={line} fill="none" className="stroke-sky-deep" strokeWidth={trendLine ? 1.2 : 2.5} strokeOpacity={trendLine ? 0.5 : 1} strokeLinejoin="round" strokeLinecap="round" />}
+      {trendLine && <polyline points={trendLine} fill="none" className="stroke-lavender-deep" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />}
       {points.length <= 60 && points.map((p) => <circle key={p.id} cx={p.px} cy={p.py} r={2.5} className="fill-sky-deep" />)}
       {lastPoint && (
         <>
@@ -200,12 +203,15 @@ export function Weight() {
         )}
         {entries.length > 0 ? (
           <div className="mt-3">
-            <Chart entries={seriesOf(shown.id)} from={from} to={today} goal={shown.id === "weight" ? goal : null} unit={shown.unit} />
+            <Chart entries={seriesOf(shown.id)} from={from} to={today} goal={shown.id === "weight" ? goal : null} unit={shown.unit} trend={shown.id === "weight" ? smooth(seriesOf("weight")) : undefined} />
+            {shown.id === "weight" && entries.length > 3 && <p className="mt-1 text-center text-[11px] font-semibold text-ink-soft">Points = pesées · trait épais = moyenne sur 7 jours</p>}
           </div>
         ) : (
           !isLoading && <p className="mt-4 text-center text-sm font-bold text-ink-soft">Aucune pesée sur cette période</p>
         )}
       </div>
+
+      {entries.length > 1 && <Stats entries={entries} goal={goal} />}
 
       {analysis && <AnalysisCard analysis={analysis} days={days} />}
 
@@ -246,6 +252,56 @@ export function Weight() {
   );
 }
 
+// chiffres de la période : rythme, extrêmes, moyenne, progression vers l'objectif
+function Stats({ entries, goal }: { entries: WeightEntry[]; goal: number | null }) {
+  const grams = entries.map((e) => e.grams);
+  const min = entries.reduce((m, e) => (e.grams < m.grams ? e : m));
+  const max = entries.reduce((m, e) => (e.grams > m.grams ? e : m));
+  const mean = grams.reduce((a, b) => a + b, 0) / grams.length;
+  const trend = smooth(entries);
+  const rate = weeklyRate(trend);
+  const now = trend[trend.length - 1].grams;
+  const first = entries[0].grams;
+  // progression : du premier poids de la période à l'objectif
+  const done = goal && first !== goal ? Math.max(0, Math.min(1, (first - now) / (first - goal))) : null;
+  const toGo = goal ? goal - now : null;
+  const weeks = rate && toGo && Math.sign(rate) === Math.sign(toGo) ? Math.abs(toGo / rate) : null;
+  const eta = weeks !== null && weeks < 150 ? addDays(toIso(new Date()), Math.round(weeks * 7)) : null;
+  const tiles: [string, string, string][] = [
+    ["Tendance", now ? `${formatKg(now)} kg` : "—", "moyenne 7 jours"],
+    ["Rythme", rate === null ? "—" : `${signed(Math.round(rate))} kg`, "par semaine"],
+    ["Plus bas", `${formatKg(min.grams)} kg`, shortDate(min.date)],
+    ["Plus haut", `${formatKg(max.grams)} kg`, shortDate(max.date)],
+    ["Moyenne", `${formatKg(mean)} kg`, `${entries.length} pesée${entries.length > 1 ? "s" : ""}`],
+    ["Écart", `${formatKg(max.grams - min.grams)} kg`, "plus haut − plus bas"],
+  ];
+  return (
+    <div className="mb-4 rounded-3xl bg-white p-4 shadow-soft">
+      <div className="grid grid-cols-3 gap-2 text-center">
+        {tiles.map(([label, value, sub]) => (
+          <div key={label} className="rounded-2xl bg-cream px-1 py-2">
+            <p className="text-[11px] font-bold text-ink-soft">{label}</p>
+            <p className="text-sm font-extrabold">{value}</p>
+            <p className="text-[10px] font-semibold text-ink-soft">{sub}</p>
+          </div>
+        ))}
+      </div>
+      {goal && done !== null && toGo !== null && (
+        <div className="mt-3">
+          <div className="flex justify-between text-xs font-bold text-ink-soft">
+            <span>Vers l'objectif {formatKg(goal)} kg</span>
+            <span>{Math.abs(toGo) < 300 ? "atteint 🎉" : `${formatKg(Math.abs(toGo))} kg à ${toGo < 0 ? "perdre" : "prendre"}`}</span>
+          </div>
+          <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-ink/10"><div className="h-full rounded-full bg-mint-deep" style={{ width: `${done * 100}%` }} /></div>
+          <p className="mt-1 text-xs font-semibold text-ink-soft">
+            {Math.abs(toGo) < 300 ? "Tu es dans la zone de ton objectif." : eta ? `Au rythme actuel : vers le ${shortDate(eta)}.` : rate === null ? "Pas assez de recul pour estimer la date." : "Le rythme actuel ne mène pas à l'objectif."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TONES = { good: "bg-mint-soft", neutral: "bg-lemon-soft", bad: "bg-rose-soft" } as const;
 
 const delta = (g: number | null) => (g === null ? "—" : `${signed(g)} kg`);
@@ -253,7 +309,7 @@ const delta = (g: number | null) => (g === null ? "—" : `${signed(g)} kg`);
 // ce que la variation de poids est réellement faite : muscle, gras, reste (eau, os…)
 function AnalysisCard({ analysis, days }: { analysis: NonNullable<ReturnType<typeof analyse>>; days: number }) {
   const { verdict } = analysis;
-  const period = days === 30 ? "30 derniers jours" : days === 90 ? "3 derniers mois" : "12 derniers mois";
+  const period = days === 30 ? "30 derniers jours" : days === 90 ? "3 derniers mois" : days === 180 ? "6 derniers mois" : "12 derniers mois";
   return (
     <div className={`mb-4 rounded-3xl p-4 ${verdict ? TONES[verdict.tone] : "bg-white shadow-soft"}`}>
       <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">Analyse · {period}</p>

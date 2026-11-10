@@ -9,7 +9,7 @@ import { computeDebt, useExpenses } from "../../lib/expenses";
 import { useMembers } from "../../lib/members";
 import { formatEur } from "../../lib/money";
 import { useMedia } from "../../lib/media";
-import { distance, duration, relativeDay, sportOf, useGarminActivities } from "../../lib/garmin";
+import { distance, duration, relativeDay, sportOf, useGarminActivities, useGarminSleep } from "../../lib/garmin";
 import { formatKg, useWeights } from "../../lib/weight";
 import { useTraining } from "../../lib/training";
 import { cardsQuery, infosQuery, shoppingQuery } from "../../lib/offline";
@@ -363,6 +363,24 @@ export function SportTile({ wide }: Props) {
         </>
       ) : (
         <p className="mt-2 text-sm font-bold text-ink/60">{data ? "Pas encore de données" : "…"}</p>
+      )}
+    </Tile>
+  );
+}
+
+export function SleepTile({ wide }: Props) {
+  const { data, error } = useGarminSleep();
+  const last = data?.nights[data.nights.length - 1];
+  return (
+    <Tile to="/sommeil" icon="😴" label="Sommeil" className={`${span(wide)}bg-lavender`}>
+      <Label>Sommeil</Label>
+      {last ? (
+        <>
+          <p className="mt-1 text-2xl font-extrabold">{duration(last.seconds)}</p>
+          <p className="text-sm font-bold text-ink/60">{relativeDay(last.date, data.today)}{last.score !== null ? ` · score ${last.score}` : ""}</p>
+        </>
+      ) : (
+        <p className="mt-2 text-sm font-bold text-ink/60">{error ? "Garmin indisponible" : data ? "Aucune nuit mesurée" : "…"}</p>
       )}
     </Tile>
   );

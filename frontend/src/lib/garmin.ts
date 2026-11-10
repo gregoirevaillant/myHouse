@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, type GarminActivity, type GarminForme, type GarminOverview } from "./api";
+import { api, type GarminActivity, type GarminForme, type GarminOverview, type GarminSleepResponse } from "./api";
 import { fromIso, shortDate } from "./dates";
 
 // Garmin répond lentement et change peu : 5 minutes de cache côté écran, pas de nouvel essai sur une erreur (clé absente, expirée)
@@ -8,6 +8,7 @@ const options = { staleTime: 5 * 60_000, retry: false } as const;
 export const useGarminOverview = (enabled = true) => useQuery({ queryKey: ["garmin", "overview"], queryFn: () => api<GarminOverview>("/garmin/overview"), enabled, ...options });
 export const useGarminActivities = (enabled = true) => useQuery({ queryKey: ["garmin", "activities"], queryFn: () => api<GarminActivity[]>("/garmin/activities"), enabled, ...options });
 export const useGarminForme = (enabled = true) => useQuery({ queryKey: ["garmin", "forme"], queryFn: () => api<GarminForme>("/garmin/forme"), enabled, ...options });
+export const useGarminSleep = () => useQuery({ queryKey: ["garmin", "sleep"], queryFn: () => api<GarminSleepResponse>("/garmin/sleep"), ...options });
 
 // ── Types de sorties ──────────────────────────────────────────────────
 

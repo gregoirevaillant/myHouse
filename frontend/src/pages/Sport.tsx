@@ -78,7 +78,6 @@ function Content({ s }: { s: TrainingSummary }) {
   const ws = all.slice(-n);
   const cur = all[all.length - 1];
   const prev = all.length >= 2 * n ? all.slice(-2 * n, -n) : null; // période précédente de même durée, si l'historique la couvre
-  const from = ws[0].start;
   const axisEvery = Math.max(1, Math.ceil(ws.length / 4));
   const wLabel = (w: TrainingWeek) => `Sem. du ${shortDate(w.start)}${w === cur ? " (en cours)" : ""}`;
 
@@ -87,10 +86,6 @@ function Content({ s }: { s: TrainingSummary }) {
   const runSec = tot((w) => w.by.run.dsec), runKm = tot((w) => w.by.run.km);
   const prevPace = prev && sum(prev, (w) => w.by.run.km) > 0 ? sum(prev, (w) => w.by.run.dsec) / sum(prev, (w) => w.by.run.km) : null;
   const pace = runKm > 0 ? runSec / runKm : null;
-
-  const weightsIn = s.weights.filter((w) => w.date >= from);
-  const lastW = s.weights[s.weights.length - 1];
-  const firstW = weightsIn[0];
 
   // régularité : calendrier, semaines à l'objectif, série en cours
   const sec = new Map(s.calendar.map((c) => [c.date, c]));
@@ -132,11 +127,7 @@ function Content({ s }: { s: TrainingSummary }) {
 
   const shareTot = tot((w) => w.sec);
   const paceWeeks = ws.filter((w) => w.by.run.km >= 3).map((w) => ({ label: shortDate(w.start), value: Math.round(w.by.run.dsec / w.by.run.km) }));
-  const dayPts = (get: (d: TrainingSummary["days"][number]) => number | null) => s.days.filter((d) => d.date >= from && get(d) !== null).map((d) => ({ label: shortDate(d.date), value: get(d)! }));
-  const rhr = dayPts((d) => d.rhr), sleep = dayPts((d) => d.sleepH);
-  const hrv = s.days.filter((d) => d.date >= from && d.hrv !== null).map((d) => ({ label: shortDate(d.date), value: d.hrv!, extra: d.hrvWeekly }));
   const series = (f: (w: TrainingWeek) => number) => ws.map(f);
-  const line = (key: "kg" | "muscle" | "fat") => weightsIn.filter((w) => w[key]).map((w) => ({ label: shortDate(w.date), value: w[key]! }));
 
   return (
     <>
@@ -153,8 +144,6 @@ function Content({ s }: { s: TrainingSummary }) {
         <Kpi bg="bg-lavender" label="Charge" value={String(tot((w) => w.load))} d={cmp((w) => w.load)} series={series((w) => w.load)} />
         <Kpi bg="bg-lemon" label="Dénivelé" value={`${tot((w) => w.elev).toLocaleString("fr-FR")} m`} d={cmp((w) => w.elev)} series={series((w) => w.elev)} />
         {pace && <Kpi bg="bg-rose" label="Allure course" value={`${clock(pace)} /km`} d={prevPace ? pct(pace, prevPace) : null} invert series={ws.map((w) => (w.by.run.km > 0 ? w.by.run.dsec / w.by.run.km : 0)).filter(Boolean)} />}
-        {lastW && <Kpi bg="bg-sky" label="Poids" value={`${fr(lastW.kg)} kg`} d={null} series={weightsIn.map((w) => w.kg)} />}
-        {lastW && firstW && firstW !== lastW && <div className="-mt-1 col-span-2 text-center text-xs font-bold text-ink-soft">Poids sur la période : {lastW.kg - firstW.kg > 0 ? "+" : "−"}{fr(Math.abs(lastW.kg - firstW.kg))} kg</div>}
       </div>
       <p className="-mt-2 mb-4 text-center text-xs font-semibold text-ink-soft">{prev ? "Comparé à la période précédente de même durée · semaine en cours incluse" : "Pas assez d'historique pour comparer"}</p>
 
@@ -210,22 +199,6 @@ function Content({ s }: { s: TrainingSummary }) {
       {strengthN > 0 && (
         <Card title="Musculation" hint={`${strengthN} séance${strengthN > 1 ? "s" : ""} sur la période${s.strength.last ? ` · dernière le ${shortDate(s.strength.last)}` : ""}`}>
           <StackedBars bars={strengthBars} formatTick={(v) => String(Math.round(v))} title="Séances de musculation par semaine" />
-        </Card>
-      )}
-
-      {line("kg").length > 1 && (
-        <Card title="Corps" hint="Pesées de la balance Garmin sur la période.">
-          <Line points={line("kg")} format={(v) => fr(v)} unit=" kg" title="Poids" />
-          {line("muscle").length > 1 && <><p className="mb-1 mt-4 text-xs font-extrabold uppercase text-ink-soft">Muscle (kg)</p><Line points={line("muscle")} format={(v) => fr(v)} unit=" kg" color="stroke-mint-deep" dot="bg-mint-deep" title="Muscle" /></>}
-          {line("fat").length > 1 && <><p className="mb-1 mt-4 text-xs font-extrabold uppercase text-ink-soft">Masse grasse (%)</p><Line points={line("fat")} format={(v) => fr(v)} unit=" %" color="stroke-peach-deep" dot="bg-peach-deep" title="Masse grasse" /></>}
-        </Card>
-      )}
-
-      {(sleep.length > 2 || hrv.length > 2 || rhr.length > 2) && (
-        <Card title="Récupération" hint="Seulement ce que la montre mesure : elle n'est portée la nuit que de temps en temps.">
-          {sleep.length > 2 && <><p className="mb-1 text-xs font-extrabold uppercase text-ink-soft">Sommeil (h)</p><Line points={sleep} format={(v) => fr(v)} unit=" h" color="stroke-lavender-deep" dot="bg-lavender-deep" title="Sommeil" /></>}
-          {hrv.length > 2 && <><p className="mb-1 mt-4 text-xs font-extrabold uppercase text-ink-soft">VFC (ms), pointillés = moyenne 7 jours</p><Line points={hrv} format={(v) => String(Math.round(v))} unit=" ms" color="stroke-mint-deep" dot="bg-mint-deep" title="VFC" /></>}
-          {rhr.length > 2 && <><p className="mb-1 mt-4 text-xs font-extrabold uppercase text-ink-soft">FC au repos (bpm), faussée si la montre n'est portée que pour le sport</p><Line points={rhr} format={(v) => String(Math.round(v))} unit=" bpm" color="stroke-rose-deep" dot="bg-rose-deep" title="FC au repos" /></>}
         </Card>
       )}
 

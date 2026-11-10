@@ -197,8 +197,12 @@ export type GarminActivity = {
   location: string | null;
   pr: boolean;
 };
-export type GarminSleep = { date: string; seconds: number; deep: number; light: number; rem: number; awake: number };
-export type GarminForme = { zones: { max: number; floors: number[] } | null; sleep: GarminSleep[] };
+export type GarminSleep = {
+  date: string; seconds: number; deep: number; light: number; rem: number; awake: number;
+  start: string | null; end: string | null; score: number | null; heartRate: number | null; spo2: number | null; breath: number | null; stress: number | null;
+};
+export type GarminSleepResponse = { today: string; nights: GarminSleep[] };
+export type GarminForme = { zones: { max: number; floors: number[] } | null };
 
 export type MediaKind = "MOVIE" | "SERIES" | "GAME" | "BOOK";
 export type MediaStatus = "WISHLIST" | "IN_PROGRESS" | "DONE";

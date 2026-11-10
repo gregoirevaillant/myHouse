@@ -6,7 +6,6 @@ import { Admin } from "./pages/Admin";
 import { Budget } from "./pages/Budget";
 import { Media } from "./pages/Media";
 import { Calories } from "./pages/Calories";
-import { Weight } from "./pages/Weight";
 import { CalorieFoods } from "./pages/CalorieFoods";
 import { CardDetail } from "./pages/CardDetail";
 import { Cards } from "./pages/Cards";
@@ -27,6 +26,8 @@ import { Restaurants } from "./pages/Restaurants";
 import { Shopping } from "./pages/Shopping";
 
 // page Santé chargée à la demande : elle n'alourdit pas le premier chargement de l'application
+const Weight = lazy(() => import("./pages/Weight").then((m) => ({ default: m.Weight })));
+const Sleep = lazy(() => import("./pages/Sleep").then((m) => ({ default: m.Sleep })));
 const Sport = lazy(() => import("./pages/Sport").then((m) => ({ default: m.Sport })));
 const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.Health })));
 
@@ -70,7 +71,8 @@ export default function App() {
         <Route path="/media" element={<Gate page="media"><Media /></Gate>} />
         <Route path="/sante" element={<Gate page="sante"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Health /></Suspense></Gate>} />
         <Route path="/sport" element={<Gate page="sport"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Sport /></Suspense></Gate>} />
-        <Route path="/poids" element={<Gate page="poids"><Weight /></Gate>} />
+        <Route path="/sommeil" element={<Gate page="sommeil"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Sleep /></Suspense></Gate>} />
+        <Route path="/poids" element={<Gate page="poids"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Weight /></Suspense></Gate>} />
         <Route path="/calories" element={<Gate page="calories"><Calories /></Gate>} />
         <Route path="/calories/recettes" element={<Gate page="calories"><CalorieFoods /></Gate>} />
         <Route path="/calories/recettes/:id" element={<Gate page="calories"><RecipeDetail /></Gate>} />
