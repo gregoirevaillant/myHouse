@@ -116,7 +116,7 @@ await app.register(
       await priv.register(weightRoutes, { prefix: "/weight" });
       await priv.register(garminRoutes, { prefix: "/garmin" });
       await priv.register(trainingRoutes, { prefix: "/training" });
-      await priv.register(healthRoutes, { prefix: "/health" });
+      await priv.register(healthRoutes, { prefix: "/wellness" });
       await priv.register(pushRoutes, { prefix: "/push" });
       await priv.register(liveRoutes, { prefix: "/events" });
       await priv.register(adminRoutes, { prefix: "/admin" });
