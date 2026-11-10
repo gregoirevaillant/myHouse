@@ -40,7 +40,12 @@ export function StackedBars({ bars, formatTick, title }: { bars: StackBar[]; for
         </div>
       </div>
       <div className="ml-14 mt-1 flex text-[11px] font-semibold text-ink-soft">
-        {bars.map((b) => <span key={b.key} className="flex-1 overflow-visible whitespace-nowrap text-center">{b.axis ?? ""}</span>)}
+        {bars.map((b, i) => (
+          <span key={b.key} className="relative h-4 min-w-0 flex-1">
+            {/* repère posé sans élargir la ligne ; calé à gauche/droite aux extrémités pour ne pas déborder de l'écran */}
+            {b.axis && <span className={`absolute top-0 whitespace-nowrap ${i < bars.length * 0.15 ? "left-0" : i > bars.length * 0.85 ? "right-0" : "left-1/2 -translate-x-1/2"}`}>{b.axis}</span>}
+          </span>
+        ))}
       </div>
       <table className="sr-only"><caption>{title}</caption><tbody>{bars.map((b) => <tr key={b.key}><th>{b.label}</th><td>{b.tooltip}</td></tr>)}</tbody></table>
     </div>

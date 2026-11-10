@@ -265,7 +265,7 @@ function Content({ s }: { s: TrainingSummary }) {
 export function Sport() {
   const { data, isLoading, error } = useTraining();
   return (
-    <section>
+    <section className="overflow-x-clip">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-extrabold"><span className="rounded-xl bg-lemon px-2 py-1">📈</span> Sport</h2>
         <span className="text-xs font-bold text-ink-soft">⌚ Garmin</span>
