@@ -207,7 +207,7 @@ export type HealthDay = {
   rhr: number | null; hrMin: number | null; hrMax: number | null; stress: number | null; bb: number | null; bbLow: number | null; intense: number | null; resp: number | null;
 };
 export type HealthNight = GarminSleep & { hrv: number | null };
-export type HealthSummary = { generatedAt: string; today: string; range: { from: string; to: string }; days: HealthDay[]; nights: HealthNight[] };
+export type HealthSummary = { live?: boolean; generatedAt: string; today: string; range: { from: string; to: string }; days: HealthDay[]; nights: HealthNight[] };
 export type HealthResponse = HealthSummary | { empty: true };
 export type GarminForme = { zones: { max: number; floors: number[] } | null };
 

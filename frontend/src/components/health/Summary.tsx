@@ -244,7 +244,7 @@ export function Summary({ s }: { s: HealthSummary }) {
       </Card>
 
       <p className="pb-2 text-center text-xs font-semibold text-ink-soft">
-        {all.length} jours · {shortDate(s.range.from)} → {shortDate(s.range.to)} · mis à jour le {new Date(s.generatedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+        {all.length} jours · {shortDate(s.range.from)} → {shortDate(s.range.to)} · {s.live ? "en direct de Garmin, " : "fichier "}mis à jour le {new Date(s.generatedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
       </p>
     </div>
   );
