@@ -84,8 +84,8 @@ function Content({ s }: { s: TrainingSummary }) {
 
   const tot = (f: (w: TrainingWeek) => number) => sum(ws, f);
   const cmp = (f: (w: TrainingWeek) => number) => (prev ? pct(tot(f), sum(prev, f)) : null);
-  const runSec = tot((w) => w.by.run.sec), runKm = tot((w) => w.by.run.km);
-  const prevPace = prev && sum(prev, (w) => w.by.run.km) > 0 ? sum(prev, (w) => w.by.run.sec) / sum(prev, (w) => w.by.run.km) : null;
+  const runSec = tot((w) => w.by.run.dsec), runKm = tot((w) => w.by.run.km);
+  const prevPace = prev && sum(prev, (w) => w.by.run.km) > 0 ? sum(prev, (w) => w.by.run.dsec) / sum(prev, (w) => w.by.run.km) : null;
   const pace = runKm > 0 ? runSec / runKm : null;
 
   const weightsIn = s.weights.filter((w) => w.date >= from);
@@ -131,7 +131,7 @@ function Content({ s }: { s: TrainingSummary }) {
   const strengthN = tot((w) => w.by.strength.n);
 
   const shareTot = tot((w) => w.sec);
-  const paceWeeks = ws.filter((w) => w.by.run.km >= 3).map((w) => ({ label: shortDate(w.start), value: Math.round(w.by.run.sec / w.by.run.km) }));
+  const paceWeeks = ws.filter((w) => w.by.run.km >= 3).map((w) => ({ label: shortDate(w.start), value: Math.round(w.by.run.dsec / w.by.run.km) }));
   const dayPts = (get: (d: TrainingSummary["days"][number]) => number | null) => s.days.filter((d) => d.date >= from && get(d) !== null).map((d) => ({ label: shortDate(d.date), value: get(d)! }));
   const rhr = dayPts((d) => d.rhr), sleep = dayPts((d) => d.sleepH);
   const hrv = s.days.filter((d) => d.date >= from && d.hrv !== null).map((d) => ({ label: shortDate(d.date), value: d.hrv!, extra: d.hrvWeekly }));
@@ -152,7 +152,7 @@ function Content({ s }: { s: TrainingSummary }) {
         <Kpi bg="bg-peach" label="Séances" value={String(tot((w) => w.n))} d={cmp((w) => w.n)} series={series((w) => w.n)} />
         <Kpi bg="bg-lavender" label="Charge" value={String(tot((w) => w.load))} d={cmp((w) => w.load)} series={series((w) => w.load)} />
         <Kpi bg="bg-lemon" label="Dénivelé" value={`${tot((w) => w.elev).toLocaleString("fr-FR")} m`} d={cmp((w) => w.elev)} series={series((w) => w.elev)} />
-        {pace && <Kpi bg="bg-rose" label="Allure course" value={`${clock(pace)} /km`} d={prevPace ? pct(pace, prevPace) : null} invert series={ws.map((w) => (w.by.run.km > 0 ? w.by.run.sec / w.by.run.km : 0)).filter(Boolean)} />}
+        {pace && <Kpi bg="bg-rose" label="Allure course" value={`${clock(pace)} /km`} d={prevPace ? pct(pace, prevPace) : null} invert series={ws.map((w) => (w.by.run.km > 0 ? w.by.run.dsec / w.by.run.km : 0)).filter(Boolean)} />}
         {lastW && <Kpi bg="bg-sky" label="Poids" value={`${fr(lastW.kg)} kg`} d={null} series={weightsIn.map((w) => w.kg)} />}
         {lastW && firstW && firstW !== lastW && <div className="-mt-1 col-span-2 text-center text-xs font-bold text-ink-soft">Poids sur la période : {lastW.kg - firstW.kg > 0 ? "+" : "−"}{fr(Math.abs(lastW.kg - firstW.kg))} kg</div>}
       </div>
@@ -255,6 +255,7 @@ function Content({ s }: { s: TrainingSummary }) {
         </ul>
       </Card>
 
+      {s.anomalies.length > 0 && <p className="pb-2 text-center text-xs font-semibold text-ink-soft">⚠️ Durée écartée (montre oubliée ?) : {s.anomalies.map((a) => `${shortDate(a.date)} · ${fr(a.km)} km en ${Math.round(a.hours)} h`).join(" ; ")}</p>}
       <p className="pb-2 text-center text-xs font-semibold text-ink-soft">
         {s.counts.activities} sorties · {shortDate(s.range.from)} → {shortDate(s.range.to)} · mis à jour le {new Date(s.generatedAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
       </p>

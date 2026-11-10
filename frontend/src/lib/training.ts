@@ -14,7 +14,10 @@ export const SPORT_STYLE: Record<TrainingSport, { icon: string; label: string; b
 export const SPORT_ORDER: TrainingSport[] = ["run", "bike", "swim", "strength", "other"];
 
 export const fr = (n: number, digits = 1) => n.toFixed(digits).replace(".", ",");
-export const clock = (secPerKm: number) => `${Math.floor(secPerKm / 60)}:${String(Math.round(secPerKm % 60)).padStart(2, "0")}`;
+export const clock = (secPerKm: number) => {
+  const t = Math.round(secPerKm); // arrondi avant de couper en minutes (sinon « 28:60 »)
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+};
 export function hours(seconds: number) {
   const min = Math.round(seconds / 60);
   return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}`;

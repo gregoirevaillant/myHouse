@@ -47,7 +47,8 @@ export function StackedBars({ bars, formatTick, title }: { bars: StackBar[]; for
           </span>
         ))}
       </div>
-      <table className="sr-only"><caption>{title}</caption><tbody>{bars.map((b) => <tr key={b.key}><th>{b.label}</th><td>{b.tooltip}</td></tr>)}</tbody></table>
+      {/* version lisible par les lecteurs d'écran ; dans un conteneur qui coupe, un tableau « sr-only » élargirait la page */}
+      <div className="sr-only"><table><caption>{title}</caption><tbody>{bars.map((b) => <tr key={b.key}><th>{b.label}</th><td>{b.tooltip}</td></tr>)}</tbody></table></div>
     </div>
   );
 }

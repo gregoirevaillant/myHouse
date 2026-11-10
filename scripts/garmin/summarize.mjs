@@ -14,7 +14,7 @@ const shift = (iso, n) => new Date(Date.parse(`${iso}T12:00:00Z`) + n * 86400000
 const monday = (iso) => shift(iso, -((new Date(`${iso}T12:00:00Z`).getUTCDay() + 6) % 7));
 const r = (v, d = 1) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v * 10 ** d) / 10 ** d : null);
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-const blank = () => ({ km: 0, sec: 0, n: 0, load: 0, elev: 0 });
+const blank = () => ({ km: 0, sec: 0, dsec: 0, n: 0, load: 0, elev: 0 }); // dsec = temps des sorties avec distance (pour l'allure)
 
 export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
   // objectif réglable dans garmin-data/config.json : { "runsPerWeek": 3, "raceDate": "2027-06-20", "raceName": "Triathlon M" }
@@ -23,11 +23,19 @@ export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
   if (existsSync(cfgPath)) try { cfg = JSON.parse(readFileSync(cfgPath, "utf8")); } catch { /* ignoré */ }
   const goal = { label: "Triathlon, priorité à la course à pied", runsPerWeek: cfg.runsPerWeek ?? 3, raceDate: cfg.raceDate ?? null, raceName: cfg.raceName ?? null };
 
-  const acts = activities.map((a) => ({
+  // montre oubliée en marche : une course à plus de 15 min/km ou un trajet à vélo sous 5 km/h n'a pas une durée fiable.
+  // On garde la sortie et sa distance, mais sa durée (et ses zones) sont écartées des totaux ; elle est listée dans `anomalies`.
+  const anomalies = [];
+  const acts = activities.map((a) => {
+    const sport = sportOf(a.activityType?.typeKey), km = (a.distance ?? 0) / 1000, sec = a.duration ?? 0;
+    const bad = km > 0.5 && ((sport === "run" && sec / km > 900) || (sport === "bike" && km / (sec / 3600) < 5));
+    if (bad) anomalies.push({ date: String(a.startTimeLocal).slice(0, 10), name: a.activityName ?? "", km: r(km, 2), hours: r(sec / 3600) });
+    return { ...a, __bad: bad };
+  }).map((a) => ({
     id: a.activityId, date: String(a.startTimeLocal).slice(0, 10), name: a.activityName ?? "", type: a.activityType?.typeKey ?? "other",
-    sport: sportOf(a.activityType?.typeKey), km: (a.distance ?? 0) / 1000, sec: a.duration ?? 0, elev: a.elevationGain ?? 0,
+    sport: sportOf(a.activityType?.typeKey), km: (a.distance ?? 0) / 1000, sec: a.__bad ? 0 : a.duration ?? 0, elev: a.elevationGain ?? 0,
     hr: num(a.averageHR), maxHr: num(a.maxHR), kcal: num(a.calories), load: num(a.activityTrainingLoad), te: num(a.aerobicTrainingEffect),
-    zones: [1, 2, 3, 4, 5].map((z) => a[`hrTimeInZone_${z}`] ?? 0),
+    zones: a.__bad ? [0, 0, 0, 0, 0] : [1, 2, 3, 4, 5].map((z) => a[`hrTimeInZone_${z}`] ?? 0),
   }));
 
   // semaines : 52 dernières, lundi → dimanche
@@ -38,10 +46,10 @@ export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
   for (const a of acts) {
     const w = idx.get(monday(a.date));
     if (!w) continue;
-    for (const t of [w.total, w.by[a.sport]]) { t.km += a.km; t.sec += a.sec; t.n += 1; t.load += a.load ?? 0; t.elev += a.elev; }
+    for (const t of [w.total, w.by[a.sport]]) { t.km += a.km; t.sec += a.sec; if (a.km > 0) t.dsec += a.sec; t.n += 1; t.load += a.load ?? 0; t.elev += a.elev; }
     a.zones.forEach((s, i) => (w.zones[i] += s));
   }
-  const tidy = (t) => ({ km: r(t.km), sec: Math.round(t.sec), n: t.n, load: Math.round(t.load), elev: Math.round(t.elev) });
+  const tidy = (t) => ({ km: r(t.km), sec: Math.round(t.sec), dsec: Math.round(t.dsec), n: t.n, load: Math.round(t.load), elev: Math.round(t.elev) });
   const weeksOut = weeks.map((w) => ({ start: w.start, ...tidy(w.total), by: Object.fromEntries(Object.entries(w.by).map(([k, v]) => [k, tidy(v)])), zones: w.zones }));
 
   // séries quotidiennes (365 derniers jours), jours vides ignorés
@@ -104,7 +112,7 @@ export function buildSummary({ activities, daily, sleep, hrv, weight, today }) {
 
   const dates = acts.map((a) => a.date).sort();
   return {
-    generatedAt: new Date().toISOString(), today, units: "km", goal,
+    generatedAt: new Date().toISOString(), today, anomalies, units: "km", goal,
     range: { from: dates[0] ?? today, to: today },
     counts: { activities: acts.length, days: daily.length, nights: sleep.length, hrv: hrv.length, weighIns: weights.length },
     weeks: weeksOut, days, calendar, weights, records, biggestDays,
