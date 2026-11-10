@@ -30,7 +30,7 @@ export function Layout() {
   }, [pathname, scrolls]);
   useOfflineWarmup();
   useLiveUpdates();
-  useAutoGarminSync(!!me?.privateFeatures?.some((f) => f === "sante" || f === "sommeil" || f === "sport"));
+  useAutoGarminSync(!!me?.privateFeatures?.some((f) => f === "sante" || f === "sommeil" || f === "sport" || f === "aujourdhui"));
   return (
     <div
       className={`mx-auto min-h-screen max-w-2xl px-4 ${showNavBar ? "pb-32" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}

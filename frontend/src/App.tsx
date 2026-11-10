@@ -27,6 +27,7 @@ import { Shopping } from "./pages/Shopping";
 
 // page Santé chargée à la demande : elle n'alourdit pas le premier chargement de l'application
 const Weight = lazy(() => import("./pages/Weight").then((m) => ({ default: m.Weight })));
+const Today = lazy(() => import("./pages/Today").then((m) => ({ default: m.Today })));
 const Sleep = lazy(() => import("./pages/Sleep").then((m) => ({ default: m.Sleep })));
 const Sport = lazy(() => import("./pages/Sport").then((m) => ({ default: m.Sport })));
 const Health = lazy(() => import("./pages/Health").then((m) => ({ default: m.Health })));
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/media" element={<Gate page="media"><Media /></Gate>} />
         <Route path="/sante" element={<Gate page="sante"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Health /></Suspense></Gate>} />
         <Route path="/sport" element={<Gate page="sport"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Sport /></Suspense></Gate>} />
+        <Route path="/aujourdhui" element={<Gate page="aujourdhui"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Today /></Suspense></Gate>} />
         <Route path="/sommeil" element={<Gate page="sommeil"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Sleep /></Suspense></Gate>} />
         <Route path="/poids" element={<Gate page="poids"><Suspense fallback={<p className="py-8 text-center text-ink-soft">Chargement…</p>}><Weight /></Suspense></Gate>} />
         <Route path="/calories" element={<Gate page="calories"><Calories /></Gate>} />

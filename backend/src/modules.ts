@@ -3,7 +3,7 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 // Pages que l'administrateur active ou non pour chaque famille (Household.features). Mêmes noms que les routes du front, sans « / ».
 export const MODULES = ["cartes", "repas", "recettes", "courses", "restos", "depenses", "infos", "budget"] as const;
 // Espace privé de l'administrateur : jamais activé pour une famille, réservé à `User.isAdmin`
-export const PRIVATE_MODULES = ["journal", "calories", "media", "poids", "sante", "sport", "sommeil"] as const;
+export const PRIVATE_MODULES = ["journal", "calories", "media", "poids", "sante", "sport", "sommeil", "aujourdhui"] as const;
 export type Module = (typeof MODULES)[number] | (typeof PRIVATE_MODULES)[number];
 
 // ignore les anciennes pages devenues privées (journal, calories, média) qui traîneraient dans Household.features
@@ -26,9 +26,9 @@ const ROUTE_MODULES: Record<string, Module[]> = {
   budget: ["budget"],
   media: ["media"],
   weight: ["poids"],
-  training: ["sport"],
-  sync: ["sante", "sommeil", "sport"], // actualisation des données Garmin
-  wellness: ["sante", "sommeil"], // données Garmin au jour le jour (fichier produit sur l'ordinateur)
+  training: ["sport", "aujourdhui"],
+  sync: ["sante", "sommeil", "sport", "aujourdhui"], // actualisation des données Garmin
+  wellness: ["sante", "sommeil", "aujourdhui"], // données Garmin au jour le jour (fichier produit sur l'ordinateur)
   garmin: ["sante", "poids"], // Poids reprend l'objectif de poids de Garmin
 };
 

@@ -12,6 +12,7 @@ import { useMedia } from "../../lib/media";
 import { distance, duration, relativeDay, sportOf, useGarminActivities } from "../../lib/garmin";
 import { formatKg, useWeights } from "../../lib/weight";
 import { hasHealth, useHealth } from "../../lib/health";
+import { useToday } from "../../lib/today";
 import { useTraining } from "../../lib/training";
 import { cardsQuery, infosQuery, shoppingQuery } from "../../lib/offline";
 import { recipeCategory, useRecipes } from "../../lib/recipes";
@@ -382,6 +383,23 @@ export function SleepTile({ wide }: Props) {
         </>
       ) : (
         <p className="mt-2 text-sm font-bold text-ink/60">{error ? "Indisponible" : data ? "Aucune nuit mesurée" : "…"}</p>
+      )}
+    </Tile>
+  );
+}
+
+export function TodayTile({ wide }: Props) {
+  const { today, empty, error } = useToday();
+  return (
+    <Tile to="/aujourdhui" icon="🌅" label="Aujourd'hui" className={`${span(wide)}bg-lemon`}>
+      <Label>Aujourd'hui</Label>
+      {today ? (
+        <>
+          <p className="mt-1 text-2xl font-extrabold leading-tight">{today.verdict.icon} {today.verdict.title}</p>
+          <p className="text-sm font-bold text-ink/60">{today.score !== null ? `Récupération ${today.score}/100 · ` : ""}{today.session.title}</p>
+        </>
+      ) : (
+        <p className="mt-2 text-sm font-bold text-ink/60">{error || empty ? "Pas de données" : "…"}</p>
       )}
     </Tile>
   );
